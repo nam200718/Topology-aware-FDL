@@ -106,10 +106,10 @@ TopoFDL/
 
 ### Dependency installation
 
-From the repository subdirectory:
+From the project root:
 
 ```bash
-cd /home/runner/work/Topology-aware-FDL/Topology-aware-FDL/TopoFDL
+cd TopoFDL
 pip install -r requirements.txt
 ```
 
