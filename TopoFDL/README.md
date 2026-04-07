@@ -1,58 +1,95 @@
-# FedlEARNING: Federated Learning Topology Research Simulator
+# Topology-aware-FDL (TopoFDL)
 
-`FedlEARNING` is a high-fidelity federated learning research simulator designed to evaluate the impact of network topology on convergence rates and robustness against Byzantine attacks. 
+Topology-aware-FDL is a PyTorch-based federated learning simulator for studying how communication topology affects convergence and robustness under Byzantine behavior.
 
-By leveraging **PyTorch** for local training dynamics and a modular **Engine-Topology** architecture, this tool enables the simulation of complex multi-tier communication graphs at scale.
+It trains a shared CNN on non-IID MNIST client partitions and compares multiple FL communication patterns under the same experiment settings.
 
-## 🚀 Key Features
+## What this project includes
 
-*   **Diverse Topologies**: Support for Star (Centralized), Ring, Gossip (P2P), Hierarchical (2-tier), and **Layered** (Deep Hierarchical) networks.
-*   **Byzantine Attack Library**: Native implementation of the following threat vectors:
-    *   `label_flip`: Data poisoning via target remapping.
-    *   `gradient_ascent`: Active loss maximization.
-    *   `sign_flip`: Parameter sign inversion.
-    *   `random_noise`: Gaussian parameter pollution.
-*   **Deep Layered Aggregation**: A neural network-like DAG structure with **Intra-Layer Gossip** for lateral knowledge sharing.
-*   **Research-Ready Output**: Automated generation of CSV/JSON metrics and multi-panel convergence visualizations using Matplotlib/Seaborn.
-*   **Reproducibility**: Strict deterministic execution paths using seeded RNG streams across all components.
+- **Topologies**: `star`, `ring`, `gossip`, `hierarchical`, `layered`
+- **Engines**:
+  - Centralized engine (star)
+  - Decentralized engine (ring, gossip)
+  - Hierarchical engine
+  - Layered engine (with intra-layer gossip)
+- **Byzantine modes**:
+  - `label_flip`
+  - `gradient_ascent`
+  - `sign_flip`
+  - `random_noise`
+- **Outputs**:
+  - Per-experiment `metrics.json`
+  - Per-experiment `metrics.csv` (if `pandas` is available)
+  - Matrix plot `outputs/matrix/convergence_matrix.png` for matrix runs
 
-## 🛠️ Installation
+## Repository layout
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/[your-username]/FedlEARNING.git
-   cd FedlEARNING
-   ```
+```text
+TopoFDL/
+├── main.py
+├── requirements.txt
+├── src/
+│   ├── config.py
+│   ├── data/dataset.py
+│   ├── core/
+│   └── topologies/
+├── tests/
+└── docs/
+```
 
-2. Create a virtual environment and install dependencies:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+## Setup
 
-## 📊 Quick Start
+From `/home/runner/work/Topology-aware-FDL/Topology-aware-FDL/TopoFDL`:
 
-### 1. Run a Smoke Test (Star Topology)
-Execute the default single-run configuration on MNIST:
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Optional (for tests):
+
+```bash
+pip install pytest
+```
+
+## Usage
+
+### 1) Single default run
+
+Runs a short star-topology smoke experiment (`smoke_test_mnist`) from `main.py`.
+
 ```bash
 python main.py
 ```
 
-### 2. Run the Full Experiment Matrix
-Benchmark all topologies (Star, Ring, Gossip, Hierarchical, Layered) across multiple Byzantine rates (0.0, 0.1, 0.3):
+### 2) Full matrix run
+
+Sweeps all topologies against byzantine rates `0.0`, `0.1`, `0.3`.
+
 ```bash
 python main.py --matrix
 ```
 
-## 📖 Documentation
+## Output locations
 
-For detailed architecture explanations, experiment configuration guides, and research claims verification, refer to the documentation in the `/docs` directory:
+- Single/default run outputs: `outputs/<experiment_name>/`
+- Matrix outputs: `outputs/matrix/`
 
-*   [COMPLETE_GUIDE.md](docs/COMPLETE_GUIDE.md) – In-depth research and implementation details.
-*   [ARCHITECTURE.md](docs/ARCHITECTURE.md) – Internal components and engine logic.
-*   [EXPERIMENTS.md](docs/EXPERIMENTS.md) – Guidance on designing new research experiments.
+Each experiment folder contains metrics history by round, including `test_accuracy`, `test_loss`, and participation counts.
 
-## ⚖️ License
+## Testing
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+```bash
+python -m pytest -q
+```
+
+## Documentation
+
+- [docs/COMPLETE_GUIDE.md](docs/COMPLETE_GUIDE.md)
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)
+
+## License
+
+MIT — see [LICENSE](LICENSE).
