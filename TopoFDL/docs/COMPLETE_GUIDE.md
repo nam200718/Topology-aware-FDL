@@ -27,7 +27,7 @@
 
 ## 1. Architectural Overview
 
-Topology-aware-FDL (TopoFDL) is an empirical simulator for evaluating federated learning communication structures (topologies) and Byzantine robustness.
+Topology-aware-FDL (TopoFDL) is an empirical simulator for evaluating Federated Learning communication structures (topologies) and Byzantine robustness.
 
 The framework performs real PyTorch training on a CNN (`SimpleCNN`) over non-IID MNIST client partitions, then compares how topology and adversarial behavior affect convergence.
 
@@ -106,7 +106,7 @@ TopoFDL/
 
 ### Dependency installation
 
-From the project root:
+From the repository parent directory (skip `cd TopoFDL` if already inside it):
 
 ```bash
 cd TopoFDL
