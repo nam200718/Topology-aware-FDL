@@ -1,29 +1,69 @@
-# Experiment Cookbook & Interpretation Guide
+# Experiments
 
-## Running Baseline
+This project provides two entrypoints from `TopoFDL/main.py`.
 
-To generate a single baseline simulation spanning $100$ clients across $50$ rounds acting purely on a Star (FedAvg) projection:
+## 1) Single default run
 
 ```bash
 python main.py
 ```
 
-This populates `./outputs/smoke_test_baseline/metrics.json`.
+Default config:
+- `experiment_name="smoke_test_mnist"`
+- `num_rounds=5`
+- topology: `star`
+- clients: `num_clients=5`, `local_lr=0.01`, `local_steps=1`
+- robustness: defaults (`byzantine_rate=0.0`, `byzantine_type="label_flip"`)
 
-## Generating Core Matrices
+Outputs:
+- `./outputs/smoke_test_mnist/metrics.json`
+- `./outputs/smoke_test_mnist/metrics.csv` (if `pandas` is installed)
 
-To automatically sweep Topology combinations (`Star`, `Ring`, `Gossip`, `Hierarchical`) against systemic Byzantine threat models (`0%`, `10%`, `30%`), use:
+Notes:
+- MNIST is downloaded on demand into `./data`.
+- Device is auto-selected (`cuda` if available, otherwise `cpu`).
+
+## 2) Matrix run
 
 ```bash
 python main.py --matrix
 ```
 
-This exports individual JSON reports per topology+robustness vector, dropping `convergence_matrix.png` directly into `./outputs/matrix`.
+This runs a fixed sweep over:
+- topologies: `star`, `ring`, `gossip`, `hierarchical`, `layered`
+- byzantine rates: `0.0`, `0.1`, `0.3`
 
-## Interpreting Research Claims
+Per-run config in the matrix:
+- `num_rounds=5`
+- `num_clients=10`
+- `local_lr=0.01`
+- `local_steps=2`
+- `seed=42`
+- layered-only params: `layers=[10, 4, 2, 1]`
 
-1. **Convergence (L2 Distance)**: Plotted curves detail iterative movement toward `global_target`. Purely simulated vector bounds map `0` as "Perfect knowledge of data target". 
-2. **Topology Resilience**:
-   - Centralized Topologies (Star) naturally yield faster gradient transmission (depth 1 to any node) yielding sharper descent curves.
-   - P2P Topologies (Ring/Gossip) structurally require multiple hops to distribute information globally. You will strictly observe geometric latency relative to their average shortest path metrics. Ring converges the slowest.
-   - Byzantine Threat Response: Unweighted pure `FedAvg` aggregations utilized mechanically break rapidly near $>25\%$ Byzantine flipped participation. Expect sharp L2 divergence on the generated matrices directly correlating to this unhandled attack vector. Proposing Byzantine-resilient aggregators (e.g., Krum, Median) is designated for future research implementation hooks!
+Outputs:
+- Per experiment: `./outputs/matrix/<topology>_byz_<rate>/metrics.json` and `metrics.csv` (if `pandas` is installed)
+- Aggregate figure: `./outputs/matrix/convergence_matrix.png`
+
+## Metrics you will see
+
+Common round fields:
+- `round`
+- `test_accuracy`
+- `test_loss`
+- `participating_clients`
+- `total_clients_targeted`
+
+Layered topology also logs:
+- `aggregation_depth`
+- `gossip_steps`
+
+## Byzantine behavior in experiments
+
+Byzantine clients are sampled once at engine initialization using `byzantine_rate`, then keep their assigned attack type (`byzantine_type`) for all rounds.
+
+Supported attack modes:
+- `label_flip` (labels transformed as `9 - label` during local training)
+- `gradient_ascent` (loss sign inverted before backprop)
+- `sign_flip` (post-training model update multiplied by `-1`)
+- `random_noise` (post-training update replaced by high-variance random noise)
