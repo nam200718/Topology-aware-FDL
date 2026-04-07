@@ -104,7 +104,7 @@ TopoFDL/
 
 ## 6. Execution Guide
 
-### Dependency installation
+### Dependency Installation
 
 From the repository parent directory (skip `cd TopoFDL` if already inside it):
 
@@ -139,7 +139,7 @@ This sweeps topologies (`star`, `ring`, `gossip`, `hierarchical`, `layered`) acr
 
 Configuration models are defined in `src/config.py`.
 
-### Client / environment parameters
+### Client / Environment Parameters
 - `num_clients`: Number of participating clients.
 - `local_lr`: Local SGD learning rate.
 - `local_steps`: Number of local training epochs per round.
@@ -263,7 +263,7 @@ Metrics are written to:
 ## 16. Common Research Questions
 
 **Q: Can I integrate custom datasets (e.g., CIFAR-10)?**  
-Yes. Extend the data loading and partitioning logic in `src/data/dataset.py`, and ensure the model architecture in `src/core/model.py` matches the new input shape/task.
+Yes. Extend the data loading and partitioning logic in `src/data/dataset.py`. Ensure the model architecture in `src/core/model.py` matches the new input shape/task.
 
 **Q: Why does accuracy degrade at higher Byzantine rates (e.g., 30%)?**  
 Because the current global aggregation is standard FedAvg, which is not Byzantine-robust. Strong poisoning attacks can significantly skew the averaged update.
