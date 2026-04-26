@@ -16,6 +16,7 @@ from src.core.aggregator import FedAvgAggregator
 from src.core.centralized_engine import CentralizedEngine
 from src.core.decentralized_engine import DecentralizedEngine
 from src.core.hierarchical_engine import HierarchicalEngine
+from src.core.hierarchical_ensemble_engine import HierarchicalEnsembleEngine
 from src.core.layered_engine import LayeredEngine
 from src.utils.random import set_seed
 
@@ -34,6 +35,10 @@ def build_topology_and_engine(config: SimulationConfig):
         clusters = config.topology.params.get("num_clusters", 5)
         topology = HierarchicalTopology(num_clusters=clusters)
         engine_cls = HierarchicalEngine
+    elif config.topology.type == "hierarchical_ensemble":
+        clusters = config.topology.params.get("num_clusters", 5)
+        topology = HierarchicalTopology(num_clusters=clusters)
+        engine_cls = HierarchicalEnsembleEngine
     elif config.topology.type == "layered":
         layers = config.topology.params.get("layers", [config.clients.num_clients, 4, 2, 1])
         gossip_steps = config.topology.params.get("gossip_steps", 1)
@@ -51,7 +56,7 @@ def check_invariants(topology, config):
         check_ring_invariant(topology, config.clients.num_clients)
     elif config.topology.type == "gossip":
         check_gossip_invariant(topology, config.clients.num_clients)
-    elif config.topology.type == "hierarchical":
+    elif config.topology.type == "hierarchical" or config.topology.type == "hierarchical_ensemble":
         check_hierarchical_invariant(topology, config.clients.num_clients)
     elif config.topology.type == "layered":
         check_layered_invariant(topology, config.clients.num_clients)
@@ -75,7 +80,7 @@ def run_experiment(config: SimulationConfig):
     return engine.metrics.get_history()
 
 def run_matrix():
-    topologies = ["star", "ring", "gossip", "hierarchical", "layered"]
+    topologies = ["star", "ring", "gossip", "hierarchical", "hierarchical_ensemble", "layered"]
     # Matrix of byzantine failures instead of stragglers specifically, or both
     failure_rates = [0.0, 0.1, 0.3]
     

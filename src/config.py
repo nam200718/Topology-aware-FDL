@@ -9,7 +9,7 @@ class EnvironmentConfig(BaseModel):
     seed: int = 42
 
 class TopologyConfig(BaseModel):
-    type: Literal["star", "ring", "hierarchical", "gossip", "layered"] = "star"
+    type: Literal["star", "ring", "hierarchical", "hierarchical_ensemble", "gossip", "layered"] = "star"
     # Additional topology-specific parameters (e.g., degree for gossip, clusters for hierarchical)
     params: Dict[str, Any] = Field(default_factory=dict)
 
@@ -23,8 +23,12 @@ class ClientConfig(BaseModel):
     local_steps: int = 5
     # Use Local-Global Model Ensemble Personalization
     use_ensemble: bool = False
+    # Use Hierarchical Ensemble (Root, Parent, Local)
+    hierarchical_ensemble: bool = False
     # Weight of local model in ensemble (0.0=global only, 1.0=local only)
     ensemble_alpha: float = 0.5
+    # Weight of parent model in ensemble (if hierarchical_ensemble=True)
+    ensemble_beta: float = 0.2
 
 class RobustnessConfig(BaseModel):
     byzantine_rate: float = 0.0

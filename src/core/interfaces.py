@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Tuple
 import numpy as np
+import torch
 
 class ClientState:
     """Represents the mutable state of a client in the simulation."""
-    def __init__(self, client_id: int, initial_weights: np.ndarray):
+    def __init__(self, client_id: int, initial_weights: torch.Tensor):
         self.client_id = client_id
         self.weights = initial_weights
         self.local_weights = None  # Persistent local models for personalized ensemble
+        self.parent_weights = None # Persistent parent models for hierarchical ensemble
         
         # Meta information that might be useful for analysis
         self.data_samples: int = 100 
@@ -18,6 +20,8 @@ class ClientState:
         new_state = ClientState(self.client_id, self.weights.clone())
         if self.local_weights is not None:
             new_state.local_weights = self.local_weights.clone()
+        if self.parent_weights is not None:
+            new_state.parent_weights = self.parent_weights.clone()
         new_state.data_samples = self.data_samples
         new_state.is_byzantine = self.is_byzantine
         new_state.byzantine_type = self.byzantine_type

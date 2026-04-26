@@ -25,17 +25,19 @@ class SimulationEngine:
 
         self.updater = VectorLocalUpdater()
         
+        import torch
+        
         # Initialize target optimum (e.g. zeros)
         self.global_target = np.zeros(self.config.clients.model_dim)
         
-        # Initialize simulation state
-        self.server_weights = self.rng.normal(scale=1.0, size=self.config.clients.model_dim)
+        # Initialize simulation state with torch tensor
+        self.server_weights = torch.tensor(self.rng.normal(scale=1.0, size=self.config.clients.model_dim))
         
         # Initialize client states
         self.clients_state = {}
         for client_id in range(self.config.clients.num_clients):
-            # All clients start with the server weights
-            self.clients_state[client_id] = ClientState(client_id, self.server_weights.copy())
+            # All clients start with the server weights (torch tensor)
+            self.clients_state[client_id] = ClientState(client_id, self.server_weights.clone())
             
     def run(self):
         print(f"Starting simulation: {self.config.experiment_name}")

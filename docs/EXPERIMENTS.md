@@ -20,6 +20,24 @@ python main.py --matrix
 
 This exports individual JSON reports per topology+robustness vector, dropping `convergence_matrix.png` directly into `./outputs/matrix`.
 
+## Topology Comparison Study
+
+To compare all implemented topologies (Star, Ring, Gossip, Hierarchical, and Hierarchical Ensemble) in a single study:
+
+```bash
+python3 scripts/run_comparison.py
+```
+
+This will run each topology for 10 rounds and generate a combined accuracy chart in `./outputs/comparison_study/topology_comparison.png`.
+
+## Hierarchical Ensemble Experiment
+
+The Hierarchical Ensemble is a specialized topology where clients train three models (Root, Parent, Local) and use an ensemble for inference. To run a standalone test:
+
+```bash
+python3 scripts/run_ensemble_experiment.py
+```
+
 ## Interpreting Research Claims
 
 1. **Convergence (L2 Distance)**: Plotted curves detail iterative movement toward `global_target`. Purely simulated vector bounds map `0` as "Perfect knowledge of data target". 
