@@ -39,7 +39,7 @@ TopoFDL/
 
 ## Setup
 
-From `/home/runner/work/Topology-aware-FDL/Topology-aware-FDL/TopoFDL`:
+From the `TopoFDL/` directory:
 
 ```bash
 python -m venv .venv
