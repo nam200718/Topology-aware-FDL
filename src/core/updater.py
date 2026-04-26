@@ -1,0 +1,90 @@
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+
+from src.core.interfaces import ClientState
+from src.config import ClientConfig
+from src.core.model import SimpleCNN
+
+class PyTorchLocalUpdater:
+    def __init__(self, device="cpu"):
+        self.device = torch.device(device)
+        self.criterion = nn.CrossEntropyLoss()
+
+    def update(self, state: ClientState, client_dataset, config: ClientConfig, rng):
+        """
+        Loads the 1D weight tensor into the model, trains on client_dataset, and returns new weights.
+        """
+        use_ensemble = getattr(config, "use_ensemble", False)
+        
+        # Setup Global Model
+        global_model = SimpleCNN().to(self.device)
+        torch.nn.utils.vector_to_parameters(state.weights, global_model.parameters())
+        global_model.train()
+        global_optimizer = torch.optim.SGD(global_model.parameters(), lr=config.local_lr)
+        
+        # Setup Local Model (if ensemble)
+        local_model = None
+        local_optimizer = None
+        if use_ensemble:
+            local_model = SimpleCNN().to(self.device)
+            if getattr(state, "local_weights", None) is not None:
+                torch.nn.utils.vector_to_parameters(state.local_weights, local_model.parameters())
+            else:
+                # Initialize local weights with initial global weights on the first round
+                torch.nn.utils.vector_to_parameters(state.weights.clone(), local_model.parameters())
+            local_model.train()
+            local_optimizer = torch.optim.SGD(local_model.parameters(), lr=config.local_lr)
+
+        batch_size = min(32, len(client_dataset) if len(client_dataset) > 0 else 32)
+        if batch_size > 0:
+            dataloader = DataLoader(client_dataset, batch_size=batch_size, shuffle=True)
+            epochs = getattr(config, "local_steps", 1)
+            is_byz = getattr(state, "is_byzantine", False)
+            byz_type = getattr(state, "byzantine_type", "label_flip")
+
+            for epoch in range(epochs):
+                for images, labels in dataloader:
+                    images, labels = images.to(self.device), labels.to(self.device)
+                    
+                    if is_byz and byz_type == "label_flip":
+                        labels = 9 - labels
+
+                    # Train Global Model
+                    global_optimizer.zero_grad()
+                    outputs_global = global_model(images)
+                    loss_global = self.criterion(outputs_global, labels)
+                    if is_byz and byz_type == "gradient_ascent":
+                        loss_global = -loss_global
+                    loss_global.backward()
+                    global_optimizer.step()
+                    
+                    # Train Local Model
+                    if use_ensemble:
+                        local_optimizer.zero_grad()
+                        outputs_local = local_model(images)
+                        loss_local = self.criterion(outputs_local, labels)
+                        if is_byz and byz_type == "gradient_ascent":
+                            loss_local = -loss_local
+                        loss_local.backward()
+                        local_optimizer.step()
+
+        # Extract weights back to 1D tensor
+        new_weights = torch.nn.utils.parameters_to_vector(global_model.parameters()).detach().cpu()
+        if is_byz:
+            if byz_type == "sign_flip":
+                new_weights = -new_weights
+            elif byz_type == "random_noise":
+                new_weights = torch.randn_like(new_weights) * 10.0
+        state.weights = new_weights
+        
+        if use_ensemble:
+            new_local_weights = torch.nn.utils.parameters_to_vector(local_model.parameters()).detach().cpu()
+            if is_byz:
+                if byz_type == "sign_flip":
+                    new_local_weights = -new_local_weights
+                elif byz_type == "random_noise":
+                    new_local_weights = torch.randn_like(new_local_weights) * 10.0
+            state.local_weights = new_local_weights
+        
+        return state
