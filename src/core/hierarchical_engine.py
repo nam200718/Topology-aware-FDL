@@ -57,6 +57,8 @@ class HierarchicalEngine(BaseEngine):
             if client_states:
                 agg_weights = self.aggregator.aggregate(client_states)
                 self.cluster_heads_state[hid].weights = agg_weights
+                # Update cluster head data_samples to be the sum of its members
+                self.cluster_heads_state[hid].data_samples = sum(s.data_samples for s in client_states)
             head_states.append(self.cluster_heads_state[hid])
             
         # 5. Global Aggregation (Server aggregates cluster head weights)

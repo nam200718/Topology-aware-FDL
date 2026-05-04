@@ -69,7 +69,6 @@ def run_experiment(config: SimulationConfig):
     
     import torch
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    # if torch-directml was installed it would be here, but we removed it.
     
     engine = engine_cls(config=config, topology=topology, aggregator=aggregator, device=device)
     

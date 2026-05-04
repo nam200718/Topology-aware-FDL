@@ -8,7 +8,7 @@ from src.config import SimulationConfig
 from src.core.interfaces import Topology, Aggregator, ClientState, MetricsCollector
 
 from src.utils.random import get_random_state
-from src.data.dataset import get_mnist, partition_data_non_iid, ClientDataset
+from src.data.dataset import get_mnist, partition_data, ClientDataset
 from src.core.model import SimpleCNN
 import torch
 import torch.nn.functional as F
@@ -32,8 +32,24 @@ class BaseEngine(ABC):
         # Fetch datasets
         print("Downloading and dividing MNIST dataset...")
         self.train_dataset, self.test_dataset = get_mnist()
-        self.client_indices = partition_data_non_iid(self.train_dataset, self.config.clients.num_clients, seed=self.config.env.seed)
-        self.client_test_indices = partition_data_non_iid(self.test_dataset, self.config.clients.num_clients, seed=self.config.env.seed)
+        
+        non_iid_enabled = getattr(self.config.non_iid, "enabled", True)
+        num_shards = getattr(self.config.non_iid, "num_shards", 200)
+        
+        self.client_indices = partition_data(
+            self.train_dataset, 
+            self.config.clients.num_clients, 
+            non_iid=non_iid_enabled, 
+            num_shards=num_shards, 
+            seed=self.config.env.seed
+        )
+        self.client_test_indices = partition_data(
+            self.test_dataset, 
+            self.config.clients.num_clients, 
+            non_iid=non_iid_enabled, 
+            num_shards=num_shards, 
+            seed=self.config.env.seed
+        )
         
         # Fetch initial model vector
         dummy_model = SimpleCNN()
@@ -48,6 +64,11 @@ class BaseEngine(ABC):
         self.clients_state = {}
         for client_id in range(self.config.clients.num_clients):
             state = ClientState(client_id, initial_w.clone())
+            
+            # Set actual data samples count
+            if client_id in self.client_indices:
+                state.data_samples = len(self.client_indices[client_id])
+            
             if self.rng.rand() < getattr(self.config.robustness, "byzantine_rate", 0.0):
                 state.is_byzantine = True
                 state.byzantine_type = self.config.robustness.byzantine_type

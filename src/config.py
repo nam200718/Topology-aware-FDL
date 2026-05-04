@@ -35,6 +35,14 @@ class RobustnessConfig(BaseModel):
     # Attack options: 'label_flip', 'sign_flip', 'random_noise', 'gradient_ascent'
     byzantine_type: str = "label_flip"
 
+class NonIIDConfig(BaseModel):
+    # If True, partition data non-IID
+    enabled: bool = True
+    # Number of shards to divide the dataset into. 
+    # More shards = more IID if distributed randomly.
+    # Fewer shards = more non-IID.
+    num_shards: int = 200
+
 class SimulationConfig(BaseModel):
     experiment_name: str = "baseline_run"
     num_rounds: int = 100
@@ -43,6 +51,7 @@ class SimulationConfig(BaseModel):
     topology: TopologyConfig = Field(default_factory=TopologyConfig)
     clients: ClientConfig = Field(default_factory=ClientConfig)
     robustness: RobustnessConfig = Field(default_factory=RobustnessConfig)
+    non_iid: NonIIDConfig = Field(default_factory=NonIIDConfig)
 
     def ensure_output_dir(self):
         full_path = os.path.join(self.env.output_dir, self.experiment_name)

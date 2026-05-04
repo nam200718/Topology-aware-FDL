@@ -117,6 +117,8 @@ class LayeredEngine(BaseEngine):
                     child_states = [self._get_state(c) for c in children]
                     agg_weights = self.aggregator.aggregate(child_states)
                     self._set_weights(parent_id, agg_weights)
+                    # Update parent data_samples to be sum of children for next layer weighting
+                    self._get_state(parent_id).data_samples = sum(s.data_samples for s in child_states)
 
         # 4. Server receives the root's aggregated weights
         self.server_weights = self._get_state(self.topology.root_id).weights.clone()
