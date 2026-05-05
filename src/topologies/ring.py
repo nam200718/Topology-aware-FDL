@@ -3,6 +3,14 @@ import networkx as nx
 from src.core.interfaces import Topology
 
 class RingTopology(Topology):
+    """
+    [DECENTRALIZED] Ring Topology
+    
+    Architecture:
+    - Clients are arranged in a closed loop (cycle).
+    - Each client connects only to its immediate left and right neighbors.
+    - Knowledge propagates through the network step-by-step.
+    """
     def __init__(self):
         self.graph = None
         self.num_clients = 0

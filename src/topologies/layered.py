@@ -5,18 +5,12 @@ from src.core.interfaces import Topology
 
 class LayeredTopology(Topology):
     """
-    A multi-layer DAG topology resembling a feedforward neural network,
-    with optional intra-layer gossip (lateral knowledge sharing).
+    [DEEP HIERARCHICAL] Layered DAG Topology
     
-    Given layers = [10, 4, 2, 1] and gossip_steps = 1:
-      - Layer 0: 10 real training clients (IDs 0..9)
-      - Layer 1: 4 intermediate aggregator nodes
-      - Layer 2: 2 intermediate aggregator nodes
-      - Layer 3: 1 global server (root)
-    
-    Nodes within the same layer are connected in a ring for gossip.
-    After training/aggregation, each layer performs gossip_steps rounds
-    of peer averaging before propagating upward.
+    Architecture:
+    - Multi-layer Directed Acyclic Graph (DAG) resembling a Neural Network.
+    - Includes intermediate aggregation layers between clients and server.
+    - Features "Intra-Layer Gossip" for lateral knowledge sharing at each level.
     """
 
     def __init__(self, layers: List[int] = None, gossip_steps: int = 1):

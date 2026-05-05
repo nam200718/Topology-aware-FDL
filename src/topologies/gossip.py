@@ -4,6 +4,14 @@ from src.core.interfaces import Topology
 import random
 
 class GossipTopology(Topology):
+    """
+    [DECENTRALIZED] Gossip P2P Topology
+    
+    Architecture:
+    - Peer-to-peer network where each client connects to 'k' random neighbors.
+    - Uses a Random Regular Graph to ensure uniform connectivity.
+    - Highly robust and scalable for fully decentralized learning.
+    """
     def __init__(self, degree_k: int = 3):
         self.graph = None
         self.num_clients = 0

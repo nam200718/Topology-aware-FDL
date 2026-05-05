@@ -3,6 +3,14 @@ import networkx as nx
 from src.core.interfaces import Topology
 
 class StarTopology(Topology):
+    """
+    [CENTRALIZED] Star Topology
+    
+    Architecture:
+    - A single central server (hub) connected to all clients (spokes).
+    - All communication passes through the central server.
+    - Represents traditional Federated Learning (e.g., FedAvg).
+    """
     def __init__(self):
         self.graph = None
         self.server_id = -1

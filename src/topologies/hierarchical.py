@@ -3,6 +3,15 @@ import numpy as np
 from src.core.interfaces import Topology
 
 class HierarchicalTopology(Topology):
+    """
+    [HIERARCHICAL] 2-Tier Cluster Topology
+    
+    Architecture:
+    - Clients are grouped into clusters.
+    - Each cluster has a "Cluster Head" (intermediate aggregator).
+    - Cluster Heads communicate with the global server.
+    - Models the Edge-Cloud paradigm.
+    """
     def __init__(self, num_clusters: int = 5):
         self.num_clients = 0
         self.num_clusters = num_clusters

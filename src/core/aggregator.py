@@ -22,3 +22,25 @@ class FedAvgAggregator(Aggregator):
             weighted_sum += state.weights * weight
             
         return weighted_sum
+
+class RandomizedAggregator(Aggregator):
+    """
+    Assigns a random weight to each client's update during aggregation.
+    Can be used to test if random noise in aggregation provides any 
+    inherent robustness against biased attacks.
+    """
+    def aggregate(self, states: List[ClientState]) -> torch.Tensor:
+        if not states:
+            raise ValueError("Cannot aggregate empty list of states.")
+        
+        # Generate random weights for each client update
+        # We use torch.rand to stay on the same device/seed logic
+        weights = torch.rand(len(states))
+        total = weights.sum()
+        normalized_weights = weights / total
+        
+        weighted_sum = torch.zeros_like(states[0].weights)
+        for i, state in enumerate(states):
+            weighted_sum += state.weights * normalized_weights[i]
+            
+        return weighted_sum

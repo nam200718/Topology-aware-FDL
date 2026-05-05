@@ -7,9 +7,12 @@ class EnvironmentConfig(BaseModel):
     output_dir: str = "./outputs"
     # Seed for global reproducibility
     seed: int = 42
+    # Optional subset sizes for faster experiments
+    train_subset: Optional[int] = None
+    test_subset: Optional[int] = None
 
 class TopologyConfig(BaseModel):
-    type: Literal["star", "ring", "hierarchical", "hierarchical_ensemble", "gossip", "layered"] = "star"
+    type: Literal["star", "star_randomized", "ring", "hierarchical", "hierarchical_ensemble", "gossip", "layered"] = "star"
     # Additional topology-specific parameters (e.g., degree for gossip, clusters for hierarchical)
     params: Dict[str, Any] = Field(default_factory=dict)
 

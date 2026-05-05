@@ -31,7 +31,10 @@ class BaseEngine(ABC):
         
         # Fetch datasets
         print("Downloading and dividing MNIST dataset...")
-        self.train_dataset, self.test_dataset = get_mnist()
+        self.train_dataset, self.test_dataset = get_mnist(
+            train_subset=getattr(self.config.env, "train_subset", None),
+            test_subset=getattr(self.config.env, "test_subset", None)
+        )
         
         non_iid_enabled = getattr(self.config.non_iid, "enabled", True)
         num_shards = getattr(self.config.non_iid, "num_shards", 200)

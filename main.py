@@ -21,7 +21,7 @@ from src.core.layered_engine import LayeredEngine
 from src.utils.random import set_seed
 
 def build_topology_and_engine(config: SimulationConfig):
-    if config.topology.type == "star":
+    if config.topology.type == "star" or config.topology.type == "star_randomized":
         topology = StarTopology()
         engine_cls = CentralizedEngine
     elif config.topology.type == "ring":
