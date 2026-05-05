@@ -86,7 +86,7 @@ FedlEARNING/
 │   │   ├── star.py                  ← Centralized hub topology
 │   │   ├── ring.py                  ← 2-degree linear decentralized network
 │   │   ├── gossip.py                ← Randomized regular graph connection handling
-│   │   ├── hierarchical.py          ← Multi-tier grouping schemas
+│   │   ├── hierarchical.py          ← Multi-tier grouping schemas (also used for Hierarchical Ensemble)
 │   │   ├── layered.py               ← Neural network-like deep DAG topology
 │   │   └── checks.py                ← Structural invariants asserting valid connections
 │   │
@@ -179,6 +179,8 @@ Layer 3 (Server):                          SERVER
    4. Server receives the final aggregated result.
 
    **Byzantine defense**: The combination of vertical aggregation and horizontal gossip creates a double defense. A poisoned update is first diluted by peer gossip within its layer, then further diluted by aggregation at each subsequent layer. Setting `gossip_steps=0` disables lateral sharing (pure vertical aggregation).
+
+6. **Hierarchical Ensemble**: A multi-tier architecture where clients maintain and train three distinct models: a Global (Root) model, a Cluster (Parent) model, and a Local (Personalized) model. The final prediction is an ensemble of these three, weighted by `ensemble_alpha` and `ensemble_beta`. This is designed to balance global knowledge with local personalization and provide robustness against cluster-level or global-level noise.
 
 ---
 

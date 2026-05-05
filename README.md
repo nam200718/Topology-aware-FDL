@@ -6,7 +6,7 @@ By leveraging **PyTorch** for local training dynamics and a modular **Engine-Top
 
 ## 🚀 Key Features
 
-*   **Diverse Topologies**: Support for Star (Centralized), Ring, Gossip (P2P), Hierarchical (2-tier), and **Layered** (Deep Hierarchical) networks.
+*   **Diverse Topologies**: Support for Star (Centralized), Ring, Gossip (P2P), Hierarchical (2-tier), **Layered** (Deep Hierarchical), and **Hierarchical Ensemble** networks.
 *   **Byzantine Attack Library**: Native implementation of the following threat vectors:
     *   `label_flip`: Data poisoning via target remapping.
     *   `gradient_ascent`: Active loss maximization.

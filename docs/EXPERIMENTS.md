@@ -12,7 +12,7 @@ This populates `./outputs/smoke_test_baseline/metrics.json`.
 
 ## Generating Core Matrices
 
-To automatically sweep Topology combinations (`Star`, `Ring`, `Gossip`, `Hierarchical`) against systemic Byzantine threat models (`0%`, `10%`, `30%`), use:
+To automatically sweep Topology combinations (`Star`, `Ring`, `Gossip`, `Hierarchical`, `Hierarchical Ensemble`, `Layered`) against systemic Byzantine threat models (`0%`, `10%`, `30%`), use:
 
 ```bash
 python main.py --matrix
@@ -37,6 +37,16 @@ The Hierarchical Ensemble is a specialized topology where clients train three mo
 ```bash
 python3 scripts/run_ensemble_experiment.py
 ```
+
+## Layered Topology Experiment
+
+The Layered topology can be configured with varying depths and gossip steps. To run a complex layered experiment:
+
+```bash
+python main.py --matrix # This includes layered by default
+```
+
+Or configure manually in `main.py`.
 
 ## Interpreting Research Claims
 

@@ -9,7 +9,8 @@ The framework splits execution into specialized nodes:
 - `CentralizedEngine`: Manages Server-to-Client architectures like `StarTopology` directly syncing central weights outward.
 - `DecentralizedEngine`: Explicitly leverages physical node mapping where clients exclusively query their spatial neighbors per round, calculating local proxy gradients against aggregations of peers. Used for `RingTopology`, `GossipTopology`.
 - `HierarchicalEngine`: Establishes cluster-head proxy nodes mapping nested Edge-to-Cloud distributions natively.
-- `HierarchicalEnsembleEngine`: Implements a multi-tier ensemble approach where clients train and combine Root, Parent, and Local models.
+- `HierarchicalEnsembleEngine`: Implements a multi-tier ensemble approach where clients train and combine Root, Parent, and Local models for enhanced personalization and robustness.
+- `LayeredEngine`: A recursive multi-layer aggregation engine that handles deep DAG structures with optional intra-layer gossip.
 
 ## The Interfaces
 
