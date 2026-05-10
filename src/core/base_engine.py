@@ -35,6 +35,11 @@ class BaseEngine(ABC):
             train_subset=getattr(self.config.env, "train_subset", None),
             test_subset=getattr(self.config.env, "test_subset", None)
         )
+
+        if self.device.type != "cpu":
+            from src.data.dataset import FastDataset
+            self.train_dataset = FastDataset(self.train_dataset, self.device)
+            self.test_dataset = FastDataset(self.test_dataset, self.device)
         
         non_iid_enabled = getattr(self.config.non_iid, "enabled", True)
         num_shards = getattr(self.config.non_iid, "num_shards", 200)
@@ -77,18 +82,19 @@ class BaseEngine(ABC):
         print(f"Starting simulation: {self.config.experiment_name} | Topo: {self.config.topology.type}")
         for round_num in range(1, self.config.num_rounds + 1):
             self.run_round(round_num)
-            
+            print(f"Round {round_num}/{self.config.num_rounds} completed.")
+
         self.save_metrics()
-        
     @abstractmethod
     def run_round(self, round_num: int):
         pass
         
     def evaluate_model(self, weights: torch.Tensor):
-        model = SimpleCNN().to(self.device)
-        torch.nn.utils.vector_to_parameters(weights, model.parameters())
+        model = self.updater.global_model
+        torch.nn.utils.vector_to_parameters(weights.to(self.device), model.parameters())
         model.eval()
         
+        # If test_dataset is FastDataset, this loader is very efficient.
         test_loader = DataLoader(self.test_dataset, batch_size=1024, shuffle=False)
         correct = 0
         total = 0
@@ -97,6 +103,7 @@ class BaseEngine(ABC):
         
         with torch.no_grad():
             for images, labels in test_loader:
+                # images, labels are already on device if using FastDataset
                 images, labels = images.to(self.device), labels.to(self.device)
                 outputs = model(images)
                 loss = criterion(outputs, labels)
@@ -121,9 +128,9 @@ class BaseEngine(ABC):
         total_samples = 0
         total_loss = 0.0
         
-        # Instantiate two models
-        global_model = SimpleCNN().to(self.device)
-        local_model = SimpleCNN().to(self.device)
+        # Instantiate two models (reuse from updater)
+        global_model = self.updater.global_model
+        local_model = self.updater.local_model
         global_model.eval()
         local_model.eval()
         
@@ -133,15 +140,15 @@ class BaseEngine(ABC):
                 continue
                 
             # Load weights
-            torch.nn.utils.vector_to_parameters(state.weights, global_model.parameters())
-            torch.nn.utils.vector_to_parameters(state.local_weights, local_model.parameters())
+            torch.nn.utils.vector_to_parameters(state.weights.to(self.device), global_model.parameters())
+            torch.nn.utils.vector_to_parameters(state.local_weights.to(self.device), local_model.parameters())
             
             # Client's local test data
             client_test_ds = ClientDataset(self.test_dataset, self.client_test_indices[client_id])
             if len(client_test_ds) == 0:
                 continue
                 
-            test_loader = DataLoader(client_test_ds, batch_size=256, shuffle=False)
+            test_loader = DataLoader(client_test_ds, batch_size=len(client_test_ds), shuffle=False)
             
             with torch.no_grad():
                 for images, labels in test_loader:

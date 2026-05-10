@@ -28,6 +28,13 @@ By leveraging **PyTorch** for local training dynamics and a modular **Engine-Top
    ```bash
    python -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+   # For CPU-only or default installation:
+   pip install -r requirements.txt
+
+   # 🟢 For NVIDIA GPU Support (CUDA 11.8 or 12.1+):
+   # Install PyTorch with CUDA support first, then install the rest of the requirements:
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
    pip install -r requirements.txt
    ```
 

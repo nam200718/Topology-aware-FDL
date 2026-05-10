@@ -68,10 +68,22 @@ def run_experiment(config: SimulationConfig):
     aggregator = FedAvgAggregator()
     
     import torch
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+    if hasattr(torch, "accelerator") and torch.accelerator.is_available():
+        device = torch.accelerator.current_accelerator().type
+    elif torch.cuda.is_available():
+        device = "cuda"
+    elif hasattr(torch, "backends") and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        # Check for DirectML (common for AMD on Windows)
+        try:
+            import torch_directml
+            device = torch_directml.device()
+        except ImportError:
+            device = "cpu"
+
+    print(f"Using device: {device}")
     engine = engine_cls(config=config, topology=topology, aggregator=aggregator, device=device)
-    
     # Check invariants right after engine mapping builds topology in its __init__
     check_invariants(topology, config)
     

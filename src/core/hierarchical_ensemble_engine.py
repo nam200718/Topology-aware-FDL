@@ -103,9 +103,11 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
         total_samples = 0
         total_loss = 0.0
         
-        root_model = SimpleCNN().to(self.device)
-        parent_model = SimpleCNN().to(self.device)
-        local_model = SimpleCNN().to(self.device)
+        # Reuse model objects from the engine's updater if possible, or create once
+        root_model = self.updater.global_model
+        parent_model = self.updater.parent_model
+        local_model = self.updater.local_model
+        
         root_model.eval()
         parent_model.eval()
         local_model.eval()
@@ -114,26 +116,29 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
             state = self.clients_state[client_id]
             
             # Load weights
-            torch.nn.utils.vector_to_parameters(state.weights, root_model.parameters())
+            torch.nn.utils.vector_to_parameters(state.weights.to(self.device), root_model.parameters())
             
             if state.parent_weights is not None:
-                torch.nn.utils.vector_to_parameters(state.parent_weights, parent_model.parameters())
+                torch.nn.utils.vector_to_parameters(state.parent_weights.to(self.device), parent_model.parameters())
             else:
-                torch.nn.utils.vector_to_parameters(state.weights, parent_model.parameters())
+                torch.nn.utils.vector_to_parameters(state.weights.to(self.device), parent_model.parameters())
                 
             if state.local_weights is not None:
-                torch.nn.utils.vector_to_parameters(state.local_weights, local_model.parameters())
+                torch.nn.utils.vector_to_parameters(state.local_weights.to(self.device), local_model.parameters())
             else:
-                torch.nn.utils.vector_to_parameters(state.weights, local_model.parameters())
+                torch.nn.utils.vector_to_parameters(state.weights.to(self.device), local_model.parameters())
             
             client_test_ds = ClientDataset(self.test_dataset, self.client_test_indices[client_id])
             if len(client_test_ds) == 0:
                 continue
                 
-            test_loader = DataLoader(client_test_ds, batch_size=256, shuffle=False)
+            # If dataset is FastDataset, we don't really need a full DataLoader for small batches,
+            # but it's consistent. For FastDataset, DataLoader is very fast.
+            test_loader = DataLoader(client_test_ds, batch_size=len(client_test_ds), shuffle=False)
             
             with torch.no_grad():
                 for images, labels in test_loader:
+                    # images, labels are already on device if using FastDataset
                     images, labels = images.to(self.device), labels.to(self.device)
                     
                     logits_root = root_model(images)

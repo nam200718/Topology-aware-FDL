@@ -147,9 +147,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# PyCharm
-#  JetBrains specific template is maintained in a separate repository (github.com/github/gitignore/blob/main/Global/JetBrains.gitignore)
-#  and can be added to the current file. Jercy.gitignore
+
 
 # Project Specific
 data/

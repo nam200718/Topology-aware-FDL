@@ -10,6 +10,11 @@ class PyTorchLocalUpdater:
     def __init__(self, device="cpu"):
         self.device = torch.device(device)
         self.criterion = nn.CrossEntropyLoss()
+        
+        # Reuse models to save overhead
+        self.global_model = SimpleCNN().to(self.device)
+        self.local_model = SimpleCNN().to(self.device)
+        self.parent_model = SimpleCNN().to(self.device)
 
     def update(self, state: ClientState, client_dataset, config: ClientConfig, rng):
         """
@@ -20,37 +25,34 @@ class PyTorchLocalUpdater:
         train_parent = getattr(config, "hierarchical_ensemble", False)
         
         # Setup Global Model
-        global_model = SimpleCNN().to(self.device)
-        torch.nn.utils.vector_to_parameters(state.weights, global_model.parameters())
+        global_model = self.global_model
+        torch.nn.utils.vector_to_parameters(state.weights.to(self.device), global_model.parameters())
         global_model.train()
         global_optimizer = torch.optim.SGD(global_model.parameters(), lr=config.local_lr)
-        
+
         # Setup Local Model (if ensemble)
-        local_model = None
+        local_model = self.local_model
         local_optimizer = None
         if use_ensemble:
-            local_model = SimpleCNN().to(self.device)
             if getattr(state, "local_weights", None) is not None:
-                torch.nn.utils.vector_to_parameters(state.local_weights, local_model.parameters())
+                torch.nn.utils.vector_to_parameters(state.local_weights.to(self.device), local_model.parameters())
             else:
                 # Initialize local weights with initial global weights on the first round
-                torch.nn.utils.vector_to_parameters(state.weights.clone(), local_model.parameters())
+                torch.nn.utils.vector_to_parameters(state.weights.to(self.device), local_model.parameters())
             local_model.train()
             local_optimizer = torch.optim.SGD(local_model.parameters(), lr=config.local_lr)
 
         # Setup Parent Model (if hierarchical ensemble)
-        parent_model = None
+        parent_model = self.parent_model
         parent_optimizer = None
         if train_parent:
-            parent_model = SimpleCNN().to(self.device)
             if getattr(state, "parent_weights", None) is not None:
-                torch.nn.utils.vector_to_parameters(state.parent_weights, parent_model.parameters())
+                torch.nn.utils.vector_to_parameters(state.parent_weights.to(self.device), parent_model.parameters())
             else:
                 # Fallback to current weights if parent_weights not set
-                torch.nn.utils.vector_to_parameters(state.weights.clone(), parent_model.parameters())
+                torch.nn.utils.vector_to_parameters(state.weights.to(self.device), parent_model.parameters())
             parent_model.train()
             parent_optimizer = torch.optim.SGD(parent_model.parameters(), lr=config.local_lr)
-
         batch_size = min(32, len(client_dataset) if len(client_dataset) > 0 else 32)
         if batch_size > 0:
             dataloader = DataLoader(client_dataset, batch_size=batch_size, shuffle=True)
