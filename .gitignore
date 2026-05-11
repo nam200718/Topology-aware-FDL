@@ -150,8 +150,8 @@ cython_debug/
 
 
 # Project Specific
-data/
-outputs/
+/data/
+/outputs/
 .gemini/
 .antigravity/
 .vscode/
