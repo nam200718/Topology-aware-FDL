@@ -3,6 +3,7 @@ import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import numpy as np
 
 def plot_experiment_results(metrics_path, output_dir=None):
     """
@@ -14,7 +15,7 @@ def plot_experiment_results(metrics_path, output_dir=None):
 
     # Load data
     if metrics_path.endswith('.json'):
-        with open(metrics_path, 'r') as f:
+        with open(metrics_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         df = pd.DataFrame(data)
     else:
@@ -27,10 +28,10 @@ def plot_experiment_results(metrics_path, output_dir=None):
     
     # 1. Accuracy Plot
     plt.figure(figsize=(10, 6))
-    plt.plot(df['round'], df['test_accuracy'], label='Global Model Accuracy', marker='o')
+    plt.plot(np.asarray(df['round']), np.asarray(df['test_accuracy']), label='Global Model Accuracy', marker='o')
     
     if 'ensemble_test_accuracy' in df.columns:
-        plt.plot(df['round'], df['ensemble_test_accuracy'], label='Ensemble Accuracy', marker='s', linestyle='--')
+        plt.plot(np.asarray(df['round']), np.asarray(df['ensemble_test_accuracy']), label='Ensemble Accuracy', marker='s', linestyle='--')
     
     plt.title('Model Accuracy Convergence')
     plt.xlabel('Round')
@@ -42,10 +43,10 @@ def plot_experiment_results(metrics_path, output_dir=None):
 
     # 2. Loss Plot
     plt.figure(figsize=(10, 6))
-    plt.plot(df['round'], df['test_loss'], label='Global Model Loss', marker='o', color='red')
+    plt.plot(np.asarray(df['round']), np.asarray(df['test_loss']), label='Global Model Loss', marker='o', color='red')
     
     if 'ensemble_test_loss' in df.columns:
-        plt.plot(df['round'], df['ensemble_test_loss'], label='Ensemble Loss', marker='s', linestyle='--', color='orange')
+        plt.plot(np.asarray(df['round']), np.asarray(df['ensemble_test_loss']), label='Ensemble Loss', marker='s', linestyle='--', color='orange')
     
     plt.title('Model Loss Convergence')
     plt.xlabel('Round')
@@ -67,16 +68,16 @@ def plot_comparison(experiment_dirs, labels, output_path):
     for exp_dir, label in zip(experiment_dirs, labels):
         json_path = os.path.join(exp_dir, 'metrics.json')
         if os.path.exists(json_path):
-            with open(json_path, 'r') as f:
+            with open(json_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             df = pd.DataFrame(data)
             
             # Plot global accuracy
-            plt.plot(df['round'], df['test_accuracy'], label=f'{label} (Global)')
+            plt.plot(np.asarray(df['round']), np.asarray(df['test_accuracy']), label=f'{label} (Global)')
             
             # Plot ensemble if available
             if 'ensemble_test_accuracy' in df.columns:
-                plt.plot(df['round'], df['ensemble_test_accuracy'], label=f'{label} (Ensemble)', linestyle='--')
+                plt.plot(np.asarray(df['round']), np.asarray(df['ensemble_test_accuracy']), label=f'{label} (Ensemble)', linestyle='--')
                 
     plt.title('Experiment Comparison: Test Accuracy')
     plt.xlabel('Round')

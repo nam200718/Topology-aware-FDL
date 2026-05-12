@@ -13,10 +13,10 @@ class FedAvgAggregator(Aggregator):
         if total_samples == 0:
             # Fallback to simple average
             stacked_weights = torch.stack([state.weights for state in states])
-            return torch.mean(stacked_weights, dim=0)
+            return stacked_weights.mean(dim=0)
             
         # Weighted average based on number of local data samples
-        weighted_sum = torch.zeros_like(states[0].weights)
+        weighted_sum = states[0].weights.new_zeros(states[0].weights.shape)
         for state in states:
             weight = state.data_samples / total_samples
             weighted_sum += state.weights * weight
@@ -39,7 +39,7 @@ class RandomizedAggregator(Aggregator):
         total = weights.sum()
         normalized_weights = weights / total
         
-        weighted_sum = torch.zeros_like(states[0].weights)
+        weighted_sum = states[0].weights.new_zeros(states[0].weights.shape)
         for i, state in enumerate(states):
             weighted_sum += state.weights * normalized_weights[i]
             

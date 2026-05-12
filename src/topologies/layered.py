@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 import numpy as np
 from src.core.interfaces import Topology
 
@@ -13,7 +13,7 @@ class LayeredTopology(Topology):
     - Features "Intra-Layer Gossip" for lateral knowledge sharing at each level.
     """
 
-    def __init__(self, layers: List[int] = None, gossip_steps: int = 1):
+    def __init__(self, layers: Optional[List[int]] = None, gossip_steps: int = 1):
         if layers is None:
             layers = [10, 4, 2, 1]
         self.layers = layers

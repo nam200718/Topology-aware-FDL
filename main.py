@@ -4,7 +4,8 @@ import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from src.config import SimulationConfig, TopologyConfig, ClientConfig, EnvironmentConfig, RobustnessConfig
+from typing import List
+from src.config import SimulationConfig, TopologyConfig, ClientConfig, EnvironmentConfig, RobustnessConfig, TopologyType
 from src.topologies.star import StarTopology
 from src.topologies.ring import RingTopology
 from src.topologies.gossip import GossipTopology
@@ -69,7 +70,11 @@ def run_experiment(config: SimulationConfig):
     
     import torch
     if hasattr(torch, "accelerator") and torch.accelerator.is_available():
-        device = torch.accelerator.current_accelerator().type
+        acc = torch.accelerator.current_accelerator()
+        if acc is not None:
+            device = acc.type
+        else:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
     elif torch.cuda.is_available():
         device = "cuda"
     elif hasattr(torch, "backends") and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
@@ -77,7 +82,7 @@ def run_experiment(config: SimulationConfig):
     else:
         # Check for DirectML (common for AMD on Windows)
         try:
-            import torch_directml
+            import torch_directml # type: ignore
             device = torch_directml.device()
         except ImportError:
             device = "cpu"
@@ -91,7 +96,7 @@ def run_experiment(config: SimulationConfig):
     return engine.metrics.get_history()
 
 def run_matrix():
-    topologies = ["star", "ring", "gossip", "hierarchical", "hierarchical_ensemble", "layered"]
+    topologies: List[TopologyType] = ["star", "ring", "gossip", "hierarchical", "hierarchical_ensemble", "layered"]
     # Matrix of byzantine failures instead of stragglers specifically, or both
     failure_rates = [0.0, 0.1, 0.3]
     

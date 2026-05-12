@@ -10,7 +10,8 @@ import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from src.config import SimulationConfig, TopologyConfig, ClientConfig, EnvironmentConfig, RobustnessConfig, NonIIDConfig
+from typing import List, Tuple, Dict, Any
+from src.config import SimulationConfig, TopologyConfig, ClientConfig, EnvironmentConfig, RobustnessConfig, NonIIDConfig, TopologyType
 from main import run_experiment
 from src.utils.visualizer import plot_comparison
 
@@ -24,7 +25,7 @@ def main():
     os.makedirs(plots_dir, exist_ok=True)
     os.makedirs(metrics_dir, exist_ok=True)
 
-    topologies = [
+    topologies: List[Tuple[TopologyType, Dict[str, Any]]] = [
         ("star", {}),
         ("star_randomized", {}),
         ("ring", {}),
@@ -94,7 +95,7 @@ def main():
             
             # Silence internal engine prints for cleaner output
             import contextlib
-            with contextlib.redirect_stdout(None):
+            if True:
                 hx = run_experiment(config)
             
             # Store path for convergence plot
@@ -141,7 +142,7 @@ def main():
     plt.close()
     
     # Save the summary to JSON
-    with open(os.path.join(experiment_root, "summary.json"), "w") as f:
+    with open(os.path.join(experiment_root, "summary.json"), "w", encoding='utf-8') as f:
         json.dump(summary_results, f, indent=4)
     
     print(f"\nStudy Complete!")

@@ -2,7 +2,7 @@ import json
 import os
 import numpy as np
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from src.config import SimulationConfig
 from src.core.interfaces import Topology, Aggregator, ClientState, MetricsCollector
@@ -31,10 +31,12 @@ class BaseEngine(ABC):
         
         # Fetch datasets
         print("Downloading and dividing MNIST dataset...")
-        self.train_dataset, self.test_dataset = get_mnist(
+        train_ds, test_ds = get_mnist(
             train_subset=getattr(self.config.env, "train_subset", None),
             test_subset=getattr(self.config.env, "test_subset", None)
         )
+        self.train_dataset: torch.utils.data.Dataset = train_ds
+        self.test_dataset: torch.utils.data.Dataset = test_ds
 
         if self.device.type != "cpu":
             from src.data.dataset import FastDataset
@@ -45,14 +47,14 @@ class BaseEngine(ABC):
         num_shards = getattr(self.config.non_iid, "num_shards", 200)
         
         from src.data.dataset import partition_data
-        self.client_indices = partition_data(
+        self.client_indices: Dict[int, List[int]] = partition_data(
             self.train_dataset, 
             self.config.clients.num_clients, 
             non_iid=non_iid_enabled, 
             num_shards=num_shards, 
             seed=self.config.env.seed
         )
-        self.client_test_indices = partition_data(
+        self.client_test_indices: Dict[int, List[int]] = partition_data(
             self.test_dataset, 
             self.config.clients.num_clients, 
             non_iid=non_iid_enabled, 
@@ -68,6 +70,7 @@ class BaseEngine(ABC):
         
         from src.core.updater import PyTorchLocalUpdater
         self.updater = PyTorchLocalUpdater(device=device)
+        self.server_weights: torch.Tensor = initial_w.clone()
         
         # Track clients
         self.clients_state = {}
@@ -109,7 +112,7 @@ class BaseEngine(ABC):
                 loss = criterion(outputs, labels)
                 total_loss += loss.item()
                 
-                _, predicted = torch.max(outputs.data, 1)
+                predicted = outputs.argmax(dim=1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
                 
@@ -140,7 +143,7 @@ class BaseEngine(ABC):
                 continue
                 
             # Load weights
-            torch.nn.utils.vector_to_parameters(state.weights.to(self.device), global_model.parameters())
+            torch.nn.utils.vector_to_parameters(self.server_weights.to(self.device), global_model.parameters())
             torch.nn.utils.vector_to_parameters(state.local_weights.to(self.device), local_model.parameters())
             
             # Client's local test data
@@ -163,7 +166,7 @@ class BaseEngine(ABC):
                     loss = criterion(logits_ensemble, labels)
                     total_loss += loss.item()
                     
-                    _, predicted = torch.max(logits_ensemble.data, 1)
+                    predicted = logits_ensemble.argmax(dim=1)
                     total_samples += labels.size(0)
                     total_correct += (predicted == labels).sum().item()
                     
@@ -179,7 +182,7 @@ class BaseEngine(ABC):
         
         # Save JSON
         json_path = os.path.join(out_dir, "metrics.json")
-        with open(json_path, "w") as f:
+        with open(json_path, "w", encoding='utf-8') as f:
             json.dump(self.metrics.get_history(), f, indent=4)
             
         # Save CSV

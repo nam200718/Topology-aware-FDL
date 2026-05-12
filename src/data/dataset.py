@@ -12,8 +12,43 @@ class ClientDataset(Dataset):
     def __len__(self):
         return len(self.indices)
 
-    def __getitem__(self, idx):
-        return self.dataset[self.indices[idx]]
+    def __getitem__(self, index):
+        return self.dataset[self.indices[index]]
+
+    @property
+    def targets(self):
+        """Attempts to provide targets by indexing into the underlying dataset."""
+        labels = _get_labels(self.dataset)
+        if labels is not None:
+            return labels[self.indices]
+        return None
+
+def _get_labels(dataset):
+    """
+    Helper to extract labels from a dataset or its wrappers (Subset, ClientDataset, FastDataset).
+    Returns a numpy array or torch tensor of labels, or None if not found.
+    """
+    # Use getattr to be safe
+    targets = getattr(dataset, 'targets', None)
+    if targets is not None:
+        return targets
+        
+    labels = getattr(dataset, 'labels', None)
+    if labels is not None:
+        return labels
+    
+    # Handle common wrappers (Subset, ClientDataset)
+    base_ds = getattr(dataset, 'dataset', None)
+    indices = getattr(dataset, 'indices', None)
+    if base_ds is not None and indices is not None:
+        base_labels = _get_labels(base_ds)
+        if base_labels is not None:
+            if isinstance(base_labels, torch.Tensor):
+                return base_labels[indices]
+            else:
+                return np.array([base_labels[i] for i in indices])
+                
+    return None
 
 class FastDataset(Dataset):
     """
@@ -36,8 +71,12 @@ class FastDataset(Dataset):
     def __len__(self):
         return len(self.labels)
 
-    def __getitem__(self, idx):
-        return self.images[idx], self.labels[idx]
+    def __getitem__(self, index):
+        return self.images[index], self.labels[index]
+
+    @property
+    def targets(self):
+        return self.labels
 
 def get_mnist(data_dir="./data", train_subset=None, test_subset=None):
     """Downloads and returns the MNIST train and test sets, optionally subsetted."""
@@ -52,13 +91,10 @@ def get_mnist(data_dir="./data", train_subset=None, test_subset=None):
     if train_subset is not None and train_subset < len(train_dataset):
         indices = np.random.choice(len(train_dataset), train_subset, replace=False)
         train_dataset = Subset(train_dataset, indices)
-        # We need to preserve .targets for partition_data
-        train_dataset.targets = torch.tensor([train_dataset.dataset.targets[i] for i in indices])
         
     if test_subset is not None and test_subset < len(test_dataset):
         indices = np.random.choice(len(test_dataset), test_subset, replace=False)
         test_dataset = Subset(test_dataset, indices)
-        test_dataset.targets = torch.tensor([test_dataset.dataset.targets[i] for i in indices])
 
     return train_dataset, test_dataset
 
@@ -82,13 +118,14 @@ def partition_data(dataset, num_clients, non_iid=True, num_shards=200, seed=42):
         return client_indices
     else:
         # Non-IID partitioning
-        if hasattr(dataset, 'targets'):
-            labels = dataset.targets
-            if isinstance(labels, torch.Tensor):
-                labels = labels.numpy()
-        else:
-            # Fallback if targets not available (e.g. nested subset)
+        labels = _get_labels(dataset)
+        
+        if labels is None:
+            # Fallback if labels not found via attributes
             labels = np.array([dataset[i][1] for i in range(len(dataset))])
+            
+        if isinstance(labels, torch.Tensor):
+            labels = labels.cpu().numpy()
             
         sorted_indices = np.argsort(labels)
         

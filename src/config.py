@@ -1,6 +1,8 @@
 import os
 from pydantic import BaseModel, Field
-from typing import Literal, Dict, Any, Optional
+from typing import Literal, Dict, Any, Optional, List, Union
+
+TopologyType = Literal["star", "star_randomized", "ring", "hierarchical", "hierarchical_ensemble", "gossip", "layered"]
 
 class EnvironmentConfig(BaseModel):
     # Where to save outputs
@@ -12,7 +14,7 @@ class EnvironmentConfig(BaseModel):
     test_subset: Optional[int] = None
 
 class TopologyConfig(BaseModel):
-    type: Literal["star", "star_randomized", "ring", "hierarchical", "hierarchical_ensemble", "gossip", "layered"] = "star"
+    type: TopologyType = "star"
     # Additional topology-specific parameters (e.g., degree for gossip, clusters for hierarchical)
     params: Dict[str, Any] = Field(default_factory=dict)
 

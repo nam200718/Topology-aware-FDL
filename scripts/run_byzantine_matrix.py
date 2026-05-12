@@ -10,7 +10,8 @@ import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from src.config import SimulationConfig, TopologyConfig, ClientConfig, EnvironmentConfig, RobustnessConfig, NonIIDConfig
+from typing import List, Tuple, Dict, Any
+from src.config import SimulationConfig, TopologyConfig, ClientConfig, EnvironmentConfig, RobustnessConfig, NonIIDConfig, TopologyType
 from main import run_experiment
 
 def main():
@@ -23,7 +24,7 @@ def main():
     os.makedirs(plots_dir, exist_ok=True)
     os.makedirs(metrics_dir, exist_ok=True)
 
-    topologies = [
+    topologies: List[Tuple[TopologyType, str, Dict[str, Any]]] = [
         ("star", "Star", {}),
         ("star_randomized", "Star (Rand)", {}),
         ("ring", "Ring", {}),
@@ -81,8 +82,7 @@ def main():
                 non_iid=NonIIDConfig(enabled=False) # Keep it IID to isolate Byzantine impact
             )
             
-            import contextlib
-            with contextlib.redirect_stdout(None):
+            if True:
                 hx = run_experiment(config)
             
             final_acc = hx[-1].get("test_accuracy", 0.0)

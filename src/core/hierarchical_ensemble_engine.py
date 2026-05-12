@@ -50,6 +50,7 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
             # Prepare state for parent aggregation (head level)
             # We need a ClientState where .weights is the trained parent model
             s_parent = updated_state.copy()
+            assert updated_state.parent_weights is not None, "Parent weights must be initialized for hierarchical ensemble"
             s_parent.weights = updated_state.parent_weights
             cluster_updates_parent[head_id].append(s_parent)
             
@@ -115,13 +116,16 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
         for client_id in range(self.config.clients.num_clients):
             state = self.clients_state[client_id]
             
-            # Load weights
-            torch.nn.utils.vector_to_parameters(state.weights.to(self.device), root_model.parameters())
+            # Load weights from newly aggregated server and cluster heads
+            torch.nn.utils.vector_to_parameters(self.server_weights.to(self.device), root_model.parameters())
+            
+            head_id = self.topology.get_neighbors(client_id)[0]
+            agg_parent_weights = self.cluster_heads_state[head_id].weights
             
             if state.parent_weights is not None:
-                torch.nn.utils.vector_to_parameters(state.parent_weights.to(self.device), parent_model.parameters())
+                torch.nn.utils.vector_to_parameters(agg_parent_weights.to(self.device), parent_model.parameters())
             else:
-                torch.nn.utils.vector_to_parameters(state.weights.to(self.device), parent_model.parameters())
+                torch.nn.utils.vector_to_parameters(self.server_weights.to(self.device), parent_model.parameters())
                 
             if state.local_weights is not None:
                 torch.nn.utils.vector_to_parameters(state.local_weights.to(self.device), local_model.parameters())
@@ -151,7 +155,7 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
                     loss = criterion(logits_ensemble, labels)
                     total_loss += loss.item()
                     
-                    _, predicted = torch.max(logits_ensemble.data, 1)
+                    predicted = logits_ensemble.argmax(dim=1)
                     total_samples += labels.size(0)
                     total_correct += (predicted == labels).sum().item()
                     
