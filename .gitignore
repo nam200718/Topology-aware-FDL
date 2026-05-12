@@ -156,3 +156,6 @@ cython_debug/
 .antigravity/
 .vscode/
 .idea/
+
+# Windows Virtual Environment
+.venv_amd/
