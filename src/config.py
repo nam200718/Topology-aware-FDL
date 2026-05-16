@@ -46,7 +46,7 @@ class NonIIDConfig(BaseModel):
     # Number of shards to divide the dataset into. 
     # More shards = more IID if distributed randomly.
     # Fewer shards = more non-IID.
-    num_shards: int = 200
+    num_shards: int = 30
 
 class SimulationConfig(BaseModel):
     experiment_name: str = "baseline_run"

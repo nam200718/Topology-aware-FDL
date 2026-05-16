@@ -139,6 +139,8 @@ class BaseEngine(ABC):
         
         for client_id in range(self.config.clients.num_clients):
             state = self.clients_state[client_id]
+            if getattr(state, "is_byzantine", False):
+                continue
             if getattr(state, "local_weights", None) is None:
                 continue
                 
