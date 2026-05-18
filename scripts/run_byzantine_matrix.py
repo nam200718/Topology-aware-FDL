@@ -1,110 +1,84 @@
 import os
 import sys
+import argparse
 from datetime import datetime
 
 # Add the project root to the path so we can import from src and main
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(_project_root)
 
-import torch
+# --- Virtual environment check ---
+if not os.environ.get("VIRTUAL_ENV") and sys.prefix == sys.base_prefix:
+    print("ERROR: Virtual environment is not activated.", file=sys.stderr)
+    print(f"  Run:  source {_project_root}/.venv/bin/activate", file=sys.stderr)
+    sys.exit(1)
+
 import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from typing import List, Tuple, Dict, Any
-from src.config import SimulationConfig, TopologyConfig, ClientConfig, EnvironmentConfig, RobustnessConfig, NonIIDConfig, TopologyType
+from src.config import ExperimentConfig
 from main import run_experiment
 
+DEFAULT_CONFIG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "configs", "byzantine_matrix.yaml")
+
 def main():
+    parser = argparse.ArgumentParser(description="Byzantine Robustness Matrix Experiment")
+    parser.add_argument("--config", type=str, default=DEFAULT_CONFIG, help="Path to YAML config file")
+    args = parser.parse_args()
+
+    exp_cfg = ExperimentConfig.from_yaml(args.config)
+
     # Create a unique timestamped directory for this run
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    experiment_root = os.path.join("./outputs", f"byzantine_matrix_{timestamp}")
+    experiment_root = os.path.join(exp_cfg.env.output_dir, f"byzantine_matrix_{timestamp}")
     plots_dir = os.path.join(experiment_root, "plots")
     metrics_dir = os.path.join(experiment_root, "metrics")
     
     os.makedirs(plots_dir, exist_ok=True)
     os.makedirs(metrics_dir, exist_ok=True)
 
-    topologies: List[Tuple[TopologyType, str, Dict[str, Any]]] = [
-        ("star", "Star", {}),
-        ("star_randomized", "Star (Rand)", {}),
-        ("ring", "Ring", {}),
-        ("gossip", "Gossip", {"degree_k": 3}),
-        ("hierarchical", "Hierarchical", {"num_clusters": 3}),
-        ("hierarchical_ensemble", "Ensemble", {"num_clusters": 3}),
-        ("layered", "Layered", {"layers": [15, 5, 1]})
-    ]
-    
-    byzantine_rates = [0.0, 0.1, 0.2, 0.3, 0.5]
-    
+    # Build all SimulationConfig instances from the YAML
+    entries = exp_cfg.build_configs(metrics_dir=metrics_dir)
+
     results = []
-    
-    # Common client config
-    client_config_base = {
-        "num_clients": 15,
-        "local_lr": 0.05,
-        "local_steps": 1,
-    }
-    
-    num_rounds = 20 # Increased for better convergence
-    env_config = EnvironmentConfig(
-        seed=42, 
-        output_dir=metrics_dir,
-        train_subset=None, # Use full training set
-        test_subset=None   # Use full test set
-    )
-    
+
     print(f"Starting Byzantine Robustness Matrix")
+    print(f"Config: {args.config}")
     print(f"Output directory: {experiment_root}")
-    print(f"Byzantine Rates: {byzantine_rates}")
+    print(f"Byzantine Rates: {exp_cfg.byzantine_rates}")
     print("-" * 65)
-    
-    for topo_type, topo_label, params in topologies:
-        for rate in byzantine_rates:
-            exp_name = f"{topo_type}_byz_{int(rate*100)}"
-            print(f"Topo: {topo_label:15} | Byz Rate: {rate:3.1f}", end=" ", flush=True)
-            
-            is_ensemble = (topo_type == "hierarchical_ensemble")
-            
-            config = SimulationConfig(
-                experiment_name=exp_name,
-                num_rounds=num_rounds,
-                env=env_config,
-                topology=TopologyConfig(type=topo_type, params=params),
-                clients=ClientConfig(
-                    **client_config_base,
-                    use_ensemble=is_ensemble,
-                    hierarchical_ensemble=is_ensemble,
-                ),
-                robustness=RobustnessConfig(
-                    byzantine_rate=rate,
-                    byzantine_type="label_flip"
-                ),
-                non_iid=NonIIDConfig(enabled=False) # Keep it IID to isolate Byzantine impact
-            )
-            
-            if True:
-                hx = run_experiment(config)
-            
-            final_acc = hx[-1].get("test_accuracy", 0.0)
-            if is_ensemble and "ensemble_test_accuracy" in hx[-1]:
-                final_acc = hx[-1]["ensemble_test_accuracy"]
-                
-            results.append({
-                "Topology": topo_label,
-                "Byzantine Rate": rate,
-                "Final Accuracy": final_acc
-            })
-            print(f"| Final Acc: {final_acc:6.2f}%")
-            
+
+    for entry in entries:
+        config = entry["config"]
+        topo_label = entry["topo_label"]
+        rate = entry["byzantine_rate"]
+
+        print(f"Topo: {topo_label:15} | Byz Rate: {rate:3.1f}", end=" ", flush=True)
+
+        hx = run_experiment(config)
+
+        final_acc = hx[-1].get("test_accuracy", 0.0)
+        is_ensemble = (config.topology.type == "hierarchical_ensemble")
+        if is_ensemble and "ensemble_test_accuracy" in hx[-1]:
+            final_acc = hx[-1]["ensemble_test_accuracy"]
+
+        results.append({
+            "Topology": topo_label,
+            "Byzantine Rate": rate,
+            "Final Accuracy": final_acc
+        })
+        print(f"| Final Acc: {final_acc:6.2f}%")
+
     # Save results
     df = pd.DataFrame(results)
     df.to_csv(os.path.join(experiment_root, "matrix_results.csv"), index=False)
-    
+
     # Plotting
     plt.figure(figsize=(12, 7))
     sns.set_style("whitegrid")
     sns.lineplot(data=df, x="Byzantine Rate", y="Final Accuracy", hue="Topology", marker="o")
-    plt.title(f"Byzantine Robustness Matrix (after {num_rounds} rounds)")
+    plt.title(f"Byzantine Robustness Matrix (after {exp_cfg.num_rounds} rounds)")
     plt.ylabel("Test Accuracy (%)")
     plt.xlabel("Byzantine Rate (Proportion of Malicious Clients)")
     plt.ylim(0, 105)
@@ -112,7 +86,7 @@ def main():
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
     plt.savefig(os.path.join(plots_dir, "byzantine_robustness_matrix.png"))
-    
+
     print("-" * 65)
     print(f"Matrix experiment complete!")
     print(f"Summary plot saved to: {os.path.join(plots_dir, 'byzantine_robustness_matrix.png')}")

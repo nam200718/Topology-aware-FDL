@@ -1,0 +1,61 @@
+# Topology Comparison Study
+# Compares all topologies across IID, Non-IID, and Byzantine attack scenarios.
+
+experiment_type: comparison
+num_rounds: 15
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  train_subset: 10000
+  test_subset: 2000
+
+clients:
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 1
+
+robustness:
+  byzantine_type: label_flip
+
+non_iid:
+  enabled: false
+  num_shards: 20
+
+topologies:
+  - type: star
+    label: Star
+  - type: star_randomized
+    label: "Star randomized"
+  - type: ring
+    label: Ring
+  - type: gossip
+    label: Gossip
+    params:
+      degree_k: 3
+  - type: hierarchical
+    label: Hierarchical
+    params:
+      num_clusters: 3
+  - type: hierarchical_ensemble
+    label: "Hierarchical ensemble"
+    params:
+      num_clusters: 3
+  - type: layered
+    label: Layered
+    params:
+      layers: [15, 5, 1]
+
+scenarios:
+  - id: iid
+    label: "IID (Baseline)"
+    non_iid: false
+    byzantine_rate: 0.0
+  - id: non_iid
+    label: "Non-IID"
+    non_iid: true
+    byzantine_rate: 0.0
+  - id: attack
+    label: "Byzantine Attack (20%)"
+    non_iid: false
+    byzantine_rate: 0.2

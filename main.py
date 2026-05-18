@@ -1,11 +1,18 @@
 import os
+import sys
 import argparse
-import json
-import matplotlib.pyplot as plt
-import seaborn as sns
+
+# --- Virtual environment check ---
+_in_venv = os.environ.get("VIRTUAL_ENV") or (sys.prefix != sys.base_prefix)
+if not _in_venv:
+    _project_root = os.path.dirname(os.path.abspath(__file__))
+    print("ERROR: Virtual environment is not activated.", file=sys.stderr)
+    print(f"  Run:  source {_project_root}/.venv/bin/activate", file=sys.stderr)
+    print(f"  Then: python {' '.join(sys.argv)}", file=sys.stderr)
+    sys.exit(1)
 
 from typing import List
-from src.config import SimulationConfig, TopologyConfig, ClientConfig, EnvironmentConfig, RobustnessConfig, TopologyType
+from src.config import SimulationConfig, TopologyConfig, ClientConfig, EnvironmentConfig, RobustnessConfig, TopologyType, ExperimentConfig
 from src.topologies.star import StarTopology
 from src.topologies.ring import RingTopology
 from src.topologies.gossip import GossipTopology
@@ -95,76 +102,44 @@ def run_experiment(config: SimulationConfig):
     engine.run()
     return engine.metrics.get_history()
 
-def run_matrix():
-    topologies: List[TopologyType] = ["star", "ring", "gossip", "hierarchical", "hierarchical_ensemble", "layered"]
-    # Matrix of byzantine failures instead of stragglers specifically, or both
-    failure_rates = [0.0, 0.1, 0.3]
-    
-    all_results = {}
-    
-    base_output = "./outputs/matrix"
-    os.makedirs(base_output, exist_ok=True)
-    
-    for topo in topologies:
-        all_results[topo] = {}
-        for rate in failure_rates:
-            exp_name = f"{topo}_byz_{rate}"
-            print(f"--- Running {exp_name} ---")
-            
-            topo_params = {}
-            if topo == "layered":
-                topo_params = {"layers": [10, 4, 2, 1]}
-            
-            config = SimulationConfig(
-                experiment_name=f"matrix/{exp_name}",
-                num_rounds=5,
-                env=EnvironmentConfig(seed=42, output_dir="./outputs"),
-                topology=TopologyConfig(type=topo, params=topo_params),
-                # Scale down for MNIST execution: 10 clients, 2 local steps, bigger LR
-                clients=ClientConfig(num_clients=10, model_dim=0, local_lr=0.01, local_steps=2),
-                robustness=RobustnessConfig(byzantine_rate=rate)
-            )
-            
-            hx = run_experiment(config)
-            all_results[topo][rate] = hx
-            
-    # Plot results
-    plot_matrix(all_results, base_output)
-    print("Matrix execution completed!")
+def run_from_config(config_path: str):
+    """Load a YAML config file and run the appropriate experiment(s)."""
+    exp_cfg = ExperimentConfig.from_yaml(config_path)
+    entries = exp_cfg.build_configs()
 
-def plot_matrix(all_results, out_dir):
-    sns.set_style("whitegrid")
-    
-    topologies = list(all_results.keys())
-    num_topos = len(topologies)
-    fig, axes = plt.subplots(1, num_topos, figsize=(5 * num_topos, 5), sharey=True)
-    
-    for i, topo in enumerate(topologies):
-        ax = axes[i]
-        for rate, hx in all_results[topo].items():
-            rounds = [d["round"] for d in hx]
-            vals = [d.get("test_accuracy", 0.0) for d in hx]
-            ax.plot(rounds, vals, label=f"Byz Rate {rate}")
-            
-        ax.set_title(f"{topo.capitalize()} Topology")
-        ax.set_xlabel("Round")
-        if i == 0:
-            ax.set_ylabel("Test Accuracy (%)")
-        ax.legend()
+    print(f"Loaded config: {config_path}")
+    print(f"Experiment type: {exp_cfg.experiment_type}")
+    print(f"Total runs: {len(entries)}")
+    print("-" * 50)
+
+    all_histories = []
+    for entry in entries:
+        config = entry["config"]
+        label = entry["topo_label"]
+        print(f"\nRunning: {label} ({config.experiment_name})")
         
-    plt.tight_layout()
-    plt.savefig(os.path.join(out_dir, "convergence_matrix.png"))
-    plt.close()
+        hx = run_experiment(config)
+        all_histories.append({"entry": entry, "history": hx})
+
+        final_acc = hx[-1].get("test_accuracy", 0.0)
+        is_ensemble = (config.topology.type == "hierarchical_ensemble")
+        if is_ensemble and "ensemble_test_accuracy" in hx[-1]:
+            final_acc = hx[-1]["ensemble_test_accuracy"]
+        print(f"  Final Accuracy: {final_acc:.2f}%")
+
+    print("-" * 50)
+    print("All experiments complete!")
+    return all_histories
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="FedlEARNING Simulation")
-    parser.add_argument("--matrix", action="store_true", help="Run the experiment matrix")
+    parser.add_argument("--config", type=str, default=None, help="Path to YAML config file")
     args = parser.parse_args()
     
-    if args.matrix:
-        run_matrix()
+    if args.config:
+        run_from_config(args.config)
     else:
-        # Default single run
+        # Default single run (smoke test)
         config = SimulationConfig(
             experiment_name="smoke_test_mnist",
             num_rounds=5,

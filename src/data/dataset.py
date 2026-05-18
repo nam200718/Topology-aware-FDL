@@ -129,9 +129,7 @@ def partition_data(dataset, num_clients, non_iid=True, num_shards=200, seed=42):
             
         sorted_indices = np.argsort(labels)
         
-        shards_per_client = num_shards // num_clients
         shard_size = num_samples // num_shards
-        
         shard_indices = [
             sorted_indices[i * shard_size: (i + 1) * shard_size] 
             for i in range(num_shards)
@@ -139,11 +137,12 @@ def partition_data(dataset, num_clients, non_iid=True, num_shards=200, seed=42):
         
         # Shuffle shards to randomly distribute them to clients
         rng.shuffle(shard_indices)
-        
-        client_indices = {}
-        for i in range(num_clients):
-            client_shards = shard_indices[i * shards_per_client : (i + 1) * shards_per_client]
-            client_indices[i] = np.concatenate(client_shards).tolist()
+
+        # Distribute shards to clients as evenly as possible
+        client_indices = {i: [] for i in range(num_clients)}
+        for shard_idx, indices in enumerate(shard_indices):
+            client_id = shard_idx % num_clients
+            client_indices[client_id].extend(indices.tolist())
             
         return client_indices
 

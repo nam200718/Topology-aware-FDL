@@ -1,0 +1,24 @@
+# Hierarchical Ensemble Experiment
+# Standalone test of the hierarchical ensemble topology with Root, Parent, and Local models.
+
+experiment_type: single
+num_rounds: 10
+
+env:
+  seed: 42
+  output_dir: ./outputs
+
+clients:
+  num_clients: 15
+  local_lr: 0.01
+  local_steps: 2
+  use_ensemble: true
+  hierarchical_ensemble: true
+  ensemble_alpha: 0.33
+  ensemble_beta: 0.33
+
+topology:
+  type: hierarchical_ensemble
+  label: "Hierarchical Ensemble"
+  params:
+    num_clusters: 3
