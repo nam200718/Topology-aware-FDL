@@ -12,9 +12,7 @@ if not os.environ.get("VIRTUAL_ENV") and sys.prefix == sys.base_prefix:
     print(f"  Run:  source {_project_root}/.venv/bin/activate", file=sys.stderr)
     sys.exit(1)
 
-from src.config import ExperimentConfig
-from main import run_experiment
-from src.utils.visualizer import plot_experiment_results
+from main import run_from_config
 
 DEFAULT_CONFIG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "configs", "ensemble_experiment.yaml")
 
@@ -23,29 +21,7 @@ def main():
     parser.add_argument("--config", type=str, default=DEFAULT_CONFIG, help="Path to YAML config file")
     args = parser.parse_args()
 
-    exp_cfg = ExperimentConfig.from_yaml(args.config)
-
-    # Build SimulationConfig (single experiment)
-    entries = exp_cfg.build_configs()
-    config = entries[0]["config"]
-
-    print("Starting Hierarchical Ensemble Experiment...")
-    print(f"Config: {args.config}")
-    print(f"Topology: {config.topology.type}")
-    print(f"Clients: {config.clients.num_clients}, Params: {config.topology.params}")
-
-    history = run_experiment(config)
-
-    # Generate charts
-    metrics_path = os.path.join(config.env.output_dir, config.experiment_name, "metrics.json")
-    plot_experiment_results(metrics_path)
-
-    print("\nExperiment Completed!")
-    print(f"Final Global Test Accuracy: {history[-1]['test_accuracy']:.2f}%")
-    if "ensemble_test_accuracy" in history[-1]:
-        print(f"Final Ensemble Test Accuracy: {history[-1]['ensemble_test_accuracy']:.2f}%")
-
-    print(f"Results saved in {os.path.join(config.env.output_dir, config.experiment_name)}")
+    run_from_config(args.config)
 
 if __name__ == "__main__":
     main()
