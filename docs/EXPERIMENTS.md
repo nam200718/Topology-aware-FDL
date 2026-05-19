@@ -25,8 +25,8 @@ This exports individual JSON reports per topology+robustness vector, dropping `c
 To compare all implemented topologies (Star, Ring, Gossip, Hierarchical, and Hierarchical Ensemble) in a single study:
 
 ```bash
-
-```python3 scripts/run_comparison.py
+python3 scripts/run_comparison.py
+```
 
 This will run each topology for 10 rounds and generate a combined accuracy chart in `./outputs/comparison_study/topology_comparison.png`.
 

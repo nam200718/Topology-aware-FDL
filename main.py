@@ -134,6 +134,7 @@ def run_from_config(config_path: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="FedlEARNING Simulation")
     parser.add_argument("--config", type=str, default=None, help="Path to YAML config file")
+    parser.add_argument("--dataset", type=str, default="mnist", choices=["mnist", "cifar10"], help="Dataset to use (mnist or cifar10)")
     args = parser.parse_args()
     
     if args.config:
@@ -141,9 +142,11 @@ if __name__ == "__main__":
     else:
         # Default single run (smoke test)
         config = SimulationConfig(
-            experiment_name="smoke_test_mnist",
+            experiment_name=f"smoke_test_{args.dataset}",
             num_rounds=5,
+            env=EnvironmentConfig(dataset=args.dataset),
             topology=TopologyConfig(type="star"),
             clients=ClientConfig(num_clients=5, model_dim=0, local_lr=0.01, local_steps=1),
         )
         run_experiment(config)
+

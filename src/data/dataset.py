@@ -98,6 +98,27 @@ def get_mnist(data_dir="./data", train_subset=None, test_subset=None):
 
     return train_dataset, test_dataset
 
+def get_cifar10(data_dir="./data", train_subset=None, test_subset=None):
+    """Downloads and returns the CIFAR-10 train and test sets, optionally subsetted."""
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    ])
+    
+    train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
+    test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
+    
+    if train_subset is not None and train_subset < len(train_dataset):
+        indices = np.random.choice(len(train_dataset), train_subset, replace=False)
+        train_dataset = Subset(train_dataset, indices)
+        
+    if test_subset is not None and test_subset < len(test_dataset):
+        indices = np.random.choice(len(test_dataset), test_subset, replace=False)
+        test_dataset = Subset(test_dataset, indices)
+
+    return train_dataset, test_dataset
+
+
 def partition_data(dataset, num_clients, non_iid=True, num_shards=200, seed=42):
     """
     Partitions data across clients.

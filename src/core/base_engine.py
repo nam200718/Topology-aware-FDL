@@ -30,11 +30,23 @@ class BaseEngine(ABC):
         self.metrics = MetricsCollector()
         
         # Fetch datasets
-        print("Downloading and dividing MNIST dataset...")
-        train_ds, test_ds = get_mnist(
-            train_subset=getattr(self.config.env, "train_subset", None),
-            test_subset=getattr(self.config.env, "test_subset", None)
-        )
+        dataset_name = getattr(self.config.env, "dataset", "mnist").lower()
+        if dataset_name == "cifar10":
+            print("Downloading and dividing CIFAR-10 dataset...")
+            from src.data.dataset import get_cifar10
+            train_ds, test_ds = get_cifar10(
+                train_subset=getattr(self.config.env, "train_subset", None),
+                test_subset=getattr(self.config.env, "test_subset", None)
+            )
+            self.in_channels = 3
+        else:
+            print("Downloading and dividing MNIST dataset...")
+            train_ds, test_ds = get_mnist(
+                train_subset=getattr(self.config.env, "train_subset", None),
+                test_subset=getattr(self.config.env, "test_subset", None)
+            )
+            self.in_channels = 1
+
         self.train_dataset: torch.utils.data.Dataset = train_ds
         self.test_dataset: torch.utils.data.Dataset = test_ds
 
@@ -63,13 +75,13 @@ class BaseEngine(ABC):
         )
         
         # Fetch initial model vector
-        dummy_model = SimpleCNN()
+        dummy_model = SimpleCNN(in_channels=self.in_channels)
         initial_w = torch.nn.utils.parameters_to_vector(dummy_model.parameters()).detach()
         num_params = initial_w.numel()
         print(f"Model instantiated with {num_params} parameters.")
         
         from src.core.updater import PyTorchLocalUpdater
-        self.updater = PyTorchLocalUpdater(device=device)
+        self.updater = PyTorchLocalUpdater(device=device, in_channels=self.in_channels)
         self.server_weights: torch.Tensor = initial_w.clone()
         
         # Track clients

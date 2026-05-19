@@ -111,13 +111,24 @@ def main():
     
     plt.figure(figsize=(14, 8))
     sns.set_style("whitegrid")
-    sns.barplot(data=df_summary, x="Topology", y="Final Accuracy", hue="Scenario")
+    ax = sns.barplot(data=df_summary, x="Topology", y="Final Accuracy", hue="Scenario")
     plt.title(f"Robustness Comparison across Topologies (after {exp_cfg.num_rounds} rounds)")
     plt.ylabel("Test Accuracy (%)")
-    plt.ylim(0, 100)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.ylim(0, 110) # Give some space for labels if needed
+    
+    # Add accuracy labels on top of bars
+    for p in ax.patches:
+        ax.annotate(f'{p.get_height():.1f}%', 
+                   (p.get_x() + p.get_width() / 2., p.get_height()), 
+                   ha = 'center', va = 'center', 
+                   xytext = (0, 9), 
+                   textcoords = 'offset points',
+                   fontsize=8)
+
+    plt.xticks(rotation=45, ha='right')
+    plt.legend(title="Scenario", bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
     plt.tight_layout()
-    plt.savefig(summary_plot)
+    plt.savefig(summary_plot, bbox_inches='tight')
     plt.close()
     
     # Save the summary to JSON

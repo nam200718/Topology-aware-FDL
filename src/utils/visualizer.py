@@ -27,7 +27,7 @@ def plot_experiment_results(metrics_path, output_dir=None):
     sns.set_style("whitegrid")
     
     # 1. Accuracy Plot
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(11, 6))
     plt.plot(np.asarray(df['round']), np.asarray(df['test_accuracy']), label='Global Model Accuracy', marker='o')
     
     if 'ensemble_test_accuracy' in df.columns:
@@ -36,13 +36,14 @@ def plot_experiment_results(metrics_path, output_dir=None):
     plt.title('Model Accuracy Convergence')
     plt.xlabel('Round')
     plt.ylabel('Accuracy (%)')
-    plt.legend()
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
     plt.grid(True)
-    plt.savefig(os.path.join(output_dir, 'accuracy_convergence.png'))
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'accuracy_convergence.png'), bbox_inches='tight')
     plt.close()
 
     # 2. Loss Plot
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(11, 6))
     plt.plot(np.asarray(df['round']), np.asarray(df['test_loss']), label='Global Model Loss', marker='o', color='red')
     
     if 'ensemble_test_loss' in df.columns:
@@ -51,9 +52,10 @@ def plot_experiment_results(metrics_path, output_dir=None):
     plt.title('Model Loss Convergence')
     plt.xlabel('Round')
     plt.ylabel('Loss')
-    plt.legend()
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
     plt.grid(True)
-    plt.savefig(os.path.join(output_dir, 'loss_convergence.png'))
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'loss_convergence.png'), bbox_inches='tight')
     plt.close()
 
     print(f"Charts saved to {output_dir}")
@@ -82,8 +84,9 @@ def plot_comparison(experiment_dirs, labels, output_path):
     plt.title('Experiment Comparison: Test Accuracy')
     plt.xlabel('Round')
     plt.ylabel('Accuracy (%)')
-    plt.legend()
-    plt.savefig(output_path)
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
+    plt.tight_layout()
+    plt.savefig(output_path, bbox_inches='tight')
     plt.close()
     print(f"Comparison chart saved to {output_path}")
 

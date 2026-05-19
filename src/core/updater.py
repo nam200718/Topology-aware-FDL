@@ -7,14 +7,15 @@ from src.config import ClientConfig
 from src.core.model import SimpleCNN
 
 class PyTorchLocalUpdater:
-    def __init__(self, device="cpu"):
+    def __init__(self, device="cpu", in_channels=1):
         self.device = torch.device(device)
         self.criterion = nn.CrossEntropyLoss()
         
         # Reuse models to save overhead
-        self.global_model = SimpleCNN().to(self.device)
-        self.local_model = SimpleCNN().to(self.device)
-        self.parent_model = SimpleCNN().to(self.device)
+        self.global_model = SimpleCNN(in_channels=in_channels).to(self.device)
+        self.local_model = SimpleCNN(in_channels=in_channels).to(self.device)
+        self.parent_model = SimpleCNN(in_channels=in_channels).to(self.device)
+
 
     def update(self, state: ClientState, client_dataset, config: ClientConfig, rng):
         """
