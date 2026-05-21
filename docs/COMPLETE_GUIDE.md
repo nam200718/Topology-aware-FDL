@@ -9,7 +9,7 @@
 1. [Architectural Overview](#1-architectural-overview)
 2. [Federated Learning Foundations in FedlEARNING](#2-federated-learning-foundations-in-fedlearning)
 3. [Memory Serialization Strategy (O(1) Memory)](#3-memory-serialization-strategy-o1-memory)
-4. [Data Heterogeneity and MNIST Sharding](#4-data-heterogeneity-and-mnist-sharding)
+4. [Data Heterogeneity and Dirichlet Partitioning](#4-data-heterogeneity-and-dirichlet-partitioning)
 5. [Directory Structure](#5-directory-structure)
 6. [Execution Guide](#6-execution-guide)
 7. [Configuration Parameters](#7-configuration-parameters)
@@ -29,7 +29,7 @@
 
 FedlEARNING is an empirical, high-fidelity research simulator built to evaluate Federated Learning (FL) structural paradigms (topologies) and Byzantine fault tolerance. Utilizing the PyTorch backend, the system simulates distributed training of a real Convolutional Neural Network (`SimpleCNN`) on standard empirical datasets (e.g., MNIST).
 
-Unlike rudimentary simulations relying on dummy mathematical abstractions, FedlEARNING conducts authentic Forward and Backward passes using Stochastic Gradient Descent (SGD) on highly non-IID data shards, while guaranteeing performance on consumer hardware through strict structural memory serialization policies.
+Unlike rudimentary simulations relying on dummy mathematical abstractions, FedlEARNING conducts authentic Forward and Backward passes using Stochastic Gradient Descent (SGD) on highly non-IID Dirichlet-partitioned data, while guaranteeing performance on consumer hardware through strict structural memory serialization policies.
 
 ---
 
@@ -52,11 +52,11 @@ Instantiating an independent `nn.Module` (a PyTorch model graph) for hundreds of
 
 ---
 
-## 4. Data Heterogeneity and MNIST Sharding
+## 4. Data Heterogeneity and Dirichlet Partitioning
 
-To reliably mimic empirical FL bottlenecks, the simulator forces acute structural gradient drift through highly Non-IID data allocations. 
+To reliably mimic empirical FL bottlenecks, the simulator forces acute structural gradient drift through highly Non-IID data allocations using a Dirichlet-based label heterogeneity partitioning scheme.
 
-Via the `dataset.py` integration routines, torchvision datasets are downloaded and comprehensively sorted by class labels. The global corpus is fragmented into distinct shards. Participating clients are assigned a minimal subset of shards. Consequently, individual clients structurally optimize local parameters against a highly restricted subset of labels (e.g., client $C_i$ may only see images representing digits '3' and '7'), forcing systemic reconciliation at the aggregation phase.
+Via the `dataset.py` integration routines, torchvision datasets are partitioned according to a symmetric Dirichlet distribution $\theta_c \sim \text{Dir}(\alpha \cdot \mathbf{1}_K)$ where $\alpha$ acts as the concentration parameter and $K$ is the number of clients. A smaller $\alpha$ (e.g., $0.1$ or $0.01$) produces highly non-IID client datasets (most samples of a class go to a single client), while a larger $\alpha$ (e.g., $100$) leads to near-IID partitions. Consequently, individual clients structurally optimize local parameters against a restricted and unbalanced subset of labels (controlled by $\alpha$), forcing systemic reconciliation at the aggregation phase.
 
 ---
 
@@ -70,7 +70,7 @@ FedlEARNING/
 │
 ├── src/                             
 │   ├── config.py                    ← Pydantic environment configurations
-│   ├── dataset.py                   ← Data fetching, caching, and Non-IID sharding protocols
+│   ├── dataset.py                   ← Data fetching, caching, and Non-IID Dirichlet partitioning protocols
 │   ├── core/                        
 │   │   ├── interfaces.py            ← Architectural abstractions for generic classes
 │   │   ├── base_engine.py           ← Universal simulation initialization / target loops
@@ -137,6 +137,10 @@ The configuration architectures explicitly dictate empirical constraints nativel
 - `local_lr`: The hyperparameter for localized Stochastic Gradient Descent iterations (`0.01` baseline).
 - `local_steps`: Standardized Epoch execution loops (specifically batched steps).
 
+### Non-IID Partitioning Parameters
+- `non_iid.enabled`: If `True`, partitions data non-IID across clients.
+- `non_iid.alpha`: The concentration parameter of the symmetric Dirichlet distribution (`0.5` baseline). Smaller values lead to greater label skew (highly non-IID), while larger values approximate IID distributions.
+
 ### System Threat Parameters
 - `byzantine_rate`: The explicit saturation rate of corrupted clients ($0.0$ to $1.0$).
 - `byzantine_type`: Structural definitions of node compromises. Currently supported:
@@ -202,7 +206,7 @@ The **Decentralized Engine**, uniquely employs buffers structurally restricting 
 
 This constitutes the principal execution cycle. Internally, models are trained utilizing generic Backpropagation procedures. 
 1. The global flattened Tensor initiates updates reconstructing layers procedurally inside the static `nn.Module`.
-2. Following standard dataloading on purely Non-IID shards utilizing native Mini-batch configurations evaluating strictly localized Cross-Entropy metrics.
+2. Following standard dataloading on Dirichlet-partitioned Non-IID client datasets utilizing native Mini-batch configurations evaluating strictly localized Cross-Entropy metrics.
 3. Following local Epoch saturation, internal elements are processed yielding subsequent flattening. 
 
 ---
@@ -227,7 +231,7 @@ Employs the standardized `FedAvg` (Federated Averaging) model structurally amalg
 
 ## 14. Reproducibility and Stochasticity
 
-Isolating local seed values structurally regulates global entropy ensuring absolute determinism universally. By mapping purely isolated `torch.Generator` elements localized explicitly processing unique client variations statically enforcing purely deterministic shard distributions across consecutive identical testing protocols universally resolving stochastic inconsistencies intrinsically. 
+Isolating local seed values structurally regulates global entropy ensuring absolute determinism universally. By mapping local seeds, we statically enforce purely deterministic Dirichlet-based data partitions across consecutive identical testing protocols, resolving stochastic inconsistencies. 
 
 ---
 
@@ -244,7 +248,7 @@ Tracking outputs visualize these matrices directly observing varying structural 
 ## 16. Common Research Questions
 
 **Q: Can I integrate custom datasets (e.g., CIFAR-10)?**
-Yes. Modify `dataset.py` mapping structural extraction processes routing localized shards tracking CIFAR natively utilizing standard `torchvision` integrations effectively updating structural shapes processing corresponding `SimpleCNN` input vectors accurately. 
+Yes. Modify `dataset.py` mapping structural extraction processes routing data partitions tracking CIFAR natively utilizing standard `vision` integrations effectively updating structural shapes processing corresponding `SimpleCNN` input vectors accurately. 
 
 **Q: Why does final accuracy fluctuate under 30% Byzantine presence?**
 Without explicitly defined secure aggregations (e.g. Krum or Median), simple arithmetic averaging (`FedAvg`) integrates poisoned gradients unconditionally. Attacks like `label_flip` and `gradient_ascent` pull the global parameters towards a malicious or destructive objective, resulting in immediate performance decay.

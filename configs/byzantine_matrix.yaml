@@ -20,7 +20,7 @@ robustness:
 
 non_iid:
   enabled: false  # Keep IID to isolate Byzantine impact
-  num_shards: 30
+  alpha: 0.5
 
 topologies:
   - type: star

@@ -119,10 +119,10 @@ def get_cifar10(data_dir="./data", train_subset=None, test_subset=None):
     return train_dataset, test_dataset
 
 
-def partition_data(dataset, num_clients, non_iid=True, num_shards=200, seed=42):
+def partition_data(dataset, num_clients, non_iid=True, alpha=0.5, seed=42):
     """
     Partitions data across clients.
-    If non_iid=True: Sort dataset by label, divide into shards, and assign shards to clients.
+    If non_iid=True: Partition dataset according to a symmetric Dirichlet distribution with concentration parameter alpha.
     If non_iid=False: Randomly assign samples to clients (IID).
     """
     rng = np.random.RandomState(seed)
@@ -138,7 +138,7 @@ def partition_data(dataset, num_clients, non_iid=True, num_shards=200, seed=42):
             client_indices[i] = indices[i * samples_per_client : (i + 1) * samples_per_client].tolist()
         return client_indices
     else:
-        # Non-IID partitioning
+        # Non-IID partitioning using Dirichlet distribution
         labels = _get_labels(dataset)
         
         if labels is None:
@@ -148,25 +148,38 @@ def partition_data(dataset, num_clients, non_iid=True, num_shards=200, seed=42):
         if isinstance(labels, torch.Tensor):
             labels = labels.cpu().numpy()
             
-        sorted_indices = np.argsort(labels)
+        unique_labels = np.unique(labels)
+        num_classes = len(unique_labels)
         
-        shard_size = num_samples // num_shards
-        shard_indices = [
-            sorted_indices[i * shard_size: (i + 1) * shard_size] 
-            for i in range(num_shards)
-        ]
+        # Dictionary tracking indices of samples for each class
+        class_indices = {c: np.where(labels == c)[0] for c in unique_labels}
         
-        # Shuffle shards to randomly distribute them to clients
-        rng.shuffle(shard_indices)
-
-        # Distribute shards to clients as evenly as possible
+        # Dirichlet parameter vector
+        p = alpha * np.ones(num_clients)
+        proportions = rng.dirichlet(p, num_classes)
+        
         client_indices = {i: [] for i in range(num_clients)}
-        for shard_idx, indices in enumerate(shard_indices):
-            client_id = shard_idx % num_clients
-            client_indices[client_id].extend(indices.tolist())
+        
+        for class_idx, label_val in enumerate(unique_labels):
+            indices = class_indices[label_val].copy()
+            rng.shuffle(indices)
             
+            # Calculate split sizes
+            split_counts = np.floor(proportions[class_idx] * len(indices)).astype(int)
+            # Ensure all indices are allocated (handle floor truncation leftovers)
+            leftover = len(indices) - sum(split_counts)
+            for idx in range(leftover):
+                split_counts[idx % num_clients] += 1
+                
+            # Split indices
+            split_indices = np.cumsum(split_counts)[:-1]
+            splits = np.split(indices, split_indices)
+            
+            for client_idx in range(num_clients):
+                client_indices[client_idx].extend(splits[client_idx].tolist())
+                
         return client_indices
 
-def partition_data_non_iid(dataset, num_clients, num_shards=200, seed=42):
+def partition_data_non_iid(dataset, num_clients, alpha=0.5, seed=42):
     """Legacy wrapper for backward compatibility."""
-    return partition_data(dataset, num_clients, non_iid=True, num_shards=num_shards, seed=seed)
+    return partition_data(dataset, num_clients, non_iid=True, alpha=alpha, seed=seed)

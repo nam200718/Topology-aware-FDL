@@ -20,7 +20,7 @@ robustness:
 
 non_iid:
   enabled: false
-  num_shards: 20
+  alpha: 0.5
 
 topologies:
   - type: star

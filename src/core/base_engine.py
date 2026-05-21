@@ -56,21 +56,21 @@ class BaseEngine(ABC):
             self.test_dataset = FastDataset(self.test_dataset, self.device)
         
         non_iid_enabled = getattr(self.config.non_iid, "enabled", True)
-        num_shards = getattr(self.config.non_iid, "num_shards", 200)
+        alpha = getattr(self.config.non_iid, "alpha", 0.5)
         
         from src.data.dataset import partition_data
         self.client_indices: Dict[int, List[int]] = partition_data(
             self.train_dataset, 
             self.config.clients.num_clients, 
             non_iid=non_iid_enabled, 
-            num_shards=num_shards, 
+            alpha=alpha, 
             seed=self.config.env.seed
         )
         self.client_test_indices: Dict[int, List[int]] = partition_data(
             self.test_dataset, 
             self.config.clients.num_clients, 
             non_iid=non_iid_enabled, 
-            num_shards=num_shards, 
+            alpha=alpha, 
             seed=self.config.env.seed
         )
         

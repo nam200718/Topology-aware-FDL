@@ -33,17 +33,15 @@ def test_partition_data_non_iid():
     dataset.targets = torch.tensor([i % 10 for i in range(100)])
     
     num_clients = 5
-    num_shards = 10
-    client_indices = partition_data(dataset, num_clients, non_iid=True, num_shards=num_shards, seed=42)
+    alpha = 0.5
+    client_indices = partition_data(dataset, num_clients, non_iid=True, alpha=alpha, seed=42)
     
     assert len(client_indices) == num_clients
     for i in range(num_clients):
-        # 10 shards / 5 clients = 2 shards per client
-        # shard_size = 100 / 10 = 10
-        # 2 shards * 10 = 20 samples per client
-        assert len(client_indices[i]) == 20
+        assert len(client_indices[i]) > 0
     
     all_indices = []
     for i in range(num_clients):
         all_indices.extend(client_indices[i])
+    # Check that all indices are unique and cover the dataset
     assert len(set(all_indices)) == 100

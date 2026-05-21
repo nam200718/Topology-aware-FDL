@@ -47,10 +47,9 @@ class RobustnessConfig(BaseModel):
 class NonIIDConfig(BaseModel):
     # If True, partition data non-IID
     enabled: bool = True
-    # Number of shards to divide the dataset into. 
-    # More shards = more IID if distributed randomly.
-    # Fewer shards = more non-IID.
-    num_shards: int = 30
+    # The Dirichlet distribution concentration parameter.
+    # Smaller value = more non-IID.
+    alpha: float = 0.5
 
 class SimulationConfig(BaseModel):
     experiment_name: str = "baseline_run"
@@ -210,7 +209,7 @@ class ExperimentConfig(BaseModel):
                         ),
                         non_iid=NonIIDConfig(
                             enabled=scenario.non_iid,
-                            num_shards=self.non_iid.num_shards,
+                            alpha=self.non_iid.alpha,
                         ),
                     )
                     entries.append({
