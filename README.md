@@ -1,6 +1,6 @@
-# FedlEARNING: Federated Learning Topology Research Simulator
+# Federated Learning Topology Research
 
-`FedlEARNING` is a high-fidelity federated learning research simulator designed to evaluate the impact of network topology on convergence rates and robustness against Byzantine attacks. 
+This is a federated learning research simulator designed to evaluate the impact of network topology on convergence rates and robustness against Byzantine attacks. 
 
 By leveraging **PyTorch** for local training dynamics and a modular **Engine-Topology** architecture, this tool enables the simulation of complex multi-tier communication graphs at scale.
 
