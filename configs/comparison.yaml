@@ -20,7 +20,7 @@ robustness:
 
 non_iid:
   enabled: false
-  alpha: 0.5
+  alpha: 0.1
 
 topologies:
   - type: star
