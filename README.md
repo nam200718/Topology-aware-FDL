@@ -4,7 +4,7 @@ This is a federated learning research simulator designed to evaluate the impact 
 
 By leveraging **PyTorch** for local training dynamics and a modular **Engine-Topology** architecture, this tool enables the simulation of complex multi-tier communication graphs at scale.
 
-## 🚀 Key Features
+## Key Features
 
 *   **Diverse Topologies**: Support for Star (Centralized), Ring, Gossip (P2P), Hierarchical (2-tier), **Layered** (Deep Hierarchical), and **Hierarchical Ensemble** networks.
 *   **Byzantine Attack Library**: Native implementation of the following threat vectors:
@@ -16,7 +16,7 @@ By leveraging **PyTorch** for local training dynamics and a modular **Engine-Top
 *   **Research-Ready Output**: Automated generation of CSV/JSON metrics and multi-panel convergence visualizations using Matplotlib/Seaborn.
 *   **Reproducibility**: Strict deterministic execution paths using seeded RNG streams across all components.
 
-## 🛠️ Installation
+## Installation
 
 1. Clone the repository:
    ```bash
@@ -38,7 +38,7 @@ By leveraging **PyTorch** for local training dynamics and a modular **Engine-Top
    pip install -r requirements.txt
    ```
 
-## 📊 Quick Start
+## Quick Start
 
 ### 1. Run a Smoke Test (Star Topology)
 Execute the default single-run configuration on MNIST:
@@ -60,6 +60,6 @@ For detailed architecture explanations, experiment configuration guides, and res
 *   [ARCHITECTURE.md](docs/ARCHITECTURE.md) – Internal components and engine logic.
 *   [EXPERIMENTS.md](docs/EXPERIMENTS.md) – Guidance on designing new research experiments.
 
-## ⚖️ License
+## License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
