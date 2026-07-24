@@ -38,6 +38,14 @@ class ClientConfig(BaseModel):
     ensemble_alpha: float = 0.5
     # Weight of parent model in ensemble (if hierarchical_ensemble=True)
     ensemble_beta: float = 0.2
+    # Ensemble weighting strategy: "static", "dynamic_confidence", "dynamic_loss"
+    ensemble_weighting_mode: Literal["static", "dynamic_confidence", "dynamic_loss"] = "dynamic_confidence"
+    # Compute optimization strategy: "none", "shared_backbone", "frozen_root_anchor", "head_only"
+    compute_optimization_mode: Literal["none", "shared_backbone", "frozen_root_anchor", "head_only"] = "shared_backbone"
+    # Enable inter-model mutual distillation during local updates
+    ensemble_distillation: bool = True
+    # Scaling factor for mutual distillation loss
+    distillation_lambda: float = 0.5
 
 class RobustnessConfig(BaseModel):
     byzantine_rate: float = 0.0
@@ -82,6 +90,7 @@ class ScenarioEntry(BaseModel):
     id: str
     label: str
     non_iid: bool = False
+    alpha: Optional[float] = None
     byzantine_rate: float = 0.0
 
 class ExperimentConfig(BaseModel):
@@ -209,7 +218,7 @@ class ExperimentConfig(BaseModel):
                         ),
                         non_iid=NonIIDConfig(
                             enabled=scenario.non_iid,
-                            alpha=self.non_iid.alpha,
+                            alpha=scenario.alpha if scenario.alpha is not None else self.non_iid.alpha,
                         ),
                     )
                     entries.append({

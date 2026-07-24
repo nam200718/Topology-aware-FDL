@@ -26,16 +26,19 @@ class ClientDataset(Dataset):
 def _get_labels(dataset):
     """
     Helper to extract labels from a dataset or its wrappers (Subset, ClientDataset, FastDataset).
-    Returns a numpy array or torch tensor of labels, or None if not found.
+    Returns a numpy array of labels, or None if not found.
     """
-    # Use getattr to be safe
     targets = getattr(dataset, 'targets', None)
     if targets is not None:
-        return targets
+        if isinstance(targets, torch.Tensor):
+            return targets.cpu().numpy()
+        return np.asarray(targets)
         
     labels = getattr(dataset, 'labels', None)
     if labels is not None:
-        return labels
+        if isinstance(labels, torch.Tensor):
+            return labels.cpu().numpy()
+        return np.asarray(labels)
     
     # Handle common wrappers (Subset, ClientDataset)
     base_ds = getattr(dataset, 'dataset', None)
@@ -43,10 +46,7 @@ def _get_labels(dataset):
     if base_ds is not None and indices is not None:
         base_labels = _get_labels(base_ds)
         if base_labels is not None:
-            if isinstance(base_labels, torch.Tensor):
-                return base_labels[indices]
-            else:
-                return np.array([base_labels[i] for i in indices])
+            return np.asarray(base_labels)[indices]
                 
     return None
 
@@ -59,14 +59,21 @@ class FastDataset(Dataset):
         self.dataset = dataset
         self.device = device
         
-        # Load all data into memory on the device
-        # We assume the dataset is small enough to fit in memory (e.g., MNIST)
+        # Load data into memory in batches for optimal memory throughput
         from torch.utils.data import DataLoader
-        loader = DataLoader(dataset, batch_size=len(dataset), shuffle=False)
+        batch_size = min(len(dataset), 512) if len(dataset) > 0 else 1
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        imgs, lbls = [], []
         for images, labels in loader:
-            self.images = images.to(device)
-            self.labels = labels.to(device)
-            break
+            imgs.append(images.to(device))
+            lbls.append(labels.to(device))
+        
+        if imgs:
+            self.images = torch.cat(imgs, dim=0)
+            self.labels = torch.cat(lbls, dim=0)
+        else:
+            self.images = torch.tensor([]).to(device)
+            self.labels = torch.tensor([]).to(device)
             
     def __len__(self):
         return len(self.labels)
@@ -105,8 +112,14 @@ def get_cifar10(data_dir="./data", train_subset=None, test_subset=None):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
     ])
     
-    train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
-    test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
+    try:
+        train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
+        test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
+    except Exception:
+        # Fallback URL if default mirror is unreachable or rate-limited
+        datasets.CIFAR10.url = "https://huggingface.co/datasets/anon8231489241/cifar10/resolve/main/cifar-10-python.tar.gz"
+        train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
+        test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
     
     if train_subset is not None and train_subset < len(train_dataset):
         indices = np.random.choice(len(train_dataset), train_subset, replace=False)

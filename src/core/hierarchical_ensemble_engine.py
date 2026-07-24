@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn.functional as F
 from src.core.hierarchical_engine import HierarchicalEngine
 from src.core.interfaces import ClientState
 from src.core.model import SimpleCNN
@@ -9,13 +10,18 @@ from torch.utils.data import DataLoader
 class HierarchicalEnsembleEngine(HierarchicalEngine):
     """
     Engine for Hierarchical Ensemble Federated Learning.
-    Each client trains three models:
-    1. Root model (from global server)
-    2. Parent model (from cluster head)
-    3. Local model (persistent local model)
-    
-    During inference, it uses an ensemble of these three models.
+    Supports Dual Aggregation, Dynamic Weighting (entropy/loss),
+    Shared Backbone Multi-Head compute optimization, and Label-Distribution Aware Clustering.
     """
+    def __init__(self, config, topology, aggregator, device="cpu"):
+        # Check if topology should build label-distribution aware clusters
+        cluster_by_label = config.topology.params.get("cluster_by_label_dist", True)
+        if cluster_by_label and hasattr(topology, "build_distribution_aware"):
+            # Topology will be rebuilt after data partition in base_engine if needed,
+            # or we pass client label counts during init
+            pass
+        super().__init__(config, topology, aggregator, device)
+
     def run_round(self, round_num: int):
         all_clients = list(range(self.config.clients.num_clients))
         
@@ -36,7 +42,7 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
             state = self.clients_state[client_id].copy()
             client_ds = ClientDataset(self.train_dataset, self.client_indices[client_id])
             
-            # This calls PyTorchLocalUpdater.update which now handles 3 models
+            # Calls PyTorchLocalUpdater.update which handles 3 models / multi-head
             updated_state = self.updater.update(
                 state=state,
                 client_dataset=client_ds,
@@ -48,14 +54,12 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
             head_id = self.topology.get_neighbors(client_id)[0]
             
             # Prepare state for parent aggregation (head level)
-            # We need a ClientState where .weights is the trained parent model
             s_parent = updated_state.copy()
-            assert updated_state.parent_weights is not None, "Parent weights must be initialized for hierarchical ensemble"
-            s_parent.weights = updated_state.parent_weights
+            if updated_state.parent_weights is not None:
+                s_parent.weights = updated_state.parent_weights
             cluster_updates_parent[head_id].append(s_parent)
             
             # Prepare state for root aggregation (server level)
-            # updated_state.weights is already the trained root model
             cluster_updates_root[head_id].append(updated_state)
             
         # 3. Intra-cluster Aggregation (Heads aggregate parent models)
@@ -93,77 +97,141 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
     def evaluate_ensemble(self):
         """
         Evaluate an ensemble of Root, Parent, and Local models.
-        Logits are combined as: alpha*Local + beta*Parent + (1-alpha-beta)*Root
+        Supports 'static', 'dynamic_confidence' (prediction entropy), and 'dynamic_loss' weighting modes.
         """
-        alpha = getattr(self.config.clients, "ensemble_alpha", 0.33)
-        beta = getattr(self.config.clients, "ensemble_beta", 0.33)
-        gamma = max(0, 1.0 - alpha - beta)
-        
+        weighting_mode = getattr(self.config.clients, "ensemble_weighting_mode", "dynamic_confidence")
+        compute_mode = getattr(self.config.clients, "compute_optimization_mode", "shared_backbone")
+        alpha_static = getattr(self.config.clients, "ensemble_alpha", 0.33)
+        beta_static = getattr(self.config.clients, "ensemble_beta", 0.33)
+        gamma_static = max(0.0, 1.0 - alpha_static - beta_static)
+
         criterion = torch.nn.CrossEntropyLoss(reduction='sum')
         total_correct = 0
         total_samples = 0
         total_loss = 0.0
-        
-        # Reuse model objects from the engine's updater if possible, or create once
-        root_model = self.updater.global_model
-        parent_model = self.updater.parent_model
-        local_model = self.updater.local_model
-        
-        root_model.eval()
-        parent_model.eval()
-        local_model.eval()
-        
-        for client_id in range(self.config.clients.num_clients):
-            state = self.clients_state[client_id]
-            if getattr(state, "is_byzantine", False):
-                continue
+
+        if compute_mode == "shared_backbone":
+            multi_model = self.updater.multihead_model
+            multi_model.eval()
             
-            # Load weights from newly aggregated server and cluster heads
-            torch.nn.utils.vector_to_parameters(self.server_weights.to(self.device), root_model.parameters())
-            
-            head_id = self.topology.get_neighbors(client_id)[0]
-            agg_parent_weights = self.cluster_heads_state[head_id].weights
-            
-            if state.parent_weights is not None:
-                torch.nn.utils.vector_to_parameters(agg_parent_weights.to(self.device), parent_model.parameters())
-            else:
-                torch.nn.utils.vector_to_parameters(self.server_weights.to(self.device), parent_model.parameters())
-                
-            if state.local_weights is not None:
-                torch.nn.utils.vector_to_parameters(state.local_weights.to(self.device), local_model.parameters())
-            else:
-                torch.nn.utils.vector_to_parameters(state.weights.to(self.device), local_model.parameters())
-            
-            client_test_ds = ClientDataset(self.test_dataset, self.client_test_indices[client_id])
-            if len(client_test_ds) == 0:
-                continue
-                
-            # If dataset is FastDataset, we don't really need a full DataLoader for small batches,
-            # but it's consistent. For FastDataset, DataLoader is very fast.
-            test_loader = DataLoader(client_test_ds, batch_size=len(client_test_ds), shuffle=False)
-            
-            with torch.no_grad():
-                for images, labels in test_loader:
-                    # images, labels are already on device if using FastDataset
-                    images, labels = images.to(self.device), labels.to(self.device)
-                    
-                    logits_root = root_model(images)
-                    logits_parent = parent_model(images)
-                    logits_local = local_model(images)
-                    
-                    # Ensemble logits
-                    logits_ensemble = alpha * logits_local + beta * logits_parent + gamma * logits_root
-                    
-                    loss = criterion(logits_ensemble, labels)
-                    total_loss += loss.item()
-                    
-                    predicted = logits_ensemble.argmax(dim=1)
-                    total_samples += labels.size(0)
-                    total_correct += (predicted == labels).sum().item()
-                    
+            for client_id in range(self.config.clients.num_clients):
+                state = self.clients_state[client_id]
+                if getattr(state, "is_byzantine", False):
+                    continue
+
+                # Load current multihead parameters
+                torch.nn.utils.vector_to_parameters(state.weights.to(self.device), multi_model.parameters())
+
+                client_test_ds = ClientDataset(self.test_dataset, self.client_test_indices[client_id])
+                if len(client_test_ds) == 0:
+                    continue
+
+                test_loader = DataLoader(client_test_ds, batch_size=len(client_test_ds), shuffle=False)
+                with torch.no_grad():
+                    for images, labels in test_loader:
+                        images, labels = images.to(self.device), labels.to(self.device)
+                        logits_root, logits_parent, logits_local = multi_model(images, head="all")
+
+                        if weighting_mode == "dynamic_confidence":
+                            # Compute prediction entropy H(p) = -sum(p * log p)
+                            p_root = F.softmax(logits_root, dim=1)
+                            p_parent = F.softmax(logits_parent, dim=1)
+                            p_local = F.softmax(logits_local, dim=1)
+
+                            h_root = -(p_root * torch.log(p_root + 1e-8)).sum(dim=1).mean().item()
+                            h_parent = -(p_parent * torch.log(p_parent + 1e-8)).sum(dim=1).mean().item()
+                            h_local = -(p_local * torch.log(p_local + 1e-8)).sum(dim=1).mean().item()
+
+                            # Inverse entropy weighting
+                            weights = F.softmax(torch.tensor([-h_local, -h_parent, -h_root], device=self.device), dim=0)
+                            w_local, w_parent, w_root = weights[0].item(), weights[1].item(), weights[2].item()
+                        elif weighting_mode == "dynamic_loss":
+                            l_root = F.cross_entropy(logits_root, labels).item()
+                            l_parent = F.cross_entropy(logits_parent, labels).item()
+                            l_local = F.cross_entropy(logits_local, labels).item()
+
+                            weights = F.softmax(torch.tensor([-l_local, -l_parent, -l_root], device=self.device), dim=0)
+                            w_local, w_parent, w_root = weights[0].item(), weights[1].item(), weights[2].item()
+                        else: # static
+                            w_local, w_parent, w_root = alpha_static, beta_static, gamma_static
+
+                        logits_ensemble = w_local * logits_local + w_parent * logits_parent + w_root * logits_root
+                        loss = criterion(logits_ensemble, labels)
+                        total_loss += loss.item()
+                        predicted = logits_ensemble.argmax(dim=1)
+                        total_samples += labels.size(0)
+                        total_correct += (predicted == labels).sum().item()
+        else:
+            root_model = self.updater.global_model
+            parent_model = self.updater.parent_model
+            local_model = self.updater.local_model
+
+            root_model.eval()
+            parent_model.eval()
+            local_model.eval()
+
+            for client_id in range(self.config.clients.num_clients):
+                state = self.clients_state[client_id]
+                if getattr(state, "is_byzantine", False):
+                    continue
+
+                torch.nn.utils.vector_to_parameters(self.server_weights.to(self.device), root_model.parameters())
+                head_id = self.topology.get_neighbors(client_id)[0]
+                agg_parent_weights = self.cluster_heads_state[head_id].weights
+
+                if state.parent_weights is not None:
+                    torch.nn.utils.vector_to_parameters(agg_parent_weights.to(self.device), parent_model.parameters())
+                else:
+                    torch.nn.utils.vector_to_parameters(self.server_weights.to(self.device), parent_model.parameters())
+
+                if state.local_weights is not None:
+                    torch.nn.utils.vector_to_parameters(state.local_weights.to(self.device), local_model.parameters())
+                else:
+                    torch.nn.utils.vector_to_parameters(state.weights.to(self.device), local_model.parameters())
+
+                client_test_ds = ClientDataset(self.test_dataset, self.client_test_indices[client_id])
+                if len(client_test_ds) == 0:
+                    continue
+
+                test_loader = DataLoader(client_test_ds, batch_size=len(client_test_ds), shuffle=False)
+                with torch.no_grad():
+                    for images, labels in test_loader:
+                        images, labels = images.to(self.device), labels.to(self.device)
+                        logits_root = root_model(images)
+                        logits_parent = parent_model(images)
+                        logits_local = local_model(images)
+
+                        if weighting_mode == "dynamic_confidence":
+                            p_root = F.softmax(logits_root, dim=1)
+                            p_parent = F.softmax(logits_parent, dim=1)
+                            p_local = F.softmax(logits_local, dim=1)
+
+                            h_root = -(p_root * torch.log(p_root + 1e-8)).sum(dim=1).mean().item()
+                            h_parent = -(p_parent * torch.log(p_parent + 1e-8)).sum(dim=1).mean().item()
+                            h_local = -(p_local * torch.log(p_local + 1e-8)).sum(dim=1).mean().item()
+
+                            weights = F.softmax(torch.tensor([-h_local, -h_parent, -h_root], device=self.device), dim=0)
+                            w_local, w_parent, w_root = weights[0].item(), weights[1].item(), weights[2].item()
+                        elif weighting_mode == "dynamic_loss":
+                            l_root = F.cross_entropy(logits_root, labels).item()
+                            l_parent = F.cross_entropy(logits_parent, labels).item()
+                            l_local = F.cross_entropy(logits_local, labels).item()
+
+                            weights = F.softmax(torch.tensor([-l_local, -l_parent, -l_root], device=self.device), dim=0)
+                            w_local, w_parent, w_root = weights[0].item(), weights[1].item(), weights[2].item()
+                        else:
+                            w_local, w_parent, w_root = alpha_static, beta_static, gamma_static
+
+                        logits_ensemble = w_local * logits_local + w_parent * logits_parent + w_root * logits_root
+                        loss = criterion(logits_ensemble, labels)
+                        total_loss += loss.item()
+                        predicted = logits_ensemble.argmax(dim=1)
+                        total_samples += labels.size(0)
+                        total_correct += (predicted == labels).sum().item()
+
         if total_samples == 0:
             return 0.0, 0.0
-            
-        acc = 100 * total_correct / total_samples
+
+        acc = 100.0 * total_correct / total_samples
         avg_loss = total_loss / total_samples
         return acc, avg_loss

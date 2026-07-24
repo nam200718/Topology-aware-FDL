@@ -1,5 +1,7 @@
-# Topology Comparison Study
-# Compares all topologies across IID, Non-IID, and Byzantine attack scenarios.
+# Topology Comparison Study across Non-IID Dirichlet Spectrum (Topology-Intrinsic Optimizations)
+# Compares standard topologies (Star, Hierarchical Standard) against the Optimized Hierarchical Ensemble
+# featuring topology-intrinsic optimizations: Dual Aggregation Routing, Shared Backbone Multi-Head,
+# Label-Distribution Aware Graph Clustering, Multi-Tier Distillation, and Dynamic Confidence Weighting.
 
 experiment_type: comparison
 num_rounds: 15
@@ -7,6 +9,7 @@ num_rounds: 15
 env:
   seed: 42
   output_dir: ./outputs
+  dataset: mnist
   train_subset: 10000
   test_subset: 2000
 
@@ -14,48 +17,45 @@ clients:
   num_clients: 15
   local_lr: 0.05
   local_steps: 1
+  # Topology-Intrinsic Optimization Suite:
+  compute_optimization_mode: shared_backbone
+  ensemble_weighting_mode: dynamic_confidence
+  ensemble_distillation: true
+  distillation_lambda: 0.5
 
 robustness:
   byzantine_type: label_flip
 
-non_iid:
-  enabled: false
-  alpha: 0.1
-
 topologies:
   - type: star
-    label: Star
-  - type: star_randomized
-    label: "Star randomized"
-  - type: ring
-    label: Ring
-  - type: gossip
-    label: Gossip
-    params:
-      degree_k: 3
+    label: "Star (FedAvg)"
   - type: hierarchical
-    label: Hierarchical
+    label: "Hierarchical (Standard)"
     params:
       num_clusters: 3
   - type: hierarchical_ensemble
-    label: "Hierarchical ensemble"
+    label: "Hierarchical Ensemble (Intrinsic Optimized)"
     params:
       num_clusters: 3
-  - type: layered
-    label: Layered
-    params:
-      layers: [15, 5, 1]
+      cluster_by_label_dist: true
 
 scenarios:
   - id: iid
     label: "IID (Baseline)"
     non_iid: false
-    byzantine_rate: 0.0
-  - id: non_iid
-    label: "Non-IID"
+  - id: non_iid_alpha_1.0
+    label: "Non-IID (Mild alpha=1.0)"
     non_iid: true
-    byzantine_rate: 0.0
-  - id: attack
-    label: "Byzantine Attack (20%)"
-    non_iid: false
-    byzantine_rate: 0.2
+    alpha: 1.0
+  - id: non_iid_alpha_0.5
+    label: "Non-IID (Moderate alpha=0.5)"
+    non_iid: true
+    alpha: 0.5
+  - id: non_iid_alpha_0.1
+    label: "Non-IID (Severe alpha=0.1)"
+    non_iid: true
+    alpha: 0.1
+  - id: non_iid_alpha_0.05
+    label: "Non-IID (Extreme alpha=0.05)"
+    non_iid: true
+    alpha: 0.05

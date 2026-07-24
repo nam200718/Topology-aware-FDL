@@ -1,94 +1,16 @@
-import os
-import json
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-import numpy as np
+from src.experiments.visualizer import (
+    plot_experiment_results,
+    plot_comparison_convergence as plot_comparison,
+    plot_robustness_summary,
+    plot_byzantine_matrix,
+)
 
-def plot_experiment_results(metrics_path, output_dir=None):
-    """
-    Plots accuracy and loss from a metrics.json or metrics.csv file.
-    """
-    if not os.path.exists(metrics_path):
-        print(f"Metrics file not found: {metrics_path}")
-        return
-
-    # Load data
-    if metrics_path.endswith('.json'):
-        with open(metrics_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        df = pd.DataFrame(data)
-    else:
-        df = pd.read_csv(metrics_path)
-
-    if output_dir is None:
-        output_dir = os.path.dirname(metrics_path)
-
-    sns.set_style("whitegrid")
-    
-    # 1. Accuracy Plot
-    plt.figure(figsize=(11, 6))
-    plt.plot(np.asarray(df['round']), np.asarray(df['test_accuracy']), label='Global Model Accuracy', marker='o')
-    
-    if 'ensemble_test_accuracy' in df.columns:
-        plt.plot(np.asarray(df['round']), np.asarray(df['ensemble_test_accuracy']), label='Ensemble Accuracy', marker='s', linestyle='--')
-    
-    plt.title('Model Accuracy Convergence')
-    plt.xlabel('Round')
-    plt.ylabel('Accuracy (%)')
-    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'accuracy_convergence.png'), bbox_inches='tight')
-    plt.close()
-
-    # 2. Loss Plot
-    plt.figure(figsize=(11, 6))
-    plt.plot(np.asarray(df['round']), np.asarray(df['test_loss']), label='Global Model Loss', marker='o', color='red')
-    
-    if 'ensemble_test_loss' in df.columns:
-        plt.plot(np.asarray(df['round']), np.asarray(df['ensemble_test_loss']), label='Ensemble Loss', marker='s', linestyle='--', color='orange')
-    
-    plt.title('Model Loss Convergence')
-    plt.xlabel('Round')
-    plt.ylabel('Loss')
-    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'loss_convergence.png'), bbox_inches='tight')
-    plt.close()
-
-    print(f"Charts saved to {output_dir}")
-
-def plot_comparison(experiment_dirs, labels, output_path):
-    """
-    Compares multiple experiments in a single plot.
-    """
-    sns.set_style("whitegrid")
-    plt.figure(figsize=(12, 7))
-    
-    for exp_dir, label in zip(experiment_dirs, labels):
-        json_path = os.path.join(exp_dir, 'metrics.json')
-        if os.path.exists(json_path):
-            with open(json_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            df = pd.DataFrame(data)
-            
-            # Plot global accuracy
-            plt.plot(np.asarray(df['round']), np.asarray(df['test_accuracy']), label=f'{label} (Global)')
-            
-            # Plot ensemble if available
-            if 'ensemble_test_accuracy' in df.columns:
-                plt.plot(np.asarray(df['round']), np.asarray(df['ensemble_test_accuracy']), label=f'{label} (Ensemble)', linestyle='--')
-                
-    plt.title('Experiment Comparison: Test Accuracy')
-    plt.xlabel('Round')
-    plt.ylabel('Accuracy (%)')
-    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
-    plt.tight_layout()
-    plt.savefig(output_path, bbox_inches='tight')
-    plt.close()
-    print(f"Comparison chart saved to {output_path}")
+__all__ = [
+    "plot_experiment_results",
+    "plot_comparison",
+    "plot_robustness_summary",
+    "plot_byzantine_matrix",
+]
 
 if __name__ == "__main__":
     import argparse

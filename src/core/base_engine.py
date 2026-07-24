@@ -50,10 +50,9 @@ class BaseEngine(ABC):
         self.train_dataset: torch.utils.data.Dataset = train_ds
         self.test_dataset: torch.utils.data.Dataset = test_ds
 
-        if self.device.type != "cpu":
-            from src.data.dataset import FastDataset
-            self.train_dataset = FastDataset(self.train_dataset, self.device)
-            self.test_dataset = FastDataset(self.test_dataset, self.device)
+        from src.data.dataset import FastDataset
+        self.train_dataset = FastDataset(self.train_dataset, self.device)
+        self.test_dataset = FastDataset(self.test_dataset, self.device)
         
         non_iid_enabled = getattr(self.config.non_iid, "enabled", True)
         alpha = getattr(self.config.non_iid, "alpha", 0.5)
@@ -73,9 +72,31 @@ class BaseEngine(ABC):
             alpha=alpha, 
             seed=self.config.env.seed
         )
+
+        # Check if topology requests label-distribution aware clustering
+        if self.config.topology.params.get("cluster_by_label_dist", False) and hasattr(self.topology, "build_distribution_aware"):
+            from src.data.dataset import _get_labels
+            all_train_labels = _get_labels(self.train_dataset)
+            if all_train_labels is not None:
+                if isinstance(all_train_labels, torch.Tensor):
+                    all_train_labels = all_train_labels.cpu().numpy()
+                client_label_counts = {}
+                for cid, idxs in self.client_indices.items():
+                    c_labels = all_train_labels[idxs]
+                    unique, counts = np.unique(c_labels, return_counts=True)
+                    client_label_counts[cid] = dict(zip(unique.tolist(), counts.tolist()))
+                self.topology.build_distribution_aware(self.config.clients.num_clients, client_label_counts, seed=self.config.env.seed)
         
         # Fetch initial model vector
-        dummy_model = SimpleCNN(in_channels=self.in_channels)
+        is_ensemble = getattr(self.config.clients, "use_ensemble", False) or getattr(self.config.clients, "hierarchical_ensemble", False)
+        compute_mode = getattr(self.config.clients, "compute_optimization_mode", "shared_backbone")
+        
+        if is_ensemble and compute_mode == "shared_backbone":
+            from src.core.model import MultiHeadSimpleCNN
+            dummy_model = MultiHeadSimpleCNN(in_channels=self.in_channels)
+        else:
+            dummy_model = SimpleCNN(in_channels=self.in_channels)
+
         initial_w = torch.nn.utils.parameters_to_vector(dummy_model.parameters()).detach()
         num_params = initial_w.numel()
         print(f"Model instantiated with {num_params} parameters.")
@@ -105,7 +126,13 @@ class BaseEngine(ABC):
         pass
         
     def evaluate_model(self, weights: torch.Tensor):
-        model = self.updater.global_model
+        is_ensemble = getattr(self.config.clients, "use_ensemble", False) or getattr(self.config.clients, "hierarchical_ensemble", False)
+        compute_mode = getattr(self.config.clients, "compute_optimization_mode", "shared_backbone")
+        if is_ensemble and compute_mode == "shared_backbone":
+            model = self.updater.multihead_model
+        else:
+            model = self.updater.global_model
+
         torch.nn.utils.vector_to_parameters(weights.to(self.device), model.parameters())
         model.eval()
         
