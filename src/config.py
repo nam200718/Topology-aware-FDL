@@ -1,4 +1,5 @@
 import os
+import re
 import yaml
 from pydantic import BaseModel, Field
 from typing import Literal, Dict, Any, Optional, List, Union
@@ -24,6 +25,8 @@ class TopologyConfig(BaseModel):
 
 class ClientConfig(BaseModel):
     num_clients: int = 100
+    # Model architecture selection: "simple_cnn" or "resnet9"
+    model_name: Literal["simple_cnn", "resnet9"] = "simple_cnn"
     # Approximate model dimensions for the lightweight vector update model
     model_dim: int = 50
     # learning rate or step size for local updates
@@ -46,6 +49,16 @@ class ClientConfig(BaseModel):
     ensemble_distillation: bool = True
     # Scaling factor for mutual distillation loss
     distillation_lambda: float = 0.5
+    # Total local step budget per round to distribute adaptively across ensemble heads
+    total_local_steps: int = 5
+    # Loss scaling weight beta for loss-calibrated ensemble weighting
+    loss_weight_beta: float = 1.0
+    # Algorithm personalization method: "none", "ditto", "apfl"
+    personalization_method: Literal["none", "ditto", "apfl"] = "none"
+    # Ditto proximal L2 penalty parameter lambda
+    ditto_lambda: float = 0.1
+    # APFL initial mixing weight alpha
+    apfl_alpha: float = 0.5
 
 class RobustnessConfig(BaseModel):
     byzantine_rate: float = 0.0
@@ -124,16 +137,23 @@ class ExperimentConfig(BaseModel):
             data = yaml.safe_load(f)
         return cls(**data)
 
-    def _make_client_config(self, topo_type: TopologyType, **overrides) -> ClientConfig:
+    def _make_client_config(self, topo_type: str, overrides: Optional[dict] = None) -> ClientConfig:
         """
         Build a ClientConfig from defaults, auto-setting ensemble flags
-        based on the topology type.
+        based on the topology type and applying topo-specific overrides.
         """
+        if overrides is None:
+            overrides = {}
         base = self.clients.model_dump()
         is_ensemble = (topo_type == "hierarchical_ensemble")
         base["use_ensemble"] = is_ensemble or base.get("use_ensemble", False)
         base["hierarchical_ensemble"] = is_ensemble or base.get("hierarchical_ensemble", False)
-        base.update(overrides)
+        
+        valid_keys = set(ClientConfig.model_fields.keys())
+        for k, v in overrides.items():
+            if k in valid_keys:
+                base[k] = v
+
         return ClientConfig(**base)
 
     def build_configs(self, metrics_dir: Optional[str] = None) -> List[dict]:
@@ -164,7 +184,7 @@ class ExperimentConfig(BaseModel):
                 num_rounds=self.num_rounds,
                 env=env,
                 topology=TopologyConfig(type=topo.type, params=topo.params),
-                clients=self._make_client_config(topo.type),
+                clients=self._make_client_config(topo.type, topo.params),
                 robustness=self.robustness,
                 non_iid=self.non_iid,
             )
@@ -186,7 +206,7 @@ class ExperimentConfig(BaseModel):
                         num_rounds=self.num_rounds,
                         env=env,
                         topology=TopologyConfig(type=topo.type, params=topo.params),
-                        clients=self._make_client_config(topo.type),
+                        clients=self._make_client_config(topo.type, topo.params),
                         robustness=RobustnessConfig(
                             byzantine_rate=rate,
                             byzantine_type=self.robustness.byzantine_type,
@@ -204,14 +224,17 @@ class ExperimentConfig(BaseModel):
         elif self.experiment_type == "comparison":
             for topo in self.topologies:
                 label = topo.label or topo.type.replace("_", " ").capitalize()
+                # Build a unique experiment name using a sanitized label to avoid collisions
+                # when multiple topologies share the same type (e.g. star_fedavg vs star_ditto).
+                safe_label = re.sub(r"[^a-z0-9]+", "_", label.lower()).strip("_")
                 for scenario in self.scenarios:
-                    exp_name = f"{topo.type}_{scenario.id}"
+                    exp_name = f"{safe_label}_{scenario.id}"
                     sim_config = SimulationConfig(
                         experiment_name=exp_name,
                         num_rounds=self.num_rounds,
                         env=env,
                         topology=TopologyConfig(type=topo.type, params=topo.params),
-                        clients=self._make_client_config(topo.type),
+                        clients=self._make_client_config(topo.type, topo.params),
                         robustness=RobustnessConfig(
                             byzantine_rate=scenario.byzantine_rate,
                             byzantine_type=self.robustness.byzantine_type,

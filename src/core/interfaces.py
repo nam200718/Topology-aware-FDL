@@ -16,6 +16,11 @@ class ClientState:
         self.is_byzantine: bool = False
         self.byzantine_type: str = "label_flip"
         
+        # APFL and Ensemble metrics tracking
+        self.apfl_alpha: float = 0.5
+        self.head_losses: Dict[str, float] = {}
+        self.head_steps: Dict[str, int] = {}
+        
     def copy(self):
         new_state = ClientState(self.client_id, self.weights.clone())
         if self.local_weights is not None:
@@ -25,6 +30,9 @@ class ClientState:
         new_state.data_samples = self.data_samples
         new_state.is_byzantine = self.is_byzantine
         new_state.byzantine_type = self.byzantine_type
+        new_state.apfl_alpha = self.apfl_alpha
+        new_state.head_losses = dict(self.head_losses)
+        new_state.head_steps = dict(self.head_steps)
         return new_state
 
 class Topology(ABC):

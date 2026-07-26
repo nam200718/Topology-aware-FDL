@@ -1,7 +1,5 @@
-# Topology Comparison Study across Non-IID Dirichlet Spectrum (Topology-Intrinsic Optimizations)
-# Compares standard topologies (Star, Hierarchical Standard) against the Optimized Hierarchical Ensemble
-# featuring topology-intrinsic optimizations: Dual Aggregation Routing, Shared Backbone Multi-Head,
-# Label-Distribution Aware Graph Clustering, Multi-Tier Distillation, and Dynamic Confidence Weighting.
+# Topology & Personalization Algorithm Comparison Study (CIFAR-10 ResNet9)
+# Compares flat baselines (Star/FedAvg, Star+Ditto, Star+APFL) against the 3-Tier Hierarchical Ensemble Topology.
 
 experiment_type: comparison
 num_rounds: 15
@@ -9,19 +7,22 @@ num_rounds: 15
 env:
   seed: 42
   output_dir: ./outputs
-  dataset: mnist
-  train_subset: 10000
-  test_subset: 2000
+  dataset: cifar10
+  train_subset: 3000
+  test_subset: 1000
 
 clients:
+  model_name: resnet9
   num_clients: 15
-  local_lr: 0.05
+  local_lr: 0.01
   local_steps: 1
-  # Topology-Intrinsic Optimization Suite:
+  # Ensemble Improvements & Topology Optimizations:
   compute_optimization_mode: shared_backbone
   ensemble_weighting_mode: dynamic_confidence
   ensemble_distillation: true
   distillation_lambda: 0.5
+  total_local_steps: 5
+  loss_weight_beta: 1.0
 
 robustness:
   byzantine_type: label_flip
@@ -29,15 +30,24 @@ robustness:
 topologies:
   - type: star
     label: "Star (FedAvg)"
-  - type: hierarchical
-    label: "Hierarchical (Standard)"
     params:
-      num_clusters: 3
+      personalization_method: "none"
+  - type: star
+    label: "Star (Ditto)"
+    params:
+      personalization_method: "ditto"
+      ditto_lambda: 0.1
+  - type: star
+    label: "Star (APFL)"
+    params:
+      personalization_method: "apfl"
+      apfl_alpha: 0.5
   - type: hierarchical_ensemble
     label: "Hierarchical Ensemble (Intrinsic Optimized)"
     params:
       num_clusters: 3
       cluster_by_label_dist: true
+      personalization_method: "none"
 
 scenarios:
   - id: iid

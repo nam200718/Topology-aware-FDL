@@ -67,3 +67,40 @@ def test_distribution_aware_clustering():
     assert head_0 == head_1
     assert head_2 == head_3
     assert head_0 != head_2
+
+def test_resnet9_and_multihead():
+    from src.core.model import ResNet9, MultiHeadResNet9
+    model = ResNet9(in_channels=3, num_classes=10)
+    x = torch.randn(2, 3, 32, 32)
+    out = model(x)
+    assert out.shape == (2, 10)
+    
+    multi_model = MultiHeadResNet9(in_channels=3, num_classes=10)
+    lr, lp, ll = multi_model(x, head="all")
+    assert lr.shape == (2, 10)
+    assert lp.shape == (2, 10)
+    assert ll.shape == (2, 10)
+
+def test_ditto_and_apfl_updaters():
+    updater = PyTorchLocalUpdater(device="cpu", in_channels=1)
+    images = torch.randn(20, 1, 28, 28)
+    labels = torch.randint(0, 10, (20,))
+    ds = TensorDataset(images, labels)
+    
+    initial_w = torch.nn.utils.parameters_to_vector(updater.global_model.parameters()).detach()
+    state = ClientState(0, initial_w)
+    
+    # Test Ditto
+    cfg_ditto = ClientConfig(personalization_method="ditto", ditto_lambda=0.1, local_steps=1)
+    state_ditto = updater.update(state.copy(), ds, cfg_ditto, np.random.RandomState(42))
+    assert state_ditto.weights is not None
+    assert state_ditto.local_weights is not None
+    
+    # Test APFL
+    cfg_apfl = ClientConfig(personalization_method="apfl", apfl_alpha=0.5, local_steps=1)
+    state_apfl = updater.update(state.copy(), ds, cfg_apfl, np.random.RandomState(42))
+    assert state_apfl.weights is not None
+    assert state_apfl.local_weights is not None
+    assert 0.0 <= state_apfl.apfl_alpha <= 1.0
+
+

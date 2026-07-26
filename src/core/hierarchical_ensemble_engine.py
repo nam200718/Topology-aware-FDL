@@ -10,15 +10,12 @@ from torch.utils.data import DataLoader
 class HierarchicalEnsembleEngine(HierarchicalEngine):
     """
     Engine for Hierarchical Ensemble Federated Learning.
-    Supports Dual Aggregation, Dynamic Weighting (entropy/loss),
+    Supports Dual Aggregation, Dynamic Weighting (entropy & loss-calibrated),
     Shared Backbone Multi-Head compute optimization, and Label-Distribution Aware Clustering.
     """
     def __init__(self, config, topology, aggregator, device="cpu"):
-        # Check if topology should build label-distribution aware clusters
         cluster_by_label = config.topology.params.get("cluster_by_label_dist", True)
         if cluster_by_label and hasattr(topology, "build_distribution_aware"):
-            # Topology will be rebuilt after data partition in base_engine if needed,
-            # or we pass client label counts during init
             pass
         super().__init__(config, topology, aggregator, device)
 
@@ -97,10 +94,11 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
     def evaluate_ensemble(self):
         """
         Evaluate an ensemble of Root, Parent, and Local models.
-        Supports 'static', 'dynamic_confidence' (prediction entropy), and 'dynamic_loss' weighting modes.
+        Supports Loss-Calibrated Dynamic Weighting incorporating prediction entropy and training loss.
         """
         weighting_mode = getattr(self.config.clients, "ensemble_weighting_mode", "dynamic_confidence")
         compute_mode = getattr(self.config.clients, "compute_optimization_mode", "shared_backbone")
+        beta = getattr(self.config.clients, "loss_weight_beta", 1.0)
         alpha_static = getattr(self.config.clients, "ensemble_alpha", 0.33)
         beta_static = getattr(self.config.clients, "ensemble_beta", 0.33)
         gamma_static = max(0.0, 1.0 - alpha_static - beta_static)
@@ -133,7 +131,7 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
                         logits_root, logits_parent, logits_local = multi_model(images, head="all")
 
                         if weighting_mode == "dynamic_confidence":
-                            # Compute prediction entropy H(p) = -sum(p * log p)
+                            # Compute prediction entropy H(p)
                             p_root = F.softmax(logits_root, dim=1)
                             p_parent = F.softmax(logits_parent, dim=1)
                             p_local = F.softmax(logits_local, dim=1)
@@ -142,8 +140,17 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
                             h_parent = -(p_parent * torch.log(p_parent + 1e-8)).sum(dim=1).mean().item()
                             h_local = -(p_local * torch.log(p_local + 1e-8)).sum(dim=1).mean().item()
 
-                            # Inverse entropy weighting
-                            weights = F.softmax(torch.tensor([-h_local, -h_parent, -h_root], device=self.device), dim=0)
+                            # Loss-calibrated weighting: score = -entropy - beta * training_loss
+                            head_losses = getattr(state, "head_losses", {})
+                            l_root = head_losses.get("root", 0.0)
+                            l_parent = head_losses.get("parent", 0.0)
+                            l_local = head_losses.get("local", 0.0)
+
+                            score_local = -h_local - beta * l_local
+                            score_parent = -h_parent - beta * l_parent
+                            score_root = -h_root - beta * l_root
+
+                            weights = F.softmax(torch.tensor([score_local, score_parent, score_root], device=self.device), dim=0)
                             w_local, w_parent, w_root = weights[0].item(), weights[1].item(), weights[2].item()
                         elif weighting_mode == "dynamic_loss":
                             l_root = F.cross_entropy(logits_root, labels).item()
@@ -210,7 +217,16 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
                             h_parent = -(p_parent * torch.log(p_parent + 1e-8)).sum(dim=1).mean().item()
                             h_local = -(p_local * torch.log(p_local + 1e-8)).sum(dim=1).mean().item()
 
-                            weights = F.softmax(torch.tensor([-h_local, -h_parent, -h_root], device=self.device), dim=0)
+                            head_losses = getattr(state, "head_losses", {})
+                            l_root = head_losses.get("root", 0.0)
+                            l_parent = head_losses.get("parent", 0.0)
+                            l_local = head_losses.get("local", 0.0)
+
+                            score_local = -h_local - beta * l_local
+                            score_parent = -h_parent - beta * l_parent
+                            score_root = -h_root - beta * l_root
+
+                            weights = F.softmax(torch.tensor([score_local, score_parent, score_root], device=self.device), dim=0)
                             w_local, w_parent, w_root = weights[0].item(), weights[1].item(), weights[2].item()
                         elif weighting_mode == "dynamic_loss":
                             l_root = F.cross_entropy(logits_root, labels).item()
@@ -232,6 +248,6 @@ class HierarchicalEnsembleEngine(HierarchicalEngine):
         if total_samples == 0:
             return 0.0, 0.0
 
-        acc = 100.0 * total_correct / total_samples
+        avg_acc = (total_correct / total_samples) * 100.0
         avg_loss = total_loss / total_samples
-        return acc, avg_loss
+        return avg_acc, avg_loss

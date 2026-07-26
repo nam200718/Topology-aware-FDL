@@ -1,4 +1,9 @@
 import torch
+try:
+    import torch_directml  # type: ignore
+except ImportError:
+    torch_directml = None
+from typing import Union
 from src.config import SimulationConfig
 from src.topologies.star import StarTopology
 from src.topologies.ring import RingTopology
@@ -33,11 +38,13 @@ def detect_device() -> str:
     elif hasattr(torch, "backends") and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         return "mps"
     else:
-        try:
-            import torch_directml  # type: ignore
-            return torch_directml.device()
-        except ImportError:
-            return "cpu"
+        if torch_directml is not None:
+            try:
+                if torch_directml.is_available():
+                    return str(torch_directml.device())
+            except Exception:
+                pass
+        return "cpu"
 
 
 class TopologyEngineFactory:

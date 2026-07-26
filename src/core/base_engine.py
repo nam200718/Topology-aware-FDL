@@ -19,7 +19,7 @@ class BaseEngine(ABC):
         self.config = config
         self.topology = topology
         self.aggregator = aggregator
-        self.device = torch.device(device)
+        self.device = device if isinstance(device, torch.device) else torch.device(device)
         
         # Build components
         self.rng = get_random_state()
@@ -90,19 +90,21 @@ class BaseEngine(ABC):
         # Fetch initial model vector
         is_ensemble = getattr(self.config.clients, "use_ensemble", False) or getattr(self.config.clients, "hierarchical_ensemble", False)
         compute_mode = getattr(self.config.clients, "compute_optimization_mode", "shared_backbone")
+        model_name = getattr(self.config.clients, "model_name", "simple_cnn")
         
         if is_ensemble and compute_mode == "shared_backbone":
-            from src.core.model import MultiHeadSimpleCNN
-            dummy_model = MultiHeadSimpleCNN(in_channels=self.in_channels)
+            from src.core.model import MultiHeadSimpleCNN, MultiHeadResNet9
+            dummy_model = MultiHeadResNet9(in_channels=self.in_channels) if model_name == "resnet9" else MultiHeadSimpleCNN(in_channels=self.in_channels)
         else:
-            dummy_model = SimpleCNN(in_channels=self.in_channels)
+            from src.core.model import SimpleCNN, ResNet9
+            dummy_model = ResNet9(in_channels=self.in_channels) if model_name == "resnet9" else SimpleCNN(in_channels=self.in_channels)
 
         initial_w = torch.nn.utils.parameters_to_vector(dummy_model.parameters()).detach()
         num_params = initial_w.numel()
-        print(f"Model instantiated with {num_params} parameters.")
+        print(f"Model ({model_name}) instantiated with {num_params} parameters.")
         
         from src.core.updater import PyTorchLocalUpdater
-        self.updater = PyTorchLocalUpdater(device=device, in_channels=self.in_channels)
+        self.updater = PyTorchLocalUpdater(device=device, in_channels=self.in_channels, model_name=model_name)
         self.server_weights: torch.Tensor = initial_w.clone()
         
         # Track clients
@@ -161,7 +163,8 @@ class BaseEngine(ABC):
 
     def evaluate_ensemble(self):
         use_ensemble = getattr(self.config.clients, "use_ensemble", False)
-        if not use_ensemble:
+        pers_method = getattr(self.config.clients, "personalization_method", "none")
+        if not use_ensemble and pers_method == "none":
             return 0.0, 0.0
             
         alpha = getattr(self.config.clients, "ensemble_alpha", 0.5)
@@ -170,7 +173,6 @@ class BaseEngine(ABC):
         total_samples = 0
         total_loss = 0.0
         
-        # Instantiate two models (reuse from updater)
         global_model = self.updater.global_model
         local_model = self.updater.local_model
         global_model.eval()
@@ -183,11 +185,9 @@ class BaseEngine(ABC):
             if getattr(state, "local_weights", None) is None:
                 continue
                 
-            # Load weights
             torch.nn.utils.vector_to_parameters(self.server_weights.to(self.device), global_model.parameters())
             torch.nn.utils.vector_to_parameters(state.local_weights.to(self.device), local_model.parameters())
             
-            # Client's local test data
             client_test_ds = ClientDataset(self.test_dataset, self.client_test_indices[client_id])
             if len(client_test_ds) == 0:
                 continue
@@ -201,8 +201,13 @@ class BaseEngine(ABC):
                     logits_global = global_model(images)
                     logits_local = local_model(images)
                     
-                    # Ensemble logits
-                    logits_ensemble = alpha * logits_local + (1.0 - alpha) * logits_global
+                    if pers_method == "ditto":
+                        logits_ensemble = logits_local
+                    elif pers_method == "apfl":
+                        apfl_a = getattr(state, "apfl_alpha", 0.5)
+                        logits_ensemble = apfl_a * logits_local + (1.0 - apfl_a) * logits_global
+                    else:
+                        logits_ensemble = alpha * logits_local + (1.0 - alpha) * logits_global
                     
                     loss = criterion(logits_ensemble, labels)
                     total_loss += loss.item()

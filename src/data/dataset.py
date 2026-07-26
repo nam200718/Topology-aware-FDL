@@ -112,14 +112,8 @@ def get_cifar10(data_dir="./data", train_subset=None, test_subset=None):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
     ])
     
-    try:
-        train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
-        test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
-    except Exception:
-        # Fallback URL if default mirror is unreachable or rate-limited
-        datasets.CIFAR10.url = "https://huggingface.co/datasets/anon8231489241/cifar10/resolve/main/cifar-10-python.tar.gz"
-        train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
-        test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
+    train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
+    test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
     
     if train_subset is not None and train_subset < len(train_dataset):
         indices = np.random.choice(len(train_dataset), train_subset, replace=False)
