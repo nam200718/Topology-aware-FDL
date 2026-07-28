@@ -159,3 +159,5 @@ cython_debug/
 
 # Windows Virtual Environment
 .venv_amd/
+.venv312/
+.venv*/

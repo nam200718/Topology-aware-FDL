@@ -1,0 +1,53 @@
+# Defense Sweep Experiment
+# Run hierarchical_ensemble with Soft Rejection defense
+# Compare no_defense vs soft_cosine over many Byzantine attack rates.
+
+# ========================================
+# General settings
+# ========================================
+experiment_type: byzantine_matrix
+num_rounds: 15
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: mnist          # Change to cifar10 for better visualization
+  train_subset: null
+  test_subset: null
+
+clients:
+  num_clients: 15
+  model_name: simple_cnn  # Change to resnet9 for CIFAR-10
+  local_lr: 0.05
+  local_steps: 1
+  hierarchical_ensemble: true
+  use_ensemble: true
+  ensemble_weighting_mode: dynamic_confidence
+  compute_optimization_mode: shared_backbone
+  ensemble_distillation: true
+  total_local_steps: 5
+
+robustness:
+  byzantine_type: label_flip
+
+non_iid:
+  enabled: false          # IID to isolate Byzantine impact
+  alpha: 0.5
+
+# ========================================
+# Sweep axes
+# ========================================
+topologies:
+  - type: hierarchical_ensemble
+    label: "Ensemble (No Defense)"
+    params:
+      num_clusters: 3
+      defense_mode: "none"        # ← Custom param cho defense
+
+  - type: hierarchical_ensemble
+    label: "Ensemble (Soft Cosine)"
+    params:
+      num_clusters: 3
+      defense_mode: "soft_cosine" # ← Custom param cho defense
+
+byzantine_rates: [0.0, 0.1, 0.2, 0.3, 0.5]

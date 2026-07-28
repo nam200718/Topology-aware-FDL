@@ -72,7 +72,18 @@ class TopologyEngineFactory:
         elif topo_type == "hierarchical_ensemble":
             clusters = params.get("num_clusters", 5)
             topology = HierarchicalTopology(num_clusters=clusters)
-            engine_cls = HierarchicalEnsembleEngine
+            # engine_cls = HierarchicalEnsembleEngine
+            # --- Coordinate the defense model ---
+
+            # Check if defense is requested via topology params
+            defense_mode = params.get("defense_mode", "none") 
+            if defense_mode != "none":
+                from src.defense.engine import DefendedEnsembleEngine
+                engine_cls = DefendedEnsembleEngine 
+            else:
+                engine_cls = HierarchicalEnsembleEngine
+            
+            #
         elif topo_type == "layered":
             layers = params.get("layers", [config.clients.num_clients, 4, 2, 1])
             gossip_steps = params.get("gossip_steps", 1)
