@@ -1,0 +1,25 @@
+experiment_name: "defense_ablation_cifar10"
+env:
+  output_dir: "./outputs"
+  dataset: "cifar10"
+  seed: 42
+
+clients:
+  num_clients: 15
+  samples_per_client: 600
+  model_name: "resnet9"
+  local_epochs: 1
+  local_lr: 0.01
+
+server:
+  num_rounds: 15
+
+robustness:
+  byzantine_rates: [0.0, 0.1, 0.2, 0.3, 0.5]
+  byzantine_type: "gradient_ascent"
+
+topology:
+  type: "hierarchical_ensemble"
+  params:
+    num_clusters: 3
+    defense_mode: "soft_cosine"

@@ -62,6 +62,17 @@ def run_single_defense_experiment(
             device=device,
         )
 
+    # --- INJECT BYZANTINE UPDATER ---
+    # Replace default updater by extended version
+    from src.defense.core_updater import ByzantineUpdater
+    target_engine = engine.engine if hasattr(engine, "engine") else engine
+    target_engine.updater = ByzantineUpdater(
+        device=target_engine.device,
+        in_channels=target_engine.in_channels,
+        model_name=config.clients.model_name
+    )
+    # --------------------------------
+
     check_invariants(topology, config)
 
     # Collect Byzantine client IDs
@@ -69,7 +80,13 @@ def run_single_defense_experiment(
         cid for cid, state in engine.clients_state.items() if state.is_byzantine
     ]
 
-    engine.run()
+    try:
+        engine.run()
+    except Exception as e:
+        print(f"\n    [!] WARNING: Model exploded (NaN or Diverged) - Error: {e}")
+        print(f"    [!] This indicates the attack successfully destroyed the Baseline!")
+        # Force add a 0% accuracy metric to signify model death
+        engine.metrics.history.append({"test_accuracy": 0.0, "ensemble_test_accuracy": 0.0})
 
     trust_tracker = getattr(engine, "trust_tracker", None)
     return engine.metrics.get_history(), trust_tracker, byzantine_ids
@@ -86,6 +103,7 @@ def main():
     parser.add_argument("--dataset", type=str, default=None, help="Override dataset (mnist/cifar10)")
     parser.add_argument("--model", type=str, default=None, help="Override model (simple_cnn/resnet9)")
     parser.add_argument("--num_rounds", type=int, default=None, help="Override num_rounds")
+    parser.add_argument("--attack", type=str, default=None, help="Override byzantine attack type")
     args = parser.parse_args()
 
     device = detect_device()
@@ -99,11 +117,14 @@ def main():
         exp_config.env.dataset = args.dataset
     if args.num_rounds:
         exp_config.num_rounds = args.num_rounds
+    if args.attack:
+        exp_config.robustness.byzantine_type = args.attack
 
     # Setup output directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    attack_name = exp_config.robustness.byzantine_type
     experiment_root = os.path.join(
-        exp_config.env.output_dir, f"defense_sweep_{timestamp}"
+        exp_config.env.output_dir, attack_name, f"run_{timestamp}"
     )
     plots_dir = os.path.join(experiment_root, "plots")
     metrics_dir = os.path.join(experiment_root, "metrics")
@@ -148,6 +169,7 @@ def main():
         print(f"  Final Accuracy: {final_acc:.2f}%")
 
         accuracy_results.append({
+            "attack_type": exp_config.robustness.byzantine_type,
             "byzantine_rate": rate,
             "defense_mode": defense_mode,
             "final_accuracy": final_acc,
@@ -184,7 +206,7 @@ def main():
     DefenseVisualizer.plot_accuracy_vs_byzantine_rate(
         results=accuracy_results,
         output_path=os.path.join(plots_dir, "accuracy_vs_byzantine_rate.png"),
-        title=f"Accuracy vs. Byzantine Rate ({exp_config.env.dataset.upper()}, {exp_config.num_rounds} rounds)",
+        title=f"Accuracy vs. Byz Rate ({exp_config.env.dataset.upper()} - {exp_config.robustness.byzantine_type.upper()}, {exp_config.num_rounds} rounds)",
     )
 
     # Save summary CSV
