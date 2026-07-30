@@ -2,6 +2,10 @@ import torch
 from torchvision import datasets, transforms
 import numpy as np
 from torch.utils.data import Dataset, Subset
+import ssl
+
+# Fix SSL Certificate Verify Failed error when downloading datasets from PyTorch
+ssl._create_default_https_context = ssl._create_unverified_context
 
 class ClientDataset(Dataset):
     """A subset of a global dataset specific to a single client."""
