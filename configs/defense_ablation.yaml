@@ -1,4 +1,5 @@
-experiment_name: "defense_ablation_cifar10"
+experiment_name: "defense_sweep_cifar10"
+experiment_type: "byzantine_matrix"
 env:
   output_dir: "./outputs"
   dataset: "cifar10"
@@ -18,8 +19,14 @@ robustness:
   byzantine_rates: [0.0, 0.1, 0.2, 0.3, 0.5]
   byzantine_type: "gradient_ascent"
 
-topology:
-  type: "hierarchical_ensemble"
-  params:
-    num_clusters: 3
-    defense_mode: "soft_cosine"
+topologies:
+  - type: "hierarchical_ensemble"
+    label: "Ensemble (No Defense)"
+    params:
+      num_clusters: 3
+      defense_mode: "none"
+  - type: "hierarchical_ensemble"
+    label: "Ensemble (Soft Cosine)"
+    params:
+      num_clusters: 3
+      defense_mode: "soft_cosine"
