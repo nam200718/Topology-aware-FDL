@@ -1,5 +1,8 @@
 experiment_name: "defense_sweep_cifar10"
 experiment_type: "byzantine_matrix"
+num_rounds: 15
+byzantine_rates: [0.0, 0.1, 0.2, 0.3, 0.5]
+
 env:
   output_dir: "./outputs"
   dataset: "cifar10"
@@ -12,11 +15,7 @@ clients:
   local_epochs: 1
   local_lr: 0.01
 
-server:
-  num_rounds: 15
-
 robustness:
-  byzantine_rates: [0.0, 0.1, 0.2, 0.3, 0.5]
   byzantine_type: "gradient_ascent"
 
 topologies:
