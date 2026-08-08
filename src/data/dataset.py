@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, Subset, DataLoader
 import ssl
 
 # Fix SSL Certificate Verify Failed error when downloading datasets from PyTorch
-ssl._create_default_https_context = ssl._create_unverified_context
+ssl._create_default_https_context = ssl._create_unverified_context  # type: ignore
 
 class ClientDataset(Dataset):
     """A subset of a global dataset specific to a single client."""
