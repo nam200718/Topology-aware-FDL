@@ -32,7 +32,8 @@ def detect_device() -> str:
         if torch_directml is not None:
             try:
                 if torch_directml.is_available():
-                    return str(torch_directml.device())
+                    dev = torch_directml.device()
+                    return dev if isinstance(dev, str) else str(dev)
             except Exception:
                 pass
         return "cpu"
