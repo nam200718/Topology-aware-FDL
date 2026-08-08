@@ -88,7 +88,7 @@ class PyTorchLocalUpdater:
         if personalization_method == "ditto":
             global_model = self.global_model
             global_model.train()
-            global_optimizer = torch.optim.SGD(global_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4, foreach=False)
+            global_optimizer = torch.optim.SGD(global_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
             
             # Step 1: Load broadcast weights using state-dict based approach (includes BN buffers)
             vector_to_model(state.weights.to(self.device), global_model)
@@ -121,7 +121,7 @@ class PyTorchLocalUpdater:
                 
             local_model.train()
             # FIX: match momentum & weight_decay to global optimizer for symmetric training
-            local_optimizer = torch.optim.SGD(local_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4, foreach=False)
+            local_optimizer = torch.optim.SGD(local_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
             ditto_lambda = getattr(config, "ditto_lambda", 0.1)
             
             for epoch in range(epochs):
@@ -156,7 +156,7 @@ class PyTorchLocalUpdater:
                     multi_model.fc2_local.load_state_dict(state.local_head_state)
 
                 multi_model.train()
-                optimizer = torch.optim.SGD(multi_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4, foreach=False)
+                optimizer = torch.optim.SGD(multi_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
                 alpha = getattr(state, "apfl_alpha", getattr(config, "apfl_alpha", 0.5))
 
                 for epoch in range(epochs):
@@ -198,8 +198,8 @@ class PyTorchLocalUpdater:
             global_model.train()
             local_model.train()
             
-            global_opt = torch.optim.SGD(global_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4, foreach=False)
-            local_opt = torch.optim.SGD(local_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4, foreach=False)
+            global_opt = torch.optim.SGD(global_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
+            local_opt = torch.optim.SGD(local_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
             
             alpha = getattr(state, "apfl_alpha", getattr(config, "apfl_alpha", 0.5))
 
@@ -253,7 +253,7 @@ class PyTorchLocalUpdater:
                 multi_model.fc2_local.load_state_dict(state.local_head_state)
 
             multi_model.train()
-            optimizer = torch.optim.SGD(multi_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4, foreach=False)
+            optimizer = torch.optim.SGD(multi_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
 
             # 3-Tier Topology Learnable Simplex Blending Vector: [local, parent, root]
             ensemble_alpha = getattr(state, "ensemble_alpha", [0.333, 0.333, 0.334])
@@ -355,7 +355,7 @@ class PyTorchLocalUpdater:
         global_model = self.global_model
         vector_to_model(state.weights.to(self.device), global_model)
         global_model.train()
-        global_optimizer = torch.optim.SGD(global_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4, foreach=False)
+        global_optimizer = torch.optim.SGD(global_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
 
         for epoch in range(epochs):
             for images, labels in dataloader:
