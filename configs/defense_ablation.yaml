@@ -1,0 +1,31 @@
+experiment_name: "defense_sweep_cifar10"
+experiment_type: "byzantine_matrix"
+num_rounds: 15
+byzantine_rates: [0.0, 0.1, 0.2, 0.3, 0.5]
+
+env:
+  output_dir: "./outputs"
+  dataset: "cifar10"
+  seed: 42
+
+clients:
+  num_clients: 15
+  samples_per_client: 600
+  model_name: "resnet9"
+  local_epochs: 1
+  local_lr: 0.01
+
+robustness:
+  byzantine_type: "gradient_ascent"
+
+topologies:
+  - type: "hierarchical_ensemble"
+    label: "Ensemble (No Defense)"
+    params:
+      num_clusters: 3
+      defense_mode: "none"
+  - type: "hierarchical_ensemble"
+    label: "Ensemble (Soft Cosine)"
+    params:
+      num_clusters: 3
+      defense_mode: "soft_cosine"

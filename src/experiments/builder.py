@@ -52,7 +52,12 @@ class TopologyEngineFactory:
         elif topo_type == "hierarchical_ensemble":
             clusters = params.get("num_clusters", 3)
             topology = HierarchicalTopology(num_clusters=clusters)
-            engine_cls = HierarchicalEnsembleEngine
+            defense_mode = params.get("defense_mode", "none") 
+            if defense_mode != "none":
+                from src.defense.engine import DefendedEnsembleEngine
+                engine_cls = DefendedEnsembleEngine 
+            else:
+                engine_cls = HierarchicalEnsembleEngine
         else:
             raise ValueError(f"Unknown or unsupported topology type: {topo_type}")
 
