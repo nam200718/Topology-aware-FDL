@@ -35,13 +35,31 @@ class PyTorchLocalUpdater:
             self.parent_model = SimpleCNN(in_channels=in_channels).to(self.device)
             self.multihead_model = MultiHeadSimpleCNN(in_channels=in_channels).to(self.device)
 
+    def _apply_byzantine_attack(self, state: ClientState, initial_weights: torch.Tensor) -> ClientState:
+        is_byz = getattr(state, "is_byzantine", False)
+        if is_byz:
+            byz_type = getattr(state, "byzantine_type", "label_flip")
+            full_weights = state.weights
+            if byz_type == "sign_flip":
+                delta = full_weights - initial_weights
+                full_weights = initial_weights - delta * 1.5
+            elif byz_type == "gradient_ascent":
+                delta = full_weights - initial_weights
+                full_weights = initial_weights - delta * 5.0
+            elif byz_type == "random_noise":
+                full_weights = initial_weights + torch.randn_like(initial_weights) * 2.0
+            state.weights = full_weights
+        return state
+
     def update(self, state: ClientState, client_dataset, config: ClientConfig, rng):
         """
         Loads weight tensors into models, trains on client_dataset, and returns updated state weights.
         Supports:
         1. Algorithm Personalization: Ditto (proximal L2), APFL (blended prediction with learnable alpha).
         2. Ensemble Optimization: Shared-backbone, adaptive step allocation, root-anchored asymmetric distillation.
+        3. Byzantine Attacks: Label Flip, Sign Flip, Gradient Ascent, Random Noise.
         """
+        initial_weights = state.weights.clone()
         cfg_model_name = getattr(config, "model_name", "simple_cnn")
         if cfg_model_name != self.model_name:
             self._init_models(cfg_model_name, self.in_channels)
@@ -125,7 +143,7 @@ class PyTorchLocalUpdater:
                     local_optimizer.step()
                     
             state.local_weights = model_to_vector(local_model).detach()
-            return state
+            return self._apply_byzantine_attack(state, initial_weights)
 
         # ---------------------------------------------------------------------
         # ALGORITHM BASELINE: APFL (Adaptive Blended Personalization)
@@ -166,7 +184,7 @@ class PyTorchLocalUpdater:
                 state.weights = model_to_vector(multi_model).detach()
                 state.local_head_state = {k: v.clone() for k, v in multi_model.fc2_local.state_dict().items()}
                 state.local_weights = state.weights.clone()
-                return state
+                return self._apply_byzantine_attack(state, initial_weights)
 
             global_model = self.global_model
             local_model = self.local_model
@@ -217,7 +235,7 @@ class PyTorchLocalUpdater:
             state.apfl_alpha = alpha
             state.weights = model_to_vector(global_model).detach()
             state.local_weights = model_to_vector(local_model).detach()
-            return state
+            return self._apply_byzantine_attack(state, initial_weights)
 
         # ---------------------------------------------------------------------
         # PATH 1: SHARED BACKBONE MULTI-HEAD OPTIMIZATION (Hierarchical Ensemble)
@@ -329,7 +347,7 @@ class PyTorchLocalUpdater:
             # Keep legacy fields for backward compat with evaluate_ensemble in base_engine
             state.parent_weights = state.weights.clone()
             state.local_weights = state.weights.clone()
-            return state
+            return self._apply_byzantine_attack(state, initial_weights)
 
         # ---------------------------------------------------------------------
         # PATH 2: STANDARD / UNCONSTRAINED BASELINE TRAINING
@@ -352,4 +370,4 @@ class PyTorchLocalUpdater:
                 global_optimizer.step()
 
         state.weights = model_to_vector(global_model).detach()
-        return state
+        return self._apply_byzantine_attack(state, initial_weights)

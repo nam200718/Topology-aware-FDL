@@ -21,7 +21,17 @@ class DefendedEnsembleEngine(HierarchicalEnsembleEngine):
     def __init__(self, config, topology, aggregator, device="cpu",
                  defense_config: Optional[DefenseConfig] = None):
         super().__init__(config, topology, aggregator, device)
-        self.defense_config = defense_config or DefenseConfig()
+        if defense_config is None:
+            params = getattr(config.topology, "params", {})
+            defense_config = DefenseConfig(
+                defense_mode=params.get("defense_mode", "soft_cosine"),
+                temperature=params.get("temperature", 1.0),
+                temperature_decay=params.get("temperature_decay", 0.95),
+                temperature_min=params.get("temperature_min", 0.1),
+                defense_scope=params.get("defense_scope", "cluster"),
+                norm_threshold=params.get("norm_threshold", 2.0),
+            )
+        self.defense_config = defense_config
         self.defense_aggregator = SoftRejectionAggregator(self.defense_config)
         self.trust_tracker = TrustTracker()
 

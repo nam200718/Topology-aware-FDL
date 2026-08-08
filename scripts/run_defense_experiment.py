@@ -40,38 +40,19 @@ def run_single_defense_experiment(
     """
     set_seed(config.env.seed)
 
+    # Ensure defense_mode parameter is set on topology params
+    if hasattr(config, "topology") and hasattr(config.topology, "params"):
+        config.topology.params["defense_mode"] = defense_mode
+
     topology, engine_cls = TopologyEngineFactory.build(config)
     aggregator = FedAvgAggregator()
 
-    if defense_mode != "none" and config.topology.type == "hierarchical_ensemble":
-        # Use DefendedEnsembleEngine instead of HierarchicalEnsembleEngine
-        defense_config = DefenseConfig(defense_mode=defense_mode)
-        engine = DefendedEnsembleEngine(
-            config=config,
-            topology=topology,
-            aggregator=aggregator,
-            device=device,
-            defense_config=defense_config,
-        )
-    else:
-        # No defense or other topology → use original engine
-        engine = engine_cls(
-            config=config,
-            topology=topology,
-            aggregator=aggregator,
-            device=device,
-        )
-
-    # --- INJECT BYZANTINE UPDATER ---
-    # Replace default updater by extended version
-    from src.defense.core_updater import ByzantineUpdater
-    target_engine = engine.engine if hasattr(engine, "engine") else engine
-    target_engine.updater = ByzantineUpdater(
-        device=target_engine.device,
-        in_channels=target_engine.in_channels,
-        model_name=config.clients.model_name
+    engine = engine_cls(
+        config=config,
+        topology=topology,
+        aggregator=aggregator,
+        device=device,
     )
-    # --------------------------------
 
     check_invariants(topology, config)
 
