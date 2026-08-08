@@ -104,3 +104,37 @@ def test_ditto_and_apfl_updaters():
     assert 0.0 <= state_apfl.apfl_alpha <= 1.0
 
 
+def test_update_similarity_clustering():
+    from src.topologies.hierarchical import HierarchicalTopology, _random_project
+    
+    # 1. Test random projection
+    v = np.random.randn(10, 1000)
+    proj = _random_project(v, target_dim=256, seed=42)
+    assert proj.shape == (10, 256)
+
+    # 2. Test build_update_similarity
+    topo = HierarchicalTopology(num_clusters=2)
+    
+    base_1 = np.tile(np.array([1.0, 0.0]), 50)
+    base_2 = np.tile(np.array([0.0, 1.0]), 50)
+    
+    updates = {
+        0: base_1 + np.random.randn(100) * 0.01,
+        1: base_1 + np.random.randn(100) * 0.01,
+        2: base_2 + np.random.randn(100) * 0.01,
+        3: base_2 + np.random.randn(100) * 0.01,
+    }
+    
+    topo.build_update_similarity(4, updates, seed=42)
+    
+    head_0 = topo.get_neighbors(0)[0]
+    head_1 = topo.get_neighbors(1)[0]
+    head_2 = topo.get_neighbors(2)[0]
+    head_3 = topo.get_neighbors(3)[0]
+    
+    assert head_0 == head_1
+    assert head_2 == head_3
+    assert head_0 != head_2
+
+
+

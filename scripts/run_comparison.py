@@ -12,6 +12,10 @@ DEFAULT_CONFIG = os.path.join(_project_root, "configs", "comparison.yaml")
 
 
 def main():
+    import torch
+    if hasattr(torch, "set_num_threads"):
+        torch.set_num_threads(min(4, torch.get_num_threads()))
+
     parser = argparse.ArgumentParser(description="Topology Comparison Study")
     parser.add_argument("--config", type=str, default=DEFAULT_CONFIG, help="Path to YAML config file")
     args = parser.parse_args()

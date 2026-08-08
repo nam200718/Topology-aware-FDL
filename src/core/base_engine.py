@@ -9,7 +9,7 @@ from src.core.interfaces import Topology, Aggregator, ClientState, MetricsCollec
 
 from src.utils.random import get_random_state
 from src.data.dataset import get_mnist, partition_data_non_iid, ClientDataset
-from src.core.model import SimpleCNN
+from src.core.model import SimpleCNN, model_to_vector, vector_to_model
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -36,14 +36,16 @@ class BaseEngine(ABC):
             from src.data.dataset import get_cifar10
             train_ds, test_ds = get_cifar10(
                 train_subset=getattr(self.config.env, "train_subset", None),
-                test_subset=getattr(self.config.env, "test_subset", None)
+                test_subset=getattr(self.config.env, "test_subset", None),
+                seed=getattr(self.config.env, "seed", 42)
             )
             self.in_channels = 3
         else:
             print("Downloading and dividing MNIST dataset...")
             train_ds, test_ds = get_mnist(
                 train_subset=getattr(self.config.env, "train_subset", None),
-                test_subset=getattr(self.config.env, "test_subset", None)
+                test_subset=getattr(self.config.env, "test_subset", None),
+                seed=getattr(self.config.env, "seed", 42)
             )
             self.in_channels = 1
 
@@ -73,8 +75,12 @@ class BaseEngine(ABC):
             seed=self.config.env.seed
         )
 
-        # Check if topology requests label-distribution aware clustering
-        if self.config.topology.params.get("cluster_by_label_dist", False) and hasattr(self.topology, "build_distribution_aware"):
+        # Check clustering method configuration
+        cluster_method = self.config.topology.params.get("cluster_method", None)
+        if cluster_method is None:
+            cluster_method = "label_aware" if self.config.topology.params.get("cluster_by_label_dist", False) else "random"
+
+        if cluster_method == "label_aware" and hasattr(self.topology, "build_distribution_aware"):
             from src.data.dataset import _get_labels
             all_train_labels = _get_labels(self.train_dataset)
             if all_train_labels is not None:
@@ -88,7 +94,7 @@ class BaseEngine(ABC):
                 self.topology.build_distribution_aware(self.config.clients.num_clients, client_label_counts, seed=self.config.env.seed)
         
         # Fetch initial model vector
-        is_ensemble = getattr(self.config.clients, "use_ensemble", False) or getattr(self.config.clients, "hierarchical_ensemble", False)
+        is_ensemble = getattr(self.config.clients, "use_ensemble", False) or getattr(self.config.clients, "hierarchical_ensemble", False) or (getattr(self.config.clients, "compute_optimization_mode", "none") == "shared_backbone")
         compute_mode = getattr(self.config.clients, "compute_optimization_mode", "shared_backbone")
         model_name = getattr(self.config.clients, "model_name", "simple_cnn")
         
@@ -99,7 +105,7 @@ class BaseEngine(ABC):
             from src.core.model import SimpleCNN, ResNet9
             dummy_model = ResNet9(in_channels=self.in_channels) if model_name == "resnet9" else SimpleCNN(in_channels=self.in_channels)
 
-        initial_w = torch.nn.utils.parameters_to_vector(dummy_model.parameters()).detach()
+        initial_w = model_to_vector(dummy_model).detach().to(self.device)
         num_params = initial_w.numel()
         print(f"Model ({model_name}) instantiated with {num_params} parameters.")
         
@@ -107,10 +113,21 @@ class BaseEngine(ABC):
         self.updater = PyTorchLocalUpdater(device=device, in_channels=self.in_channels, model_name=model_name)
         self.server_weights: torch.Tensor = initial_w.clone()
         
-        # Track clients
+        # Track clients and pre-cache datasets
+        from src.data.dataset import ClientDataset
+        self.client_train_datasets = {
+            cid: ClientDataset(self.train_dataset, idxs)
+            for cid, idxs in self.client_indices.items()
+        }
+        self.client_test_datasets = {
+            cid: ClientDataset(self.test_dataset, idxs)
+            for cid, idxs in self.client_test_indices.items()
+        }
+
         self.clients_state = {}
         for client_id in range(self.config.clients.num_clients):
             state = ClientState(client_id, initial_w.clone())
+            state.data_samples = len(self.client_indices[client_id])
             if self.rng.rand() < getattr(self.config.robustness, "byzantine_rate", 0.0):
                 state.is_byzantine = True
                 state.byzantine_type = self.config.robustness.byzantine_type
@@ -135,30 +152,39 @@ class BaseEngine(ABC):
         else:
             model = self.updater.global_model
 
-        torch.nn.utils.vector_to_parameters(weights.to(self.device), model.parameters())
+        vector_to_model(weights.to(self.device), model)
         model.eval()
         
-        # If test_dataset is FastDataset, this loader is very efficient.
-        test_loader = DataLoader(self.test_dataset, batch_size=1024, shuffle=False)
-        correct = 0
-        total = 0
-        total_loss = 0.0
         criterion = torch.nn.CrossEntropyLoss(reduction='sum')
-        
-        with torch.no_grad():
-            for images, labels in test_loader:
-                # images, labels are already on device if using FastDataset
-                images, labels = images.to(self.device), labels.to(self.device)
+        total_correct = 0
+        total_samples = 0
+        total_loss = 0.0
+
+        if hasattr(self.test_dataset, "images") and hasattr(self.test_dataset, "labels"):
+            images = self.test_dataset.images
+            labels = self.test_dataset.labels
+            with torch.no_grad():
                 outputs = model(images)
                 loss = criterion(outputs, labels)
-                total_loss += loss.item()
-                
+                total_loss = loss.item()
                 predicted = outputs.argmax(dim=1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-                
-        acc = 100 * correct / total
-        avg_loss = total_loss / total
+                total_samples = labels.size(0)
+                total_correct = (predicted == labels).sum().item()
+        else:
+            from src.data.dataset import get_fast_dataloader
+            test_loader = get_fast_dataloader(self.test_dataset, batch_size=1024, shuffle=False)
+            with torch.no_grad():
+                for images, labels in test_loader:
+                    images, labels = images.to(self.device), labels.to(self.device)
+                    outputs = model(images)
+                    loss = criterion(outputs, labels)
+                    total_loss += loss.item()
+                    predicted = outputs.argmax(dim=1)
+                    total_samples += labels.size(0)
+                    total_correct += (predicted == labels).sum().item()
+
+        acc = 100 * total_correct / total_samples
+        avg_loss = total_loss / total_samples
         return acc, avg_loss
 
     def evaluate_ensemble(self):
@@ -177,30 +203,30 @@ class BaseEngine(ABC):
         local_model = self.updater.local_model
         global_model.eval()
         local_model.eval()
-        
-        for client_id in range(self.config.clients.num_clients):
-            state = self.clients_state[client_id]
-            if getattr(state, "is_byzantine", False):
-                continue
-            if getattr(state, "local_weights", None) is None:
-                continue
-                
-            torch.nn.utils.vector_to_parameters(self.server_weights.to(self.device), global_model.parameters())
-            torch.nn.utils.vector_to_parameters(state.local_weights.to(self.device), local_model.parameters())
-            
-            client_test_ds = ClientDataset(self.test_dataset, self.client_test_indices[client_id])
-            if len(client_test_ds) == 0:
-                continue
-                
-            test_loader = DataLoader(client_test_ds, batch_size=len(client_test_ds), shuffle=False)
-            
+        vector_to_model(self.server_weights.to(self.device), global_model)
+
+        if hasattr(self.test_dataset, "images") and hasattr(self.test_dataset, "labels"):
+            images_all = self.test_dataset.images
+            labels_all = self.test_dataset.labels
             with torch.no_grad():
-                for images, labels in test_loader:
-                    images, labels = images.to(self.device), labels.to(self.device)
-                    
-                    logits_global = global_model(images)
-                    logits_local = local_model(images)
-                    
+                logits_global_all = global_model(images_all)
+                for client_id in range(self.config.clients.num_clients):
+                    state = self.clients_state[client_id]
+                    if getattr(state, "is_byzantine", False) or getattr(state, "local_weights", None) is None:
+                        continue
+                    idxs = self.client_test_indices.get(client_id, [])
+                    if not idxs:
+                        continue
+                    if isinstance(idxs, list):
+                        idxs = torch.tensor(idxs, dtype=torch.long, device=self.device)
+
+                    c_images = images_all[idxs]
+                    c_labels = labels_all[idxs]
+                    logits_global = logits_global_all[idxs]
+
+                    vector_to_model(state.local_weights.to(self.device), local_model)
+                    logits_local = local_model(c_images)
+
                     if pers_method == "ditto":
                         logits_ensemble = logits_local
                     elif pers_method == "apfl":
@@ -208,14 +234,43 @@ class BaseEngine(ABC):
                         logits_ensemble = apfl_a * logits_local + (1.0 - apfl_a) * logits_global
                     else:
                         logits_ensemble = alpha * logits_local + (1.0 - alpha) * logits_global
-                    
-                    loss = criterion(logits_ensemble, labels)
+
+                    loss = criterion(logits_ensemble, c_labels)
                     total_loss += loss.item()
-                    
                     predicted = logits_ensemble.argmax(dim=1)
-                    total_samples += labels.size(0)
-                    total_correct += (predicted == labels).sum().item()
-                    
+                    total_samples += c_labels.size(0)
+                    total_correct += (predicted == c_labels).sum().item()
+        else:
+            from src.data.dataset import get_fast_dataloader
+            for client_id in range(self.config.clients.num_clients):
+                state = self.clients_state[client_id]
+                if getattr(state, "is_byzantine", False) or getattr(state, "local_weights", None) is None:
+                    continue
+                client_test_ds = self.client_test_datasets[client_id]
+                if len(client_test_ds) == 0:
+                    continue
+                test_loader = get_fast_dataloader(client_test_ds, batch_size=len(client_test_ds), shuffle=False)
+                with torch.no_grad():
+                    for images, labels in test_loader:
+                        images, labels = images.to(self.device), labels.to(self.device)
+                        logits_global = global_model(images)
+                        vector_to_model(state.local_weights.to(self.device), local_model)
+                        logits_local = local_model(images)
+
+                        if pers_method == "ditto":
+                            logits_ensemble = logits_local
+                        elif pers_method == "apfl":
+                            apfl_a = getattr(state, "apfl_alpha", 0.5)
+                            logits_ensemble = apfl_a * logits_local + (1.0 - apfl_a) * logits_global
+                        else:
+                            logits_ensemble = alpha * logits_local + (1.0 - alpha) * logits_global
+
+                        loss = criterion(logits_ensemble, labels)
+                        total_loss += loss.item()
+                        predicted = logits_ensemble.argmax(dim=1)
+                        total_samples += labels.size(0)
+                        total_correct += (predicted == labels).sum().item()
+            
         if total_samples == 0:
             return 0.0, 0.0
             

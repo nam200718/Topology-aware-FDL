@@ -1,7 +1,9 @@
 import os
 import json
+import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Union
+import numpy as np
 import pandas as pd
 
 from src.config import SimulationConfig, ExperimentConfig, EnvironmentConfig
@@ -13,6 +15,7 @@ from src.experiments.visualizer import (
     plot_experiment_results,
     plot_comparison_convergence,
     plot_robustness_summary,
+    plot_robustness_heatmap,
     plot_byzantine_matrix,
 )
 
@@ -150,14 +153,21 @@ class ExperimentRunner:
         label = entry["topo_label"]
 
         print(f"\nRunning: {label} ({config.experiment_name})")
+        start_time = time.time()
         single_runner = SingleExperimentRunner(config, device=self.device)
         hx = single_runner.run()
+        elapsed = round(time.time() - start_time, 2)
         all_histories.append({"entry": entry, "history": hx})
 
         final_acc = hx[-1].get("test_accuracy", 0.0)
+        peak_acc = max(h.get("test_accuracy", 0.0) for h in hx)
+        last5_acc = float(np.mean([h.get("test_accuracy", 0.0) for h in hx[-5:]]))
         if config.topology.type == "hierarchical_ensemble" and "ensemble_test_accuracy" in hx[-1]:
             final_acc = hx[-1]["ensemble_test_accuracy"]
-        print(f"  Final Accuracy: {final_acc:.2f}%")
+            peak_acc = max(h.get("ensemble_test_accuracy", 0.0) for h in hx if "ensemble_test_accuracy" in h)
+            last5_acc = float(np.mean([h.get("ensemble_test_accuracy", 0.0) for h in hx[-5:] if "ensemble_test_accuracy" in h]))
+
+        print(f"  Final Acc: {final_acc:.2f}% | Peak Acc: {peak_acc:.2f}% | Last-5 Avg: {last5_acc:.2f}% | Time: {elapsed}s")
 
         metrics_json_path = os.path.join(metrics_dir, config.experiment_name, "metrics.json")
         plot_experiment_results(metrics_json_path, output_dir=plots_dir)
@@ -173,37 +183,59 @@ class ExperimentRunner:
             scenario_label = entry["scenario_label"]
 
             print(f"Running: {config.topology.type:22} | {scenario_label:25}", end=" ", flush=True)
+            start_time = time.time()
             single_runner = SingleExperimentRunner(config, device=self.device)
             hx = single_runner.run()
+            elapsed = round(time.time() - start_time, 2)
             all_histories.append({"entry": entry, "history": hx})
 
             exp_dir = os.path.join(metrics_dir, config.experiment_name)
             if scenario_id in scenario_experiments:
                 scenario_experiments[scenario_id].append((exp_dir, topo_label))
 
+            num_rounds = config.num_rounds
+            num_clients = config.clients.num_clients
+            is_ensemble = (config.topology.type == "hierarchical_ensemble")
+            p_method = getattr(config.clients, "personalization_method", "none")
+
+            if is_ensemble:
+                steps_per_round = getattr(config.clients, "total_local_steps", 10)
+            elif p_method == "ditto":
+                steps_per_round = getattr(config.clients, "local_steps", 1) * 2
+            else:
+                steps_per_round = getattr(config.clients, "local_steps", 1)
+
             global_acc = hx[-1].get("test_accuracy", 0.0)
+            global_last5 = round(float(np.mean([h.get("test_accuracy", 0.0) for h in hx[-5:]])), 2)
+
             summary_results.append({
                 "Topology": topo_label,
                 "Scenario": scenario_label,
                 "Final Accuracy": global_acc,
+                "Last5 Avg Accuracy": global_last5,
+                "Wall Clock Seconds": elapsed,
                 "Metric": "Global"
             })
 
-            is_ensemble = (config.topology.type == "hierarchical_ensemble")
-            if is_ensemble and "ensemble_test_accuracy" in hx[-1]:
+            has_pers = "ensemble_test_accuracy" in hx[-1]
+            if has_pers:
                 pers_acc = hx[-1]["ensemble_test_accuracy"]
+                pers_last5 = round(float(np.mean([h.get("ensemble_test_accuracy", 0.0) for h in hx[-5:] if "ensemble_test_accuracy" in h])), 2)
+
                 summary_results.append({
                     "Topology": f"{topo_label} (Pers.)",
                     "Scenario": scenario_label,
                     "Final Accuracy": pers_acc,
+                    "Last5 Avg Accuracy": pers_last5,
+                    "Wall Clock Seconds": elapsed,
                     "Metric": "Personalized"
                 })
 
-            print(f"| Accuracy (Global): {global_acc:6.2f}%", end="")
-            if is_ensemble and "ensemble_test_accuracy" in hx[-1]:
-                print(f" | (Pers.): {hx[-1]['ensemble_test_accuracy']:6.2f}%")
+            print(f"| (Global) Last5: {global_last5:5.2f}%", end="")
+            if has_pers:
+                print(f" | (Pers.) Last5: {pers_last5:5.2f}% | Time: {elapsed}s")
             else:
-                print("")
+                print(f" | Time: {elapsed}s")
 
         # Convergence charts per scenario
         for scenario in self.exp_config.scenarios:
@@ -214,11 +246,13 @@ class ExperimentRunner:
             plot_path = os.path.join(plots_dir, f"convergence_{scenario.id}.png")
             plot_comparison_convergence(dirs, labels, plot_path)
 
-        # Summary chart & exported reports
+        # Summary charts & exported reports
         df_summary = pd.DataFrame(summary_results)
         summary_plot = os.path.join(plots_dir, "robustness_summary.png")
+        heatmap_plot = os.path.join(plots_dir, "robustness_heatmap.png")
         title = f"Robustness Comparison across Topologies (after {self.exp_config.num_rounds} rounds)"
         plot_robustness_summary(df_summary, summary_plot, title=title)
+        plot_robustness_heatmap(df_summary, heatmap_plot, title=f"Real-World Accuracy Heatmap (Last-5 Round Avg)")
 
         with open(os.path.join(experiment_root, "summary.json"), "w", encoding='utf-8') as f:
             json.dump(summary_results, f, indent=4)
@@ -232,20 +266,30 @@ class ExperimentRunner:
             rate = entry["byzantine_rate"]
 
             print(f"Topo: {topo_label:15} | Byz Rate: {rate:3.1f}", end=" ", flush=True)
+            start_time = time.time()
             single_runner = SingleExperimentRunner(config, device=self.device)
             hx = single_runner.run()
+            elapsed = round(time.time() - start_time, 2)
             all_histories.append({"entry": entry, "history": hx})
 
             final_acc = hx[-1].get("test_accuracy", 0.0)
+            peak_acc = max(h.get("test_accuracy", 0.0) for h in hx)
+            last5_acc = round(float(np.mean([h.get("test_accuracy", 0.0) for h in hx[-5:]])), 2)
+
             if config.topology.type == "hierarchical_ensemble" and "ensemble_test_accuracy" in hx[-1]:
                 final_acc = hx[-1]["ensemble_test_accuracy"]
+                peak_acc = max(h.get("ensemble_test_accuracy", 0.0) for h in hx if "ensemble_test_accuracy" in h)
+                last5_acc = round(float(np.mean([h.get("ensemble_test_accuracy", 0.0) for h in hx[-5:] if "ensemble_test_accuracy" in h])), 2)
 
             results.append({
                 "Topology": topo_label,
                 "Byzantine Rate": rate,
-                "Final Accuracy": final_acc
+                "Final Accuracy": final_acc,
+                "Peak Accuracy": peak_acc,
+                "Last5 Avg Accuracy": last5_acc,
+                "Wall Clock Seconds": elapsed
             })
-            print(f"| Final Acc: {final_acc:6.2f}%")
+            print(f"| Last5 Acc: {last5_acc:6.2f}% (Peak: {peak_acc:6.2f}%) | Time: {elapsed}s")
 
         df = pd.DataFrame(results)
         df.to_csv(os.path.join(experiment_root, "matrix_results.csv"), index=False)

@@ -1,6 +1,15 @@
-from typing import List
+from typing import List, Optional
 import numpy as np
 from src.core.interfaces import Topology
+
+def _random_project(vectors: np.ndarray, target_dim: int = 256, seed: int = 42) -> np.ndarray:
+    """Project high-dim vectors to lower dim preserving cosine similarity (Johnson-Lindenstrauss)."""
+    if vectors.shape[1] <= target_dim:
+        return vectors
+    rng = np.random.RandomState(seed)
+    D = vectors.shape[1]
+    projection = rng.randn(D, target_dim) / np.sqrt(target_dim)
+    return vectors @ projection
 
 class HierarchicalTopology(Topology):
     """
@@ -17,7 +26,7 @@ class HierarchicalTopology(Topology):
         self.num_clusters = num_clusters
         self.client_to_head = {}
         
-    def build(self, num_clients: int, seed: int, client_label_counts: dict = None) -> None:
+    def build(self, num_clients: int, seed: int, client_label_counts: Optional[dict] = None) -> None:
         self.num_clients = num_clients
         rng = np.random.RandomState(seed)
         
@@ -74,6 +83,49 @@ class HierarchicalTopology(Topology):
             cluster_idx = assignments[i]
             head_id = -2 - cluster_idx
             self.client_to_head[i] = head_id
+
+    def build_update_similarity(self, num_clients: int, client_update_vectors: dict, seed: int = 42) -> None:
+        """
+        Groups clients into clusters based on model update vector similarity (Cosine similarity).
+        Does NOT access private labels — uses already-shared training update deltas.
+        """
+        self.num_clients = num_clients
+        rng = np.random.RandomState(seed)
+
+        client_ids = sorted(client_update_vectors.keys())
+        raw_deltas = []
+        for cid in client_ids:
+            v = client_update_vectors[cid]
+            if hasattr(v, "cpu"):
+                v = v.cpu().numpy()
+            raw_deltas.append(v)
+
+        matrix = np.stack(raw_deltas)
+        # Apply random projection if high-dimensional
+        projected = _random_project(matrix, target_dim=256, seed=seed)
+
+        # L2 normalize rows to convert Euclidean K-Means to Cosine similarity
+        norms = np.linalg.norm(projected, axis=1, keepdims=True)
+        norms = np.maximum(norms, 1e-8)
+        client_vectors = projected / norms
+
+        num_clusters = min(self.num_clusters, len(client_ids))
+        init_indices = rng.choice(len(client_ids), num_clusters, replace=False)
+        centroids = client_vectors[init_indices].copy()
+
+        assignments = np.zeros(len(client_ids), dtype=int)
+        for _ in range(10): # 10 iterations of K-Means
+            dists = np.linalg.norm(client_vectors[:, np.newaxis, :] - centroids[np.newaxis, :, :], axis=2)
+            assignments = np.argmin(dists, axis=1)
+            for k in range(num_clusters):
+                cluster_members = client_vectors[assignments == k]
+                if len(cluster_members) > 0:
+                    centroids[k] = cluster_members.mean(axis=0)
+
+        for idx, cid in enumerate(client_ids):
+            cluster_idx = assignments[idx]
+            head_id = -2 - cluster_idx
+            self.client_to_head[cid] = head_id
             
     def get_neighbors(self, node_id: int) -> List[int]:
         if not self.client_to_head:

@@ -1,27 +1,27 @@
-# Topology & Personalization Algorithm Comparison Study (CIFAR-10 ResNet9)
-# Compares flat baselines (Star/FedAvg, Star+Ditto, Star+APFL Shared Backbone) against our 3-Tier Hierarchical Ensemble Topology.
+# Rigorous Evaluation Config (CIFAR-10 ResNet9)
+# Larger subset sizes for publication-grade benchmark statistical stability.
 
 experiment_type: comparison
-num_rounds: 15
+num_rounds: 30
 
 env:
   seed: 42
   output_dir: ./outputs
   dataset: cifar10
-  train_subset: 1000
-  test_subset: 500
+  train_subset: 10000
+  test_subset: 3000
 
 clients:
   model_name: resnet9
-  num_clients: 10
+  num_clients: 15
   local_lr: 0.03
-  local_steps: 2
+  local_steps: 3
   # Ensemble Improvements & Topology Optimizations:
   compute_optimization_mode: shared_backbone
   ensemble_weighting_mode: dynamic_confidence
   ensemble_distillation: true
   distillation_lambda: 0.5
-  total_local_steps: 4
+  total_local_steps: 10
   loss_weight_beta: 1.0
 
 robustness:
@@ -36,22 +36,17 @@ topologies:
     label: "Star (Ditto)"
     params:
       personalization_method: "ditto"
-      ditto_lambda: 0.05
+      ditto_lambda: 0.1
   - type: star
-    label: "Star (APFL - Shared Backbone)"
+    label: "Star (APFL)"
     params:
       personalization_method: "apfl"
-      compute_optimization_mode: "shared_backbone"
       apfl_alpha: 0.5
   - type: hierarchical_ensemble
-    label: "Hierarchical Ensemble (Adaptive Update-Sim)"
+    label: "Hierarchical Ensemble (Intrinsic Optimized)"
     params:
       num_clusters: 3
-      cluster_method: "update_similarity"
-      warmup_min_rounds: 2
-      warmup_max_rounds: 10
-      stability_threshold: 0.30
-      misalignment_threshold: 0.15
+      cluster_by_label_dist: true
       personalization_method: "none"
 
 scenarios:

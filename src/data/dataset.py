@@ -1,7 +1,7 @@
 import torch
 from torchvision import datasets, transforms
 import numpy as np
-from torch.utils.data import Dataset, Subset
+from torch.utils.data import Dataset, Subset, DataLoader
 
 class ClientDataset(Dataset):
     """A subset of a global dataset specific to a single client."""
@@ -9,15 +9,38 @@ class ClientDataset(Dataset):
         self.dataset = dataset
         self.indices = indices
 
+        # Performance Optimization: If underlying dataset is preloaded on device,
+        # extract contiguous GPU tensors directly for zero-overhead bulk slicing.
+        if isinstance(dataset, FastDataset) or (hasattr(dataset, 'images') and hasattr(dataset, 'labels') and isinstance(dataset.images, torch.Tensor)):
+            device = dataset.device if hasattr(dataset, 'device') else dataset.images.device
+            if isinstance(indices, list):
+                indices_t = torch.tensor(indices, dtype=torch.long, device=device)
+            elif isinstance(indices, torch.Tensor):
+                indices_t = indices.to(device)
+            else:
+                indices_t = torch.as_tensor(indices, dtype=torch.long, device=device)
+            
+            if len(indices_t) > 0:
+                self.images = dataset.images[indices_t]
+                self.labels = dataset.labels[indices_t]
+            else:
+                self.images = dataset.images[:0]
+                self.labels = dataset.labels[:0]
+            self.device = device
+
     def __len__(self):
         return len(self.indices)
 
     def __getitem__(self, index):
+        if hasattr(self, 'images') and hasattr(self, 'labels'):
+            return self.images[index], self.labels[index]
         return self.dataset[self.indices[index]]
 
     @property
     def targets(self):
         """Attempts to provide targets by indexing into the underlying dataset."""
+        if hasattr(self, 'labels'):
+            return self.labels
         labels = _get_labels(self.dataset)
         if labels is not None:
             return labels[self.indices]
@@ -85,7 +108,42 @@ class FastDataset(Dataset):
     def targets(self):
         return self.labels
 
-def get_mnist(data_dir="./data", train_subset=None, test_subset=None):
+class FastTensorDataLoader:
+    """
+    Lightweight, zero-overhead iterator for PyTorch tensors preloaded on GPU.
+    Avoids Python PyTorch DataLoader queueing and individual sample fetching.
+    """
+    def __init__(self, images: torch.Tensor, labels: torch.Tensor, batch_size: int = 32, shuffle: bool = True):
+        self.images = images
+        self.labels = labels
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.num_samples = len(labels)
+
+    def __iter__(self):
+        if self.num_samples == 0:
+            return
+        if self.shuffle:
+            indices = torch.randperm(self.num_samples)
+            for i in range(0, self.num_samples, self.batch_size):
+                batch_idx = indices[i:i + self.batch_size]
+                yield self.images[batch_idx], self.labels[batch_idx]
+        else:
+            for i in range(0, self.num_samples, self.batch_size):
+                yield self.images[i:i + self.batch_size], self.labels[i:i + self.batch_size]
+
+    def __len__(self):
+        return (self.num_samples + self.batch_size - 1) // self.batch_size if self.num_samples > 0 else 0
+
+def get_fast_dataloader(dataset, batch_size: int = 32, shuffle: bool = True):
+    """
+    Returns FastTensorDataLoader if dataset has GPU tensors, else standard DataLoader.
+    """
+    if hasattr(dataset, 'images') and hasattr(dataset, 'labels') and isinstance(dataset.images, torch.Tensor) and isinstance(dataset.labels, torch.Tensor):
+        return FastTensorDataLoader(dataset.images, dataset.labels, batch_size=batch_size, shuffle=shuffle)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+
+def get_mnist(data_dir="./data", train_subset=None, test_subset=None, seed=42):
     """Downloads and returns the MNIST train and test sets, optionally subsetted."""
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -95,17 +153,18 @@ def get_mnist(data_dir="./data", train_subset=None, test_subset=None):
     train_dataset = datasets.MNIST(data_dir, train=True, download=True, transform=transform)
     test_dataset = datasets.MNIST(data_dir, train=False, download=True, transform=transform)
     
+    rng = np.random.RandomState(seed)
     if train_subset is not None and train_subset < len(train_dataset):
-        indices = np.random.choice(len(train_dataset), train_subset, replace=False)
+        indices = rng.choice(len(train_dataset), train_subset, replace=False)
         train_dataset = Subset(train_dataset, indices)
         
     if test_subset is not None and test_subset < len(test_dataset):
-        indices = np.random.choice(len(test_dataset), test_subset, replace=False)
+        indices = rng.choice(len(test_dataset), test_subset, replace=False)
         test_dataset = Subset(test_dataset, indices)
 
     return train_dataset, test_dataset
 
-def get_cifar10(data_dir="./data", train_subset=None, test_subset=None):
+def get_cifar10(data_dir="./data", train_subset=None, test_subset=None, seed=42):
     """Downloads and returns the CIFAR-10 train and test sets, optionally subsetted."""
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -115,12 +174,13 @@ def get_cifar10(data_dir="./data", train_subset=None, test_subset=None):
     train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
     test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
     
+    rng = np.random.RandomState(seed)
     if train_subset is not None and train_subset < len(train_dataset):
-        indices = np.random.choice(len(train_dataset), train_subset, replace=False)
+        indices = rng.choice(len(train_dataset), train_subset, replace=False)
         train_dataset = Subset(train_dataset, indices)
         
     if test_subset is not None and test_subset < len(test_dataset):
-        indices = np.random.choice(len(test_dataset), test_subset, replace=False)
+        indices = rng.choice(len(test_dataset), test_subset, replace=False)
         test_dataset = Subset(test_dataset, indices)
 
     return train_dataset, test_dataset

@@ -62,7 +62,7 @@ class ClientConfig(BaseModel):
 
 class RobustnessConfig(BaseModel):
     byzantine_rate: float = 0.0
-    # Attack options: 'label_flip', 'sign_flip', 'random_noise', 'gradient_ascent'
+    # Attack options: 'label_flip'
     byzantine_type: str = "label_flip"
 
 class NonIIDConfig(BaseModel):
@@ -145,9 +145,9 @@ class ExperimentConfig(BaseModel):
         if overrides is None:
             overrides = {}
         base = self.clients.model_dump()
-        is_ensemble = (topo_type == "hierarchical_ensemble")
+        is_ensemble = (topo_type == "hierarchical_ensemble") or (overrides.get("compute_optimization_mode") == "shared_backbone")
         base["use_ensemble"] = is_ensemble or base.get("use_ensemble", False)
-        base["hierarchical_ensemble"] = is_ensemble or base.get("hierarchical_ensemble", False)
+        base["hierarchical_ensemble"] = (topo_type == "hierarchical_ensemble") or base.get("hierarchical_ensemble", False)
         
         valid_keys = set(ClientConfig.model_fields.keys())
         for k, v in overrides.items():

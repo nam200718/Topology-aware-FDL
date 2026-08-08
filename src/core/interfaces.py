@@ -11,6 +11,9 @@ class ClientState:
         self.local_weights: Optional[torch.Tensor] = None  # Persistent local models for personalized ensemble
         self.parent_weights: Optional[torch.Tensor] = None # Persistent parent models for hierarchical ensemble
         
+        self.parent_head_state: Optional[Dict[str, torch.Tensor]] = None
+        self.local_head_state: Optional[Dict[str, torch.Tensor]] = None
+        
         # Meta information that might be useful for analysis
         self.data_samples: int = 100 
         self.is_byzantine: bool = False
@@ -27,6 +30,10 @@ class ClientState:
             new_state.local_weights = self.local_weights.clone()
         if self.parent_weights is not None:
             new_state.parent_weights = self.parent_weights.clone()
+        if self.parent_head_state is not None:
+            new_state.parent_head_state = {k: v.clone() for k, v in self.parent_head_state.items()}
+        if self.local_head_state is not None:
+            new_state.local_head_state = {k: v.clone() for k, v in self.local_head_state.items()}
         new_state.data_samples = self.data_samples
         new_state.is_byzantine = self.is_byzantine
         new_state.byzantine_type = self.byzantine_type

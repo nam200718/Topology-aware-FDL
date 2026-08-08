@@ -1,12 +1,15 @@
 import numpy as np
 import random
 import os
+import torch
 
 def set_seed(seed: int):
     """Sets the seed for reproducibility across all relevant RNGs."""
     random.seed(seed)
     np.random.seed(seed)
-    # If standard torch/tf were used, we'd set them here too
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
 
 def get_random_state() -> np.random.RandomState:

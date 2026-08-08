@@ -10,18 +10,19 @@ class FedAvgAggregator(Aggregator):
             raise ValueError("Cannot aggregate empty list of states.")
         
         total_samples = sum(state.data_samples for state in states)
+        stacked_weights = torch.stack([state.weights for state in states])
         if total_samples == 0:
             # Fallback to simple average
-            stacked_weights = torch.stack([state.weights for state in states])
             return stacked_weights.mean(dim=0)
             
-        # Weighted average based on number of local data samples
-        weighted_sum = states[0].weights.new_zeros(states[0].weights.shape)
-        for state in states:
-            weight = state.data_samples / total_samples
-            weighted_sum += state.weights * weight
-            
-        return weighted_sum
+        # Weighted average based on number of local data samples via BLAS matrix-vector product (w^T A)
+        device = states[0].weights.device
+        sample_weights = torch.tensor(
+            [state.data_samples / total_samples for state in states],
+            device=device,
+            dtype=states[0].weights.dtype
+        )
+        return sample_weights @ stacked_weights
 
 class RandomizedAggregator(Aggregator):
     """
@@ -33,14 +34,8 @@ class RandomizedAggregator(Aggregator):
         if not states:
             raise ValueError("Cannot aggregate empty list of states.")
         
-        # Generate random weights for each client update
-        # We use torch.rand to stay on the same device/seed logic
-        weights = torch.rand(len(states))
-        total = weights.sum()
-        normalized_weights = weights / total
-        
-        weighted_sum = states[0].weights.new_zeros(states[0].weights.shape)
-        for i, state in enumerate(states):
-            weighted_sum += state.weights * normalized_weights[i]
-            
-        return weighted_sum
+        device = states[0].weights.device
+        weights = torch.rand(len(states), device=device, dtype=states[0].weights.dtype)
+        normalized_weights = weights / weights.sum()
+        stacked_weights = torch.stack([state.weights for state in states])
+        return normalized_weights @ stacked_weights

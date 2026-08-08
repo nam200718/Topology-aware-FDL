@@ -6,24 +6,15 @@ except ImportError:
 from typing import Union
 from src.config import SimulationConfig
 from src.topologies.star import StarTopology
-from src.topologies.ring import RingTopology
-from src.topologies.gossip import GossipTopology
 from src.topologies.hierarchical import HierarchicalTopology
-from src.topologies.layered import LayeredTopology
 from src.topologies.checks import (
     check_star_invariant,
-    check_ring_invariant,
-    check_gossip_invariant,
     check_hierarchical_invariant,
-    check_layered_invariant,
 )
 
 from src.core.aggregator import FedAvgAggregator
 from src.core.centralized_engine import CentralizedEngine
-from src.core.decentralized_engine import DecentralizedEngine
-from src.core.hierarchical_engine import HierarchicalEngine
 from src.core.hierarchical_ensemble_engine import HierarchicalEnsembleEngine
-from src.core.layered_engine import LayeredEngine
 
 
 def detect_device() -> str:
@@ -58,28 +49,12 @@ class TopologyEngineFactory:
         if topo_type in ("star", "star_randomized"):
             topology = StarTopology()
             engine_cls = CentralizedEngine
-        elif topo_type == "ring":
-            topology = RingTopology()
-            engine_cls = DecentralizedEngine
-        elif topo_type == "gossip":
-            degree = params.get("degree_k", 3)
-            topology = GossipTopology(degree_k=degree)
-            engine_cls = DecentralizedEngine
-        elif topo_type == "hierarchical":
-            clusters = params.get("num_clusters", 5)
-            topology = HierarchicalTopology(num_clusters=clusters)
-            engine_cls = HierarchicalEngine
         elif topo_type == "hierarchical_ensemble":
-            clusters = params.get("num_clusters", 5)
+            clusters = params.get("num_clusters", 3)
             topology = HierarchicalTopology(num_clusters=clusters)
             engine_cls = HierarchicalEnsembleEngine
-        elif topo_type == "layered":
-            layers = params.get("layers", [config.clients.num_clients, 4, 2, 1])
-            gossip_steps = params.get("gossip_steps", 1)
-            topology = LayeredTopology(layers=layers, gossip_steps=gossip_steps)
-            engine_cls = LayeredEngine
         else:
-            raise ValueError(f"Unknown topology type: {topo_type}")
+            raise ValueError(f"Unknown or unsupported topology type: {topo_type}")
 
         return topology, engine_cls
 
@@ -94,13 +69,7 @@ def check_invariants(topology, config: SimulationConfig):
     topo_type = config.topology.type
     num_clients = config.clients.num_clients
 
-    if topo_type == "star":
+    if topo_type in ("star", "star_randomized"):
         check_star_invariant(topology, num_clients)
-    elif topo_type == "ring":
-        check_ring_invariant(topology, num_clients)
-    elif topo_type == "gossip":
-        check_gossip_invariant(topology, num_clients)
-    elif topo_type in ("hierarchical", "hierarchical_ensemble"):
+    elif topo_type == "hierarchical_ensemble":
         check_hierarchical_invariant(topology, num_clients)
-    elif topo_type == "layered":
-        check_layered_invariant(topology, num_clients)
