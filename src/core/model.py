@@ -169,20 +169,18 @@ class MultiHeadResNet9(nn.Module):
 
 def model_to_vector(model: nn.Module) -> torch.Tensor:
     """Serialize all model state (params + buffers like BatchNorm statistics) to a flat vector."""
-    tensors = []
-    for v in model.state_dict().values():
-        tensors.append(v.data.reshape(-1).float())
-    return torch.cat(tensors)
+    with torch.no_grad():
+        tensors = [v.data.reshape(-1).float() for v in model.state_dict().values()]
+        return torch.cat(tensors)
 
 
 def vector_to_model(vector: torch.Tensor, model: nn.Module) -> None:
-    """Deserialize a flat vector back into a model's state_dict (params + buffers)."""
-    state_dict = model.state_dict()
-    offset = 0
-    for key, val in state_dict.items():
-        numel = val.numel()
-        slice_t = vector[offset:offset + numel].reshape(val.shape)
-        state_dict[key].copy_(slice_t.to(val.dtype))
-        offset += numel
-    model.load_state_dict(state_dict)
+    """Deserialize a flat vector back into a model's state_dict (params + buffers) in-place."""
+    with torch.no_grad():
+        offset = 0
+        for val in model.state_dict().values():
+            numel = val.numel()
+            val.copy_(vector[offset:offset + numel].reshape(val.shape))
+            offset += numel
+
 

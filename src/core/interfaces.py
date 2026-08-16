@@ -22,6 +22,7 @@ class ClientState:
         # APFL and Ensemble metrics tracking
         self.apfl_alpha: float = 0.5
         self.ensemble_alpha: List[float] = [0.333, 0.333, 0.334]
+        self.r_skew: float = 0.5
         self.head_losses: Dict[str, float] = {}
         self.head_steps: Dict[str, int] = {}
         
@@ -40,6 +41,7 @@ class ClientState:
         new_state.byzantine_type = self.byzantine_type
         new_state.apfl_alpha = self.apfl_alpha
         new_state.ensemble_alpha = list(self.ensemble_alpha)
+        new_state.r_skew = self.r_skew
         new_state.head_losses = dict(self.head_losses)
         new_state.head_steps = dict(self.head_steps)
         return new_state

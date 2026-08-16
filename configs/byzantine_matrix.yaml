@@ -1,49 +1,56 @@
-# Byzantine Robustness Matrix Experiment
-# Sweeps all topologies across multiple Byzantine attack rates to measure resilience.
+# Byzantine Robustness Matrix Experiment (Natural Resilience Benchmark)
+# Evaluates natural fault-tolerance under Byzantine Label Flip attacks (0% to 40% attackers)
+# without adding artificial defense plugins.
 
 experiment_type: byzantine_matrix
-num_rounds: 20
+num_rounds: 15
 
 env:
   seed: 42
   output_dir: ./outputs
-  train_subset: null
-  test_subset: null
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
 
 clients:
+  model_name: resnet9
   num_clients: 15
   local_lr: 0.05
-  local_steps: 1
+  local_steps: 3
+  compute_optimization_mode: shared_backbone
+  ensemble_weighting_mode: dynamic_confidence
+  ensemble_distillation: true
+  distillation_lambda: 0.5
+  total_local_steps: 10
+  loss_weight_beta: 1.0
 
 robustness:
   byzantine_type: label_flip
 
 non_iid:
-  enabled: false  # Keep IID to isolate Byzantine impact
+  enabled: true
   alpha: 0.5
 
 topologies:
   - type: star
-    label: Star
-  - type: star_randomized
-    label: "Star (Rand)"
-  - type: ring
-    label: Ring
-  - type: gossip
-    label: Gossip
+    label: "Star (FedAvg)"
     params:
-      degree_k: 3
-  - type: hierarchical
-    label: Hierarchical
+      personalization_method: "none"
+  - type: star
+    label: "Star (Ditto)"
     params:
-      num_clusters: 3
+      personalization_method: "ditto"
+      ditto_lambda: 0.1
   - type: hierarchical_ensemble
-    label: Ensemble
+    label: "Hierarchical Ensemble (HEP)"
     params:
       num_clusters: 3
-  - type: layered
-    label: Layered
-    params:
-      layers: [15, 5, 1]
+      cluster_method: "update_similarity"
+      warmup_min_rounds: 2
+      warmup_max_rounds: 10
+      stability_threshold: 0.30
+      misalignment_threshold: 0.15
+      personalization_method: "none"
 
-byzantine_rates: [0.0, 0.1, 0.2, 0.3, 0.5]
+byzantine_rates: [0.0, 0.1, 0.2, 0.3, 0.4]
+

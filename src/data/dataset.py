@@ -128,7 +128,7 @@ class FastTensorDataLoader:
         if self.num_samples == 0:
             return
         if self.shuffle:
-            indices = torch.randperm(self.num_samples)
+            indices = torch.randperm(self.num_samples, device=self.images.device)
             for i in range(0, self.num_samples, self.batch_size):
                 batch_idx = indices[i:i + self.batch_size]
                 yield self.images[batch_idx], self.labels[batch_idx]
@@ -177,6 +177,28 @@ def get_cifar10(data_dir="./data", train_subset=None, test_subset=None, seed=42)
     
     train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
     test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
+    
+    rng = np.random.RandomState(seed)
+    if train_subset is not None and train_subset < len(train_dataset):
+        indices = rng.choice(len(train_dataset), train_subset, replace=False)
+        train_dataset = Subset(train_dataset, indices)
+        
+    if test_subset is not None and test_subset < len(test_dataset):
+        indices = rng.choice(len(test_dataset), test_subset, replace=False)
+        test_dataset = Subset(test_dataset, indices)
+
+    return train_dataset, test_dataset
+
+
+def get_cifar100(data_dir="./data", train_subset=None, test_subset=None, seed=42):
+    """Downloads and returns the CIFAR-100 train and test sets, optionally subsetted."""
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
+    ])
+    
+    train_dataset = datasets.CIFAR100(data_dir, train=True, download=True, transform=transform)
+    test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=transform)
     
     rng = np.random.RandomState(seed)
     if train_subset is not None and train_subset < len(train_dataset):

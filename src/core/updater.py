@@ -51,7 +51,7 @@ class PyTorchLocalUpdater:
             state.weights = full_weights
         return state
 
-    def update(self, state: ClientState, client_dataset, config: ClientConfig, rng):
+    def update(self, state: ClientState, client_dataset, config: ClientConfig, rng, current_lr: float = None):
         """
         Loads weight tensors into models, trains on client_dataset, and returns updated state weights.
         Supports:
@@ -64,6 +64,7 @@ class PyTorchLocalUpdater:
         if cfg_model_name != self.model_name:
             self._init_models(cfg_model_name, self.in_channels)
 
+        local_lr = current_lr if current_lr is not None else getattr(config, "current_lr", getattr(config, "local_lr", 0.03))
         personalization_method = getattr(config, "personalization_method", "none")
         use_ensemble = getattr(config, "use_ensemble", False)
         train_parent = getattr(config, "hierarchical_ensemble", False)
@@ -88,7 +89,8 @@ class PyTorchLocalUpdater:
         if personalization_method == "ditto":
             global_model = self.global_model
             global_model.train()
-            global_optimizer = torch.optim.SGD(global_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
+            global_optimizer = torch.optim.SGD(global_model.parameters(), lr=local_lr, momentum=0.9, nesterov=True, weight_decay=1e-4, foreach=False)
+            num_classes = global_model.fc2.out_features if hasattr(global_model, "fc2") else 10
             
             # Step 1: Load broadcast weights using state-dict based approach (includes BN buffers)
             vector_to_model(state.weights.to(self.device), global_model)
@@ -99,7 +101,7 @@ class PyTorchLocalUpdater:
                     if images.device != self.device:
                         images, labels = images.to(self.device), labels.to(self.device)
                     if is_byz and byz_type == "label_flip":
-                        labels = 9 - labels
+                        labels = (num_classes - 1) - labels
                     global_optimizer.zero_grad(set_to_none=True)
                     logits = global_model(images)
                     loss = self.criterion(logits, labels)
@@ -109,7 +111,6 @@ class PyTorchLocalUpdater:
             updated_global_w = model_to_vector(global_model).detach()
             state.weights = updated_global_w
             
-            # FIX: anchor to the learnable parameters of the UPDATED global model (not the full vector with BN buffers)
             w_server_params = torch.nn.utils.parameters_to_vector(global_model.parameters()).detach()
             
             # Step 2: Personalized model local fine-tuning with Ditto L2 penalty
@@ -120,8 +121,7 @@ class PyTorchLocalUpdater:
                 vector_to_model(updated_global_w, local_model)
                 
             local_model.train()
-            # FIX: match momentum & weight_decay to global optimizer for symmetric training
-            local_optimizer = torch.optim.SGD(local_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
+            local_optimizer = torch.optim.SGD(local_model.parameters(), lr=local_lr, momentum=0.9, nesterov=True, weight_decay=1e-4, foreach=False)
             ditto_lambda = getattr(config, "ditto_lambda", 0.1)
             
             for epoch in range(epochs):
@@ -129,7 +129,7 @@ class PyTorchLocalUpdater:
                     if images.device != self.device:
                         images, labels = images.to(self.device), labels.to(self.device)
                     if is_byz and byz_type == "label_flip":
-                        labels = 9 - labels
+                        labels = (num_classes - 1) - labels
                     local_optimizer.zero_grad(set_to_none=True)
                     logits_p = local_model(images)
                     loss_ce = self.criterion(logits_p, labels)
@@ -155,8 +155,9 @@ class PyTorchLocalUpdater:
                 if state.local_head_state is not None:
                     multi_model.fc2_local.load_state_dict(state.local_head_state)
 
+                num_classes = multi_model.fc2_local.out_features if hasattr(multi_model, "fc2_local") else 10
                 multi_model.train()
-                optimizer = torch.optim.SGD(multi_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
+                optimizer = torch.optim.SGD(multi_model.parameters(), lr=local_lr, momentum=0.9, nesterov=True, weight_decay=1e-4, foreach=False)
                 alpha = getattr(state, "apfl_alpha", getattr(config, "apfl_alpha", 0.5))
 
                 for epoch in range(epochs):
@@ -164,7 +165,7 @@ class PyTorchLocalUpdater:
                         if images.device != self.device:
                             images, labels = images.to(self.device), labels.to(self.device)
                         if is_byz and byz_type == "label_flip":
-                            labels = 9 - labels
+                            labels = (num_classes - 1) - labels
 
                         optimizer.zero_grad(set_to_none=True)
                         logits_g, _, logits_l = multi_model(images, head="all")
@@ -195,11 +196,12 @@ class PyTorchLocalUpdater:
             else:
                 vector_to_model(state.weights.to(self.device), local_model)
 
+            num_classes = global_model.fc2.out_features if hasattr(global_model, "fc2") else 10
             global_model.train()
             local_model.train()
             
-            global_opt = torch.optim.SGD(global_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
-            local_opt = torch.optim.SGD(local_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
+            global_opt = torch.optim.SGD(global_model.parameters(), lr=local_lr, momentum=0.9, nesterov=True, weight_decay=1e-4, foreach=False)
+            local_opt = torch.optim.SGD(local_model.parameters(), lr=local_lr, momentum=0.9, nesterov=True, weight_decay=1e-4, foreach=False)
             
             alpha = getattr(state, "apfl_alpha", getattr(config, "apfl_alpha", 0.5))
 
@@ -208,7 +210,7 @@ class PyTorchLocalUpdater:
                     if images.device != self.device:
                         images, labels = images.to(self.device), labels.to(self.device)
                     if is_byz and byz_type == "label_flip":
-                        labels = 9 - labels
+                        labels = (num_classes - 1) - labels
                     
                     logits_g = global_model(images)
                     logits_l = local_model(images)
@@ -229,7 +231,6 @@ class PyTorchLocalUpdater:
                     # Gradient update for alpha
                     with torch.no_grad():
                         grad_alpha = torch.sum((logits_l - logits_g) * F.softmax(logits_blend, dim=1)).item()
-                        # FIX: increase alpha lr multiplier from 0.01→0.1 so alpha meaningfully adapts within 30-50 rounds
                         alpha = max(0.01, min(0.99, alpha - config.local_lr * grad_alpha * 0.1))
 
             state.apfl_alpha = alpha
@@ -244,8 +245,7 @@ class PyTorchLocalUpdater:
             multi_model = self.multihead_model
             vector_to_model(state.weights.to(self.device), multi_model)
             
-            # FIX: Restore specialized head weights saved from previous round
-            # Uses fc2_parent/fc2_local state_dicts instead of wrong-sized single-head vectors
+            # Restore specialized head weights saved from previous round
             if state.parent_head_state is not None:
                 multi_model.fc2_parent.load_state_dict(state.parent_head_state)
                 
@@ -253,34 +253,61 @@ class PyTorchLocalUpdater:
                 multi_model.fc2_local.load_state_dict(state.local_head_state)
 
             multi_model.train()
-            optimizer = torch.optim.SGD(multi_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
+            optimizer = torch.optim.SGD(multi_model.parameters(), lr=local_lr, momentum=0.9, nesterov=True, weight_decay=1e-4, foreach=False)
 
-            # 3-Tier Topology Learnable Simplex Blending Vector: [local, parent, root]
-            ensemble_alpha = getattr(state, "ensemble_alpha", [0.333, 0.333, 0.334])
+            # Compute local dataset label Shannon entropy ratio R_skew
+            use_het_prior = getattr(config, "use_heterogeneity_prior", True)
+            het_gamma = getattr(config, "heterogeneity_gamma", 1.0)
+            num_classes = multi_model.fc2_local.out_features if hasattr(multi_model, "fc2_local") else 10
+            
+            r_skew = 0.5
+            try:
+                if hasattr(client_dataset, "labels") and len(client_dataset) > 0:
+                    l_tensor = client_dataset.labels if isinstance(client_dataset.labels, torch.Tensor) else torch.tensor(client_dataset.labels)
+                    _, counts = torch.unique(l_tensor, return_counts=True)
+                    probs = counts.float() / counts.sum()
+                    entropy = -(probs * torch.log(probs + 1e-8)).sum().item()
+                    import math
+                    max_entropy = math.log(num_classes)
+                    r_skew = min(1.0, max(0.0, entropy / max_entropy))
+            except Exception:
+                r_skew = 0.5
+
+            state.r_skew = r_skew
+
+            # Compute Heterogeneity-Calibrated Simplex Prior: [local, parent, root]
+            if use_het_prior:
+                pi_root = min(1.0, max(0.0, r_skew ** het_gamma))
+                pi_local = (1.0 - pi_root) * (1.0 - r_skew)
+                pi_parent = max(0.0, 1.0 - pi_root - pi_local)
+                pi_prior = torch.tensor([pi_local, pi_parent, pi_root], dtype=torch.float32, device=self.device)
+            else:
+                pi_prior = torch.tensor([0.333, 0.333, 0.334], dtype=torch.float32, device=self.device)
+
+            ensemble_alpha = getattr(state, "ensemble_alpha", [pi_prior[0].item(), pi_prior[1].item(), pi_prior[2].item()])
             if not isinstance(ensemble_alpha, torch.Tensor):
                 ensemble_alpha_t = torch.tensor(ensemble_alpha, dtype=torch.float32, device=self.device)
             else:
                 ensemble_alpha_t = ensemble_alpha.to(self.device)
 
-            # Adaptive Step Allocation
+            # Adaptive Step Allocation based on R_skew and head activity
             total_budget = getattr(config, "total_local_steps", 5)
-            prev_losses = getattr(state, "head_losses", {})
+            rem = max(0, total_budget - 3)
             
-            # Calculate step allocation per head out of total_budget (minimum 1 step per head)
-            if "root" in prev_losses and "parent" in prev_losses and "local" in prev_losses:
-                # Relative loss improvement / activity
-                l_root, l_parent, l_local = prev_losses["root"], prev_losses["parent"], prev_losses["local"]
-                sum_loss = max(1e-5, l_root + l_parent + l_local)
-                rem = max(0, total_budget - 3)
-                e_root = 1 + int(round(rem * (l_root / sum_loss)))
-                e_parent = 1 + int(round(rem * (l_parent / sum_loss)))
-                e_local = 1 + int(round(rem * (l_local / sum_loss)))
-            else:
-                # Round 1 Fallback Prior (N : N/K : 1 = 15:5:1 -> 3:1:1)
-                e_root, e_parent, e_local = 3, 1, 1
+            if r_skew > 0.7:  # IID / Uniform regime: prioritize Root & Parent heads
+                e_root = 1 + round(rem * 0.6)
+                e_parent = 1 + round(rem * 0.3)
+                e_local = 1 + round(rem * 0.1)
+            elif r_skew < 0.3:  # Severe / Extreme Non-IID: prioritize Local & Parent heads
+                e_local = 1 + round(rem * 0.6)
+                e_parent = 1 + round(rem * 0.3)
+                e_root = 1 + round(rem * 0.1)
+            else:  # Moderate Non-IID: balanced budget
+                e_root = 1 + round(rem * 0.34)
+                e_parent = 1 + round(rem * 0.33)
+                e_local = 1 + round(rem * 0.33)
 
             state.head_steps = {"root": e_root, "parent": e_parent, "local": e_local}
-
             last_loss_root, last_loss_parent, last_loss_local = 0.0, 0.0, 0.0
 
             max_steps = max(e_root, e_parent, e_local)
@@ -289,8 +316,7 @@ class PyTorchLocalUpdater:
                     if images.device != self.device:
                         images, labels = images.to(self.device), labels.to(self.device)
                     if is_byz and byz_type == "label_flip":
-                        labels = 9 - labels
-
+                        labels = (num_classes - 1) - labels
                     optimizer.zero_grad(set_to_none=True)
                     logits_root, logits_parent, logits_local = multi_model(images, head="all")
                     
@@ -318,35 +344,42 @@ class PyTorchLocalUpdater:
                     total_loss.backward()
                     optimizer.step()
 
-                    # Gradient update for 3-tier ensemble_alpha simplex vector: [local, parent, root]
+                    # Calibrated 3-tier ensemble_alpha simplex vector blend (Zero CPU Stalls)
                     with torch.no_grad():
                         w_alpha = F.softmax(ensemble_alpha_t, dim=0)
                         logits_blend = w_alpha[0] * logits_local + w_alpha[1] * logits_parent + w_alpha[2] * logits_root
                         p_blend = F.softmax(logits_blend, dim=1)
-                        target_onehot = F.one_hot(labels.detach().cpu(), num_classes=p_blend.shape[1]).float().to(self.device)
+                        
+                        target_onehot = torch.zeros_like(p_blend)
+                        target_onehot.scatter_(1, labels.unsqueeze(1), 1.0)
                         grad_logits = (p_blend - target_onehot) / labels.size(0)
                         
-                        g_local = torch.sum(grad_logits * logits_local).item()
-                        g_parent = torch.sum(grad_logits * logits_parent).item()
-                        g_root = torch.sum(grad_logits * logits_root).item()
+                        # Scale gradients by prediction entropy to prevent overfitted logit magnitude explosion
+                        norm_factor = torch.clamp(torch.abs(logits_local).mean(), min=1e-4)
+                        g_local = torch.sum(grad_logits * (logits_local / norm_factor))
+                        g_parent = torch.sum(grad_logits * (logits_parent / norm_factor))
+                        g_root = torch.sum(grad_logits * (logits_root / norm_factor))
                         
-                        alpha_lr = config.local_lr * 0.1
+                        alpha_lr = local_lr * 0.05
                         ensemble_alpha_t[0] -= alpha_lr * g_local
                         ensemble_alpha_t[1] -= alpha_lr * g_parent
                         ensemble_alpha_t[2] -= alpha_lr * g_root
-                        ensemble_alpha_t = F.softmax(ensemble_alpha_t, dim=0)
+                        
+                        # Smooth blend with Heterogeneity Prior pi_prior
+                        w_updated = F.softmax(ensemble_alpha_t, dim=0)
+                        w_final = 0.5 * w_updated + 0.5 * pi_prior
+                        ensemble_alpha_t = torch.log(w_final + 1e-8)
 
             state.head_losses = {"root": last_loss_root, "parent": last_loss_parent, "local": last_loss_local}
-            state.ensemble_alpha = ensemble_alpha_t.detach().cpu().tolist()
+            state.ensemble_alpha = F.softmax(ensemble_alpha_t, dim=0).detach().cpu().tolist()
 
-            # Save full multihead weights for aggregation, plus SEPARATE head-specific states
-            # so parent/local specialization is NOT destroyed by server aggregation overwrite (stored directly in VRAM)
+            # Save shared multihead weights for global aggregation & head states for local specialization
             state.weights = model_to_vector(multi_model).detach()
             state.parent_head_state = {k: v.clone() for k, v in multi_model.fc2_parent.state_dict().items()}
             state.local_head_state = {k: v.clone() for k, v in multi_model.fc2_local.state_dict().items()}
-            # Keep legacy fields for backward compat with evaluate_ensemble in base_engine
             state.parent_weights = state.weights.clone()
             state.local_weights = state.weights.clone()
+
             return self._apply_byzantine_attack(state, initial_weights)
 
         # ---------------------------------------------------------------------
@@ -354,15 +387,16 @@ class PyTorchLocalUpdater:
         # ---------------------------------------------------------------------
         global_model = self.global_model
         vector_to_model(state.weights.to(self.device), global_model)
+        num_classes = global_model.fc2.out_features if hasattr(global_model, "fc2") else 10
         global_model.train()
-        global_optimizer = torch.optim.SGD(global_model.parameters(), lr=config.local_lr, momentum=0.9, weight_decay=1e-4)
+        global_optimizer = torch.optim.SGD(global_model.parameters(), lr=local_lr, momentum=0.9, nesterov=True, weight_decay=1e-4, foreach=False)
 
         for epoch in range(epochs):
             for images, labels in dataloader:
                 if images.device != self.device:
                     images, labels = images.to(self.device), labels.to(self.device)
                 if is_byz and byz_type == "label_flip":
-                    labels = 9 - labels
+                    labels = (num_classes - 1) - labels
                 global_optimizer.zero_grad(set_to_none=True)
                 logits = global_model(images)
                 loss = self.criterion(logits, labels)

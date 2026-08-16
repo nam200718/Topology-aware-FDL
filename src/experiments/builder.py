@@ -18,7 +18,14 @@ from src.core.hierarchical_ensemble_engine import HierarchicalEnsembleEngine
 
 
 def detect_device() -> str:
-    """Detect available accelerator hardware (CUDA, MPS, DirectML) or fallback to CPU."""
+    """Detect available accelerator hardware (CUDA, DirectML, MPS) or fallback to CPU."""
+    if torch_directml is not None:
+        try:
+            if torch_directml.is_available():
+                dev = torch_directml.device()
+                return dev if isinstance(dev, str) else str(dev)
+        except Exception:
+            pass
     if hasattr(torch, "accelerator") and torch.accelerator.is_available():
         acc = torch.accelerator.current_accelerator()
         if acc is not None:
@@ -28,15 +35,7 @@ def detect_device() -> str:
         return "cuda"
     elif hasattr(torch, "backends") and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         return "mps"
-    else:
-        if torch_directml is not None:
-            try:
-                if torch_directml.is_available():
-                    dev = torch_directml.device()
-                    return dev if isinstance(dev, str) else str(dev)
-            except Exception:
-                pass
-        return "cpu"
+    return "cpu"
 
 
 class TopologyEngineFactory:

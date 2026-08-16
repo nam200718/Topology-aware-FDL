@@ -74,6 +74,10 @@ class BaseEngine(ABC):
             alpha=alpha, 
             seed=self.config.env.seed
         )
+        self.client_test_indices_t = {
+            cid: torch.tensor(idxs, dtype=torch.long, device=self.device)
+            for cid, idxs in self.client_test_indices.items()
+        }
 
         # Check clustering method configuration
         cluster_method = self.config.topology.params.get("cluster_method", None)
@@ -133,6 +137,16 @@ class BaseEngine(ABC):
                 state.byzantine_type = self.config.robustness.byzantine_type
             self.clients_state[client_id] = state
             
+    def get_current_lr(self, round_num: int) -> float:
+        base_lr = getattr(self.config.clients, "local_lr", 0.03)
+        num_rounds = getattr(self.config, "num_rounds", 50)
+        if num_rounds <= 1:
+            return base_lr
+        min_lr = getattr(self.config.clients, "min_lr", 0.001)
+        import math
+        cosine_decay = 0.5 * (1.0 + math.cos(math.pi * (round_num - 1) / (num_rounds - 1)))
+        return min_lr + (base_lr - min_lr) * cosine_decay
+
     def run(self):
         print(f"Starting simulation: {self.config.experiment_name} | Topo: {self.config.topology.type}")
         for round_num in range(1, self.config.num_rounds + 1):
@@ -214,11 +228,9 @@ class BaseEngine(ABC):
                     state = self.clients_state[client_id]
                     if getattr(state, "is_byzantine", False) or getattr(state, "local_weights", None) is None:
                         continue
-                    idxs = self.client_test_indices.get(client_id, [])
-                    if not idxs:
+                    idxs = self.client_test_indices_t.get(client_id, None)
+                    if idxs is None or len(idxs) == 0:
                         continue
-                    if isinstance(idxs, list):
-                        idxs = torch.tensor(idxs, dtype=torch.long, device=self.device)
 
                     c_images = images_all[idxs]
                     c_labels = labels_all[idxs]

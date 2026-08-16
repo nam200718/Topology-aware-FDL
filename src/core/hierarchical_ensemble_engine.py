@@ -19,7 +19,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
         # Initialize cluster heads
         self.cluster_heads_state = {}
         for hid in self.topology.get_server_connected_clients():
-            head_state = ClientState(node_id=hid, weights=self.server_weights.clone())
+            head_state = ClientState(client_id=hid, initial_weights=self.server_weights.clone())
             self.cluster_heads_state[hid] = head_state
 
         # Adaptive Update-Similarity Clustering Params
@@ -55,6 +55,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
             weights_before[client_id] = self.server_weights.clone()
             
         # 2. Local Updates
+        current_lr = self.get_current_lr(round_num)
         current_deltas = {}
         for client_id in all_clients:
             state = self.clients_state[client_id].copy()
@@ -65,12 +66,13 @@ class HierarchicalEnsembleEngine(BaseEngine):
                 state=state,
                 client_dataset=client_ds,
                 config=self.config.clients,
-                rng=self.local_rng
+                rng=self.local_rng,
+                current_lr=current_lr
             )
             self.clients_state[client_id] = updated_state
             
             # Compute client model update vector (delta)
-            delta = (updated_state.weights - weights_before[client_id]).detach().cpu()
+            delta = (updated_state.weights - weights_before[client_id]).detach()
             current_deltas[client_id] = delta
 
         # --- Adaptive Update-Similarity Clustering Controller ---
@@ -164,16 +166,21 @@ class HierarchicalEnsembleEngine(BaseEngine):
             cluster_updates_parent[head_id].append(s_parent)
             cluster_updates_root[head_id].append(updated_state)
             
-        # Check inter-client update similarity for topology cluster gating
-        pairwise_sims = []
-        cids = [cid for cid in all_clients if cid in current_deltas]
-        for i in range(len(cids)):
-            for j in range(i + 1, len(cids)):
-                d_i, d_j = current_deltas[cids[i]], current_deltas[cids[j]]
-                n_i, n_j = torch.norm(d_i), torch.norm(d_j)
-                if n_i > 1e-8 and n_j > 1e-8:
-                    pairwise_sims.append((torch.dot(d_i, d_j) / (n_i * n_j)).item())
-        avg_pairwise_sim = float(np.mean(pairwise_sims)) if pairwise_sims else 0.0
+        # Check inter-client update similarity for topology cluster gating (O(N*K) centroid-based similarity)
+        cluster_sims = []
+        for hid in cluster_updates_parent.keys():
+            member_cids = [cid for cid in all_clients if self.topology.get_neighbors(cid)[0] == hid and cid in current_deltas]
+            if len(member_cids) > 1:
+                member_deltas = torch.stack([current_deltas[cid] for cid in member_cids])
+                centroid = torch.mean(member_deltas, dim=0)
+                norm_cent = torch.norm(centroid)
+                if norm_cent > 1e-8:
+                    for cid in member_cids:
+                        d_c = current_deltas[cid]
+                        n_c = torch.norm(d_c)
+                        if n_c > 1e-8:
+                            cluster_sims.append((torch.dot(d_c, centroid) / (n_c * norm_cent)).item())
+        avg_pairwise_sim = float(np.mean(cluster_sims)) if cluster_sims else 0.0
 
         # 3. Intra-cluster Aggregation (Heads aggregate parent models)
         for hid, states in cluster_updates_parent.items():
@@ -240,8 +247,12 @@ class HierarchicalEnsembleEngine(BaseEngine):
 
                 # Load current multihead parameters
                 vector_to_model(state.weights.to(self.device), multi_model)
+                if state.parent_head_state is not None:
+                    multi_model.fc2_parent.load_state_dict(state.parent_head_state)
+                if state.local_head_state is not None:
+                    multi_model.fc2_local.load_state_dict(state.local_head_state)
 
-                client_test_ds = ClientDataset(self.test_dataset, self.client_test_indices[client_id])
+                client_test_ds = self.client_test_datasets[client_id]
                 if len(client_test_ds) == 0:
                     continue
 
@@ -252,6 +263,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
                         images, labels = images.to(self.device), labels.to(self.device)
                         logits_root, logits_parent, logits_local = multi_model(images, head="all")
 
+                        tau = getattr(self.config.clients, "ensemble_temperature", 1.0)
                         if weighting_mode == "dynamic_confidence":
                             # Compute prediction entropy H(p)
                             p_root = F.softmax(logits_root, dim=1)
@@ -278,7 +290,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
                                 score_parent += np.log(max(1e-4, alpha_vec[1]))
                                 score_root += np.log(max(1e-4, alpha_vec[2]))
 
-                            weights = F.softmax(torch.tensor([score_local, score_parent, score_root], dtype=torch.float32) / 0.1, dim=0)
+                            weights = F.softmax(torch.tensor([score_local, score_parent, score_root], dtype=torch.float32) / tau, dim=0)
                             w_local, w_parent, w_root = weights[0].item(), weights[1].item(), weights[2].item()
                         elif weighting_mode == "dynamic_loss":
                             head_losses = getattr(state, "head_losses", {})
@@ -296,7 +308,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
                                 score_parent += np.log(max(1e-4, alpha_vec[1]))
                                 score_root += np.log(max(1e-4, alpha_vec[2]))
 
-                            weights = F.softmax(torch.tensor([score_local, score_parent, score_root], dtype=torch.float32) / 0.1, dim=0)
+                            weights = F.softmax(torch.tensor([score_local, score_parent, score_root], dtype=torch.float32) / tau, dim=0)
                             w_local, w_parent, w_root = weights[0].item(), weights[1].item(), weights[2].item()
                         else: # static
                             w_local, w_parent, w_root = alpha_static, beta_static, gamma_static
@@ -335,7 +347,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
                 else:
                     vector_to_model(state.weights.to(self.device), local_model)
 
-                client_test_ds = ClientDataset(self.test_dataset, self.client_test_indices[client_id])
+                client_test_ds = self.client_test_datasets[client_id]
                 if len(client_test_ds) == 0:
                     continue
 
@@ -348,6 +360,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
                         logits_parent = parent_model(images)
                         logits_local = local_model(images)
 
+                        tau = getattr(self.config.clients, "ensemble_temperature", 1.0)
                         if weighting_mode == "dynamic_confidence":
                             p_root = F.softmax(logits_root, dim=1)
                             p_parent = F.softmax(logits_parent, dim=1)
@@ -372,7 +385,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
                                 score_parent += np.log(max(1e-4, alpha_vec[1]))
                                 score_root += np.log(max(1e-4, alpha_vec[2]))
 
-                            weights = F.softmax(torch.tensor([score_local, score_parent, score_root], dtype=torch.float32) / 0.1, dim=0)
+                            weights = F.softmax(torch.tensor([score_local, score_parent, score_root], dtype=torch.float32) / tau, dim=0)
                             w_local, w_parent, w_root = weights[0].item(), weights[1].item(), weights[2].item()
                         elif weighting_mode == "dynamic_loss":
                             head_losses = getattr(state, "head_losses", {})
@@ -390,7 +403,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
                                 score_parent += np.log(max(1e-4, alpha_vec[1]))
                                 score_root += np.log(max(1e-4, alpha_vec[2]))
 
-                            weights = F.softmax(torch.tensor([score_local, score_parent, score_root], dtype=torch.float32) / 0.1, dim=0)
+                            weights = F.softmax(torch.tensor([score_local, score_parent, score_root], dtype=torch.float32) / tau, dim=0)
                             w_local, w_parent, w_root = weights[0].item(), weights[1].item(), weights[2].item()
                         else:
                             w_local, w_parent, w_root = alpha_static, beta_static, gamma_static

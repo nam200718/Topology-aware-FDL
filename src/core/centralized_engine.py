@@ -16,6 +16,7 @@ class CentralizedEngine(BaseEngine):
             self.clients_state[client_id].weights = self.server_weights.clone()
             
         # Update
+        current_lr = self.get_current_lr(round_num)
         updated_states = []
         for client_id in target_clients:
             state = self.clients_state[client_id].copy()
@@ -25,7 +26,8 @@ class CentralizedEngine(BaseEngine):
                 state=state, 
                 client_dataset=client_ds, 
                 config=self.config.clients, 
-                rng=self.local_rng
+                rng=self.local_rng,
+                current_lr=current_lr
             )
             self.clients_state[client_id] = updated_state
             updated_states.append(updated_state)

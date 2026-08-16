@@ -1,0 +1,32 @@
+# Test 1-Round Execution Speed Config for Baselines
+experiment_type: comparison
+num_rounds: 1
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  ditto_lambda: 0.05
+
+topologies:
+  - type: star
+    label: "FedAvg"
+    params:
+      personalization_method: "none"
+  - type: star
+    label: "Ditto"
+    params:
+      personalization_method: "ditto"
+
+scenarios:
+  - id: iid
+    label: "IID (Baseline)"
+    non_iid: false

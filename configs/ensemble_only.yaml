@@ -1,5 +1,5 @@
-# Topology & Personalization Algorithm Comparison Study (CIFAR-10 ResNet9)
-# Compares flat baselines (Star/FedAvg, Star+Ditto, Star+APFL Shared Backbone) against our 3-Tier Hierarchical Ensemble Topology.
+# Standalone Hierarchical Ensemble Evaluation Config (CIFAR-10 ResNet9)
+# Runs ONLY Hierarchical Ensemble across 5 scenarios to quickly benchmark against previous baselines.
 
 experiment_type: comparison
 num_rounds: 25
@@ -16,35 +16,16 @@ clients:
   num_clients: 15
   local_lr: 0.05
   local_steps: 3
-  # Ensemble Improvements & Topology Optimizations:
   compute_optimization_mode: shared_backbone
   ensemble_weighting_mode: dynamic_confidence
-  ensemble_distillation: false
-  distillation_lambda: 0.0
+  ensemble_distillation: true
+  distillation_lambda: 0.5
   total_local_steps: 10
   loss_weight_beta: 1.0
 
-robustness:
-  byzantine_type: label_flip
-
 topologies:
-  - type: star
-    label: "Star (FedAvg)"
-    params:
-      personalization_method: "none"
-  - type: star
-    label: "Star (Ditto)"
-    params:
-      personalization_method: "ditto"
-      ditto_lambda: 0.05
-  - type: star
-    label: "Star (APFL - Shared Backbone)"
-    params:
-      personalization_method: "apfl"
-      compute_optimization_mode: "shared_backbone"
-      apfl_alpha: 0.5
   - type: hierarchical_ensemble
-    label: "Hierarchical Ensemble (Adaptive Update-Sim)"
+    label: "Hierarchical Ensemble (Adaptive Update-Sim + PSHR)"
     params:
       num_clusters: 3
       cluster_method: "update_similarity"

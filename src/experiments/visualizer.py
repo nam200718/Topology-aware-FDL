@@ -1,5 +1,6 @@
 import os
 import json
+from typing import Optional
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,7 +16,13 @@ COLOR_MAP = {
     "Star (APFL - Shared Backbone)": "#0d9488",          # Teal
     "Star (APFL - Shared Backbone) (Pers.)": "#0d9488",
     "Hierarchical Ensemble (Adaptive Update-Sim)": "#4f46e5",  # Royal Indigo (Proposed)
-    "Hierarchical Ensemble (Adaptive Update-Sim) (Pers.)": "#4f46e5",
+    "Hierarchical Ensemble (HEP)": "#4f46e5",
+    "Hierarchical Ensemble Personalization": "#4f46e5",
+    "HEP": "#4f46e5",
+    "Hierarchical Ensemble (T-HEP)": "#4f46e5",
+    "Hierarchical Ensemble": "#4f46e5",
+    "T-HEP": "#4f46e5",
+    "Ensemble": "#4f46e5",
 }
 
 DEFAULT_PALETTE = sns.color_palette("tab10")
@@ -28,7 +35,7 @@ def _get_color(label: str, idx: int = 0):
     return DEFAULT_PALETTE[idx % len(DEFAULT_PALETTE)]
 
 
-def plot_experiment_results(metrics_path: str, output_dir: str = None):
+def plot_experiment_results(metrics_path: str, output_dir: Optional[str] = None):
     """Plots clean accuracy and loss convergence from a single experiment run."""
     if not os.path.exists(metrics_path):
         print(f"Metrics file not found: {metrics_path}")
@@ -138,7 +145,7 @@ def plot_comparison_convergence(experiment_dirs, labels, output_path: str):
     plt.close()
 
 
-def plot_robustness_summary(df_summary: pd.DataFrame, output_path: str, title: str = "Robustness Comparison", y_col: str = None):
+def plot_robustness_summary(df_summary: pd.DataFrame, output_path: str, title: str = "Robustness Comparison", y_col: Optional[str] = None):
     """
     Plots a clean, uncluttered 2-panel bar comparison chart.
     Left Panel: Global Accuracy across Heterogeneity Scenarios
@@ -224,21 +231,46 @@ def plot_robustness_heatmap(df_summary: pd.DataFrame, output_path: str, title: s
 
 
 def plot_byzantine_matrix(df_matrix: pd.DataFrame, output_path: str, title: str = "Byzantine Robustness Matrix"):
-    """Plots clean final accuracy vs Byzantine rate line plot."""
+    """Plots clean final/last-5 accuracy vs Byzantine rate line plot."""
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     sns.set_theme(style="whitegrid", font_scale=1.0)
 
-    plt.figure(figsize=(9, 5), dpi=300)
+    plt.figure(figsize=(9, 5.5), dpi=300)
     topos = df_matrix["Topology"].unique()
     palette = {t: _get_color(t, i) for i, t in enumerate(topos)}
 
-    sns.lineplot(data=df_matrix, x="Byzantine Rate", y="Final Accuracy", hue="Topology", palette=palette, linewidth=2.2, marker="o", markersize=6)
+    y_col = "Last5 Avg Accuracy" if "Last5 Avg Accuracy" in df_matrix.columns else "Final Accuracy"
+    
+    sns.lineplot(
+        data=df_matrix, 
+        x="Byzantine Rate", 
+        y=y_col, 
+        hue="Topology", 
+        palette=palette, 
+        linewidth=2.5, 
+        marker="o", 
+        markersize=7
+    )
+    
     plt.title(title, fontsize=13, fontweight='bold', pad=12)
-    plt.ylabel("Test Accuracy (%)", fontsize=10)
-    plt.xlabel("Byzantine Client Fraction", fontsize=10)
-    plt.ylim(0, 105)
+    plt.ylabel(f"Test Accuracy (%) [{y_col}]", fontsize=11, labelpad=8)
+    plt.xlabel("Byzantine Attacker Fraction", fontsize=11, labelpad=8)
+    plt.ylim(0, 100)
     plt.grid(True, linestyle='--', alpha=0.4)
-    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', frameon=True, facecolor='white', framealpha=0.95)
+
+    # Format X-axis ticks as percentages
+    rates = sorted(df_matrix["Byzantine Rate"].unique())
+    plt.xticks(rates, [f"{int(r * 100)}%" for r in rates], fontsize=10)
+    plt.yticks(fontsize=10)
+
+    plt.legend(
+        bbox_to_anchor=(1.02, 1), 
+        loc='upper left', 
+        frameon=True, 
+        facecolor='white', 
+        framealpha=0.95,
+        fontsize=10
+    )
     plt.tight_layout()
     plt.savefig(output_path, bbox_inches='tight')
     plt.close()

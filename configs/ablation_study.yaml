@@ -1,0 +1,91 @@
+# Component Ablation Study Configuration (CIFAR-10 ResNet9)
+# Measures the individual accuracy contribution of:
+# 1. Full Proposed HEP
+# 2. w/o Shannon Label Entropy Prior (R_skew)
+# 3. w/o Adaptive Update-Similarity Clustering (Random Topology)
+# 4. w/o Asymmetric Root-to-Local Distillation
+
+experiment_type: comparison
+num_rounds: 25
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  compute_optimization_mode: shared_backbone
+  ensemble_weighting_mode: dynamic_confidence
+  total_local_steps: 10
+  loss_weight_beta: 1.0
+
+robustness:
+  byzantine_type: label_flip
+
+topologies:
+  - type: hierarchical_ensemble
+    label: "HEP (Full Proposed)"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      warmup_min_rounds: 2
+      warmup_max_rounds: 10
+      stability_threshold: 0.30
+      misalignment_threshold: 0.15
+      use_heterogeneity_prior: true
+      ensemble_distillation: false
+      distillation_lambda: 0.0
+      personalization_method: "none"
+
+  - type: hierarchical_ensemble
+    label: "HEP (w/ Asymmetric Distillation)"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      warmup_min_rounds: 2
+      warmup_max_rounds: 10
+      stability_threshold: 0.30
+      misalignment_threshold: 0.15
+      use_heterogeneity_prior: true
+      ensemble_distillation: true
+      distillation_lambda: 0.5
+      personalization_method: "none"
+
+  - type: hierarchical_ensemble
+    label: "HEP (w/o Update-Sim Clustering)"
+    params:
+      num_clusters: 3
+      cluster_method: "random"
+      use_heterogeneity_prior: true
+      ensemble_distillation: false
+      distillation_lambda: 0.0
+      personalization_method: "none"
+
+  - type: hierarchical_ensemble
+    label: "HEP (w/o Entropy Prior)"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      warmup_min_rounds: 2
+      warmup_max_rounds: 10
+      stability_threshold: 0.30
+      misalignment_threshold: 0.15
+      use_heterogeneity_prior: false
+      ensemble_distillation: false
+      distillation_lambda: 0.0
+      personalization_method: "none"
+
+scenarios:
+  - id: iid
+    label: "IID (Uniform)"
+    non_iid: false
+  - id: non_iid_alpha_0.05
+    label: "Non-IID (Extreme alpha=0.05)"
+    non_iid: true
+    alpha: 0.05

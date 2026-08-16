@@ -276,7 +276,7 @@ class ExperimentRunner:
             peak_acc = max(h.get("test_accuracy", 0.0) for h in hx)
             last5_acc = round(float(np.mean([h.get("test_accuracy", 0.0) for h in hx[-5:]])), 2)
 
-            if config.topology.type == "hierarchical_ensemble" and "ensemble_test_accuracy" in hx[-1]:
+            if "ensemble_test_accuracy" in hx[-1]:
                 final_acc = hx[-1]["ensemble_test_accuracy"]
                 peak_acc = max(h.get("ensemble_test_accuracy", 0.0) for h in hx if "ensemble_test_accuracy" in h)
                 last5_acc = round(float(np.mean([h.get("ensemble_test_accuracy", 0.0) for h in hx[-5:] if "ensemble_test_accuracy" in h])), 2)

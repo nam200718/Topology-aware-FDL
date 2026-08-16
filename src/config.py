@@ -45,14 +45,20 @@ class ClientConfig(BaseModel):
     ensemble_weighting_mode: Literal["static", "dynamic_confidence", "dynamic_loss"] = "dynamic_confidence"
     # Compute optimization strategy: "none", "shared_backbone", "frozen_root_anchor", "head_only"
     compute_optimization_mode: Literal["none", "shared_backbone", "frozen_root_anchor", "head_only"] = "shared_backbone"
-    # Enable inter-model mutual distillation during local updates
-    ensemble_distillation: bool = True
+    # Enable inter-model mutual distillation during local updates (evaluated in ablation studies)
+    ensemble_distillation: bool = False
     # Scaling factor for mutual distillation loss
-    distillation_lambda: float = 0.5
+    distillation_lambda: float = 0.0
     # Total local step budget per round to distribute adaptively across ensemble heads
     total_local_steps: int = 5
     # Loss scaling weight beta for loss-calibrated ensemble weighting
     loss_weight_beta: float = 1.0
+    # Softmax temperature for dynamic ensemble weighting (1.0 = smooth blending, 0.1 = sharp)
+    ensemble_temperature: float = 1.0
+    # Use Shannon label entropy to dynamically calibrate ensemble simplex prior across IID regimes
+    use_heterogeneity_prior: bool = True
+    # Exponential scaling for heterogeneity prior (1.0 = linear)
+    heterogeneity_gamma: float = 1.0
     # Algorithm personalization method: "none", "ditto", "apfl"
     personalization_method: Literal["none", "ditto", "apfl"] = "none"
     # Ditto proximal L2 penalty parameter lambda

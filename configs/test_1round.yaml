@@ -1,0 +1,41 @@
+# Test 1-Round Execution Speed Config
+experiment_type: comparison
+num_rounds: 1
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 2
+  compute_optimization_mode: shared_backbone
+  ensemble_weighting_mode: dynamic_confidence
+  ensemble_distillation: true
+  distillation_lambda: 0.5
+  total_local_steps: 5
+  loss_weight_beta: 1.0
+  ensemble_prox_lambda: 0.05
+  decoupled_head_training: true
+
+topologies:
+  - type: hierarchical_ensemble
+    label: "Hierarchical Ensemble (Adaptive Update-Sim + PSHR)"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      warmup_min_rounds: 2
+      warmup_max_rounds: 10
+      stability_threshold: 0.30
+      misalignment_threshold: 0.15
+      personalization_method: "none"
+
+scenarios:
+  - id: iid
+    label: "IID (Baseline)"
+    non_iid: false

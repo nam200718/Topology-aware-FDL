@@ -59,16 +59,17 @@ class DefendedEnsembleEngine(HierarchicalEnsembleEngine):
             )
 
         # 2. Local Updates
-        
+        current_lr = self.get_current_lr(round_num)
         for client_id in all_clients:
             state = self.clients_state[client_id].copy()
-            client_ds = ClientDataset(self.train_dataset, self.client_indices[client_id])
+            client_ds = self.client_train_datasets[client_id]
 
             updated_state = self.updater.update(
                 state=state,
                 client_dataset=client_ds,
                 config=self.config.clients,
                 rng=self.local_rng,
+                current_lr=current_lr,
             )
             self.clients_state[client_id] = updated_state
 
