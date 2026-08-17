@@ -64,6 +64,13 @@ class SoftRejectionAggregator(Aggregator):
         self, states: List[ClientState], reference_weights: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """Cosine similarity-based soft rejection."""
+        # Pre-filter: skip Inf/NaN flagged clients
+        clean_states = [s for s in states if not getattr(s, 'is_confirmed_malicious', False)]
+        if not clean_states:
+            # If all are flagged, fallback
+            return self._fallback_aggregator.aggregate(states)
+        states = clean_states
+        
         n = len(states)
 
         # If only one client -> no defense
@@ -79,6 +86,10 @@ class SoftRejectionAggregator(Aggregator):
             stacked = torch.stack([s.weights for s in states])
             centroid_raw = stacked.mean(dim=0)
             deltas = [s.weights - centroid_raw for s in states]
+            
+        # [NEW] Apply Norm Bounding
+        if self.config.norm_bounding_enabled:
+            deltas = self._apply_norm_bounding(deltas)
 
         # Calculate directional centroid using unit-normalized deltas
         # This protects against Magnitude Inflation (Scaling) Attacks
@@ -103,6 +114,10 @@ class SoftRejectionAggregator(Aggregator):
                     delta.unsqueeze(0), centroid.unsqueeze(0)
                 ).item()
                 similarities.append(cos_sim)
+                
+        # [NEW] Apply Hard Rejection
+        if self.config.hard_rejection_enabled:
+            similarities = self._apply_hard_rejection(similarities)
 
         # Temperature scaling → trust scores
         # trust_i = softmax(similarity_i / temperature)
@@ -160,6 +175,18 @@ class SoftRejectionAggregator(Aggregator):
             aggregated += state.weights * trust_scores[i]
 
         return aggregated
+
+        return aggregated
+
+    def _apply_norm_bounding(self, deltas: List[torch.Tensor]) -> List[torch.Tensor]:
+        """Clip delta norm vượt median × multiplier."""
+        norms = torch.tensor([d.norm().item() for d in deltas])
+        threshold = norms.median() * self.config.norm_bounding_multiplier
+        return [d * min(1.0, threshold.item() / (d.norm().item() + 1e-10)) if d.norm().item() > threshold.item() else d for d in deltas]
+
+    def _apply_hard_rejection(self, similarities: List[float]) -> List[float]:
+        """Cosine sim < threshold → -inf → softmax → weight = 0."""
+        return [float('-inf') if s < self.config.hard_rejection_threshold else s for s in similarities]
 
     def get_last_trust_scores(self) -> Dict[int, float]:
         """Return trust scores from the last aggregate."""

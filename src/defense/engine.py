@@ -8,6 +8,10 @@ from src.data.dataset import ClientDataset
 from src.defense.config import DefenseConfig
 from src.defense.aggregator import SoftRejectionAggregator
 from src.defense.trust_tracker import TrustTracker
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from temp.attacks import check_inf_nan
 
 
 class DefendedEnsembleEngine(HierarchicalEnsembleEngine):
@@ -81,6 +85,14 @@ class DefendedEnsembleEngine(HierarchicalEnsembleEngine):
             cluster_updates_parent[head_id].append(s_parent)
 
             cluster_updates_root[head_id].append(updated_state)
+
+        # === INF/NAN SENTINEL ===
+        for client_id in all_clients:
+            state = self.clients_state[client_id]
+            if not check_inf_nan(state.weights, pre_round_server_weights):
+                state.is_confirmed_malicious = True  # dynamic attr, no interfaces.py edit
+                print(f"[Round {round_num}] ⚠️ SENTINEL: Client {client_id} — "
+                      f"gradient explosion → excluded from aggregation.")
 
         # 3. Intra-cluster Aggregation - DEFENSE
         

@@ -27,3 +27,11 @@ class DefenseConfig:
     # Threshold for norm-based rejection.
     # Updates if norm > threshold * median_norm will decrease trust
     norm_threshold: float = 2.0
+
+    # NEW: Norm Bounding — clip delta norm trước aggregation
+    norm_bounding_enabled: bool = False
+    norm_bounding_multiplier: float = 2.0   # clip tại median_norm × multiplier
+
+    # NEW: Hard Rejection — loại bỏ client có cosine score < threshold
+    hard_rejection_enabled: bool = False
+    hard_rejection_threshold: float = 0.0   # cosine sim < threshold → reject
