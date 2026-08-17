@@ -11,17 +11,17 @@ import torch
 
 from src.topologies.star import StarTopology
 from src.topologies.hierarchical import HierarchicalTopology
-from src.core.star_engine import StarEngine
+from src.core.centralized_engine import CentralizedEngine
 from src.core.hierarchical_ensemble_engine import HierarchicalEnsembleEngine
-from src.config import MainConfig
-from src.defense.aggregator import SoftRejectionAggregator
+from src.config import ExperimentConfig
+from src.core.aggregator import FedAvgAggregator
 
 from temp.ring import RingTopology
 from temp.gossip import GossipTopology
 from temp.decentralized_engine import DecentralizedEngine
 
 TOPOLOGY_REGISTRY = {
-    "star":      (StarTopology,         StarEngine),
+    "star":      (StarTopology,         CentralizedEngine),
     "ring":      (RingTopology,         DecentralizedEngine),
     "gossip":    (GossipTopology,       DecentralizedEngine),
     "hier_agg":  (HierarchicalTopology, HierarchicalEnsembleEngine),
@@ -40,6 +40,7 @@ def run_single_topology(topo_config: dict, common_config_dict: dict) -> dict:
     # Build MainConfig
     config_dict = dict(common_config_dict)
     config_dict["topologies"] = [topo_config]
+    config_dict["experiment_type"] = "single"
     
     # We must construct a MainConfig from the dict
     # But since MainConfig usually takes a path, we can either write a temp yaml or construct directly.
@@ -48,7 +49,8 @@ def run_single_topology(topo_config: dict, common_config_dict: dict) -> dict:
     with open(temp_path, "w") as f:
         yaml.dump(config_dict, f)
         
-    main_config = MainConfig(temp_path)
+    exp_config = ExperimentConfig.from_yaml(temp_path)
+    main_config = exp_config.build_configs()[0]["config"]
     os.remove(temp_path)
 
     # Instantiate
@@ -63,7 +65,7 @@ def run_single_topology(topo_config: dict, common_config_dict: dict) -> dict:
         
     # Init Engine
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    aggregator = SoftRejectionAggregator(main_config)
+    aggregator = FedAvgAggregator()
     engine = EngineClass(main_config, topology, aggregator, device)
     
     # Override client config if needed (hier_agg)
@@ -75,7 +77,7 @@ def run_single_topology(topo_config: dict, common_config_dict: dict) -> dict:
     engine.run()
     
     # Extract metrics
-    metrics = engine.metrics.round_data
+    metrics = engine.metrics.history
     final_global_acc = metrics[-1].get("test_accuracy", 0.0) if metrics else 0.0
     final_ens_acc = metrics[-1].get("ensemble_test_accuracy", final_global_acc) if metrics else 0.0
     
