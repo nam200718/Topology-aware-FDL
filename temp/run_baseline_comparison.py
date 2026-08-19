@@ -24,8 +24,8 @@ TOPOLOGY_REGISTRY = {
     "star":      (StarTopology,         CentralizedEngine),
     "ring":      (RingTopology,         DecentralizedEngine),
     "gossip":    (GossipTopology,       DecentralizedEngine),
-    "hier_agg":  (HierarchicalTopology, HierarchicalEnsembleEngine),
-    "hier_ens":  (HierarchicalTopology, HierarchicalEnsembleEngine),
+    "hierarchical":  (HierarchicalTopology, HierarchicalEnsembleEngine),
+    "hierarchical_ensemble":  (HierarchicalTopology, HierarchicalEnsembleEngine),
 }
 
 def load_yaml_config(path: str) -> dict:
@@ -121,8 +121,8 @@ def run_single_topology(topo_config: dict, common_config_dict: dict) -> dict:
         }
         print(f"  [Hierarchical Partition] clusters={num_clusters}, x={intra_alpha}, β={inter_alpha}")
     
-    # Override client config if needed (hier_agg)
-    if topo_type == "hier_agg":
+    # Override client config if needed (hierarchical)
+    if topo_type == "hierarchical":
         main_config.clients.use_ensemble = False
         main_config.clients.hierarchical_ensemble = False
         main_config.clients.compute_optimization_mode = "none"

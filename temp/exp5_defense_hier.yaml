@@ -1,57 +1,63 @@
-num_rounds: 50
-env:
-  seed: 42
-  dataset: cifar10
-  output_dir: ./outputs/exp5_defense_hier
+byzantine_rates:
+- 0.0
+- 0.1
+- 0.2
+- 0.3
+byzantine_types:
+- label_flip
+- sign_flip
 clients:
-  model_name: resnet9
-  num_clients: 30
-  local_lr: 0.01
-  local_steps: 2
   batch_size: 32
   compute_optimization_mode: shared_backbone
-  ensemble_weighting_mode: dynamic_confidence
-  ensemble_distillation: true
   distillation_lambda: 0.5
-  total_local_steps: 5
+  ensemble_distillation: true
+  ensemble_weighting_mode: dynamic_confidence
+  local_lr: 0.01
+  local_steps: 2
   loss_weight_beta: 1.0
-use_hierarchical_partition: true
+  model_name: resnet9
+  num_clients: 30
+  total_local_steps: 5
+env:
+  dataset: cifar10
+  output_dir: ./outputs/exp5_defense_hier
+  seed: 42
 hierarchical_partition_config:
-  num_clusters: 5
-  intra_alpha: 1.0
   inter_alpha: 0.1
-byzantine_rates: [0.0, 0.1, 0.2, 0.3]
-byzantine_types: ["label_flip", "sign_flip"]
+  intra_alpha: 1.0
+  num_clusters: 5
+num_rounds: 50
 topologies:
-  - type: star
-    label: "Star (No Defense)"
-    params:
-      defense_mode: none
-  - type: ring
-    label: "Ring (No Defense)"
-    params:
-      defense_mode: none
-  - type: hier_ens
-    label: "HE (No Defense)"
-    params:
-      num_clusters: 5
-      cluster_method: update_similarity
-      warmup_min_rounds: 2
-      warmup_max_rounds: 10
-      defense_mode: none
-  - type: star
-    label: "Star (Full Defense)"
-    params:
-      defense_mode: soft_cosine
-  - type: ring
-    label: "Ring (Full Defense)"
-    params:
-      defense_mode: soft_cosine
-  - type: hier_ens
-    label: "HE (Full Defense)"
-    params:
-      num_clusters: 5
-      cluster_method: update_similarity
-      warmup_min_rounds: 2
-      warmup_max_rounds: 10
-      defense_mode: soft_cosine
+- label: Star (No Defense)
+  params:
+    defense_mode: none
+  type: star
+- label: Ring (No Defense)
+  params:
+    defense_mode: none
+  type: ring
+- label: HE (No Defense)
+  params:
+    cluster_method: update_similarity
+    defense_mode: none
+    num_clusters: 5
+    warmup_max_rounds: 10
+    warmup_min_rounds: 2
+  type: hierarchical_ensemble
+- label: Star (Full Defense)
+  params:
+    defense_mode: soft_cosine
+  type: star
+- label: Ring (Full Defense)
+  params:
+    defense_mode: soft_cosine
+  type: ring
+- label: HE (Full Defense)
+  params:
+    cluster_method: update_similarity
+    defense_mode: soft_cosine
+    num_clusters: 5
+    warmup_max_rounds: 10
+    warmup_min_rounds: 2
+  type: hierarchical_ensemble
+use_hierarchical_partition: true

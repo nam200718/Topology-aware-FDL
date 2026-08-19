@@ -29,7 +29,11 @@ def partition_data_hierarchical(
     """
     np.random.seed(seed)
     
-    labels = np.array(dataset.targets)
+    import torch
+    targets = dataset.targets
+    if isinstance(targets, torch.Tensor):
+        targets = targets.cpu()
+    labels = np.array(targets)
     num_classes = len(np.unique(labels))
     num_clients_per_cluster = num_clients // num_clusters
     

@@ -1,53 +1,53 @@
-num_rounds: 50
-env:
-  seed: 42
-  dataset: cifar10
-  output_dir: ./outputs/exp2_random_with_HE
 clients:
-  model_name: resnet9
-  num_clients: 30
-  local_lr: 0.01
-  local_steps: 2
   batch_size: 32
   compute_optimization_mode: shared_backbone
-  ensemble_weighting_mode: dynamic_confidence
-  ensemble_distillation: true
   distillation_lambda: 0.5
-  total_local_steps: 5
+  ensemble_distillation: true
+  ensemble_weighting_mode: dynamic_confidence
+  local_lr: 0.01
+  local_steps: 2
   loss_weight_beta: 1.0
+  model_name: resnet9
+  num_clients: 30
+  total_local_steps: 5
+env:
+  dataset: cifar10
+  output_dir: ./outputs/exp2_random_with_HE
+  seed: 42
 non_iid:
-  enabled: true
   alpha: 0.1
+  enabled: true
+num_rounds: 50
 robustness:
   byzantine_type: none
-use_hierarchical_partition: false
 topologies:
-  - type: star
-    label: "Star (FedAvg)"
-    params:
-      personalization_method: none
-  - type: ring
-    label: "Ring"
-    params:
-      personalization_method: none
-  - type: gossip
-    label: "Gossip (k=3)"
-    params:
-      degree_k: 3
-  - type: hier_agg
-    label: "HE Agg-Only"
-    params:
-      num_clusters: 5
-      cluster_method: update_similarity
-      warmup_min_rounds: 2
-      warmup_max_rounds: 10
-      use_ensemble: false
-      hierarchical_ensemble: false
-      compute_optimization_mode: "none"
-  - type: hier_ens
-    label: "HE Ensemble"
-    params:
-      num_clusters: 5
-      cluster_method: update_similarity
-      warmup_min_rounds: 2
-      warmup_max_rounds: 10
+- label: Star (FedAvg)
+  params:
+    personalization_method: none
+  type: star
+- label: Ring
+  params:
+    personalization_method: none
+  type: ring
+- label: Gossip (k=3)
+  params:
+    degree_k: 3
+  type: gossip
+- label: HE Agg-Only
+  params:
+    cluster_method: update_similarity
+    compute_optimization_mode: none
+    hierarchical_ensemble: false
+    num_clusters: 5
+    use_ensemble: false
+    warmup_max_rounds: 10
+    warmup_min_rounds: 2
+  type: hierarchical
+- label: HE Ensemble
+  params:
+    cluster_method: update_similarity
+    num_clusters: 5
+    warmup_max_rounds: 10
+    warmup_min_rounds: 2
+  type: hierarchical_ensemble
+use_hierarchical_partition: false
