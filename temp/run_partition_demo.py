@@ -8,7 +8,7 @@ import sys
 
 # Ensure we can import from src
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.data.partition_utils import partition_data_hierarchical, compute_cluster_label_overlap
+from temp.hierarchical_partitioner import partition_data_hierarchical, compute_cluster_label_overlap
 
 def plot_heatmap(client_indices, client_to_cluster, labels, num_classes, title, filename):
     # Sort clients by cluster
