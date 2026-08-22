@@ -1,5 +1,5 @@
 clients:
-  batch_size: 32
+  local_batch_size: 128
   compute_optimization_mode: shared_backbone
   distillation_lambda: 0.5
   ensemble_distillation: true
@@ -24,6 +24,11 @@ topologies:
 - label: Star (FedAvg)
   params:
     personalization_method: none
+  type: star
+- label: Star (Ditto)
+  params:
+    personalization_method: ditto
+    ditto_lambda: 1.0
   type: star
 - label: Ring
   params:
