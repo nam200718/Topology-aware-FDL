@@ -7,7 +7,7 @@ byzantine_types:
 - label_flip
 - sign_flip
 clients:
-  batch_size: 32
+  local_batch_size: 128
   compute_optimization_mode: shared_backbone
   distillation_lambda: 0.5
   ensemble_distillation: true
@@ -26,11 +26,20 @@ hierarchical_partition_config:
   inter_alpha: 0.1
   intra_alpha: 1.0
   num_clusters: 5
+non_iid:
+  alpha: 0.1
+  enabled: true
 num_rounds: 50
 topologies:
 - label: Star (No Defense)
   params:
     defense_mode: none
+  type: star
+- label: Star (Ditto, No Defense)
+  params:
+    defense_mode: none
+    personalization_method: ditto
+    ditto_lambda: 1.0
   type: star
 - label: Ring (No Defense)
   params:
@@ -56,6 +65,7 @@ topologies:
   params:
     cluster_method: update_similarity
     defense_mode: soft_cosine
+    defense_scope: both
     num_clusters: 5
     warmup_max_rounds: 10
     warmup_min_rounds: 2

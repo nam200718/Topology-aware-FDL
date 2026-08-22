@@ -35,3 +35,9 @@ class DefenseConfig:
     # NEW: Hard Rejection — loại bỏ client có cosine score < threshold
     hard_rejection_enabled: bool = False
     hard_rejection_threshold: float = 0.0   # cosine sim < threshold → reject
+
+    # NEW: Adaptive Temperature — tự điều chỉnh temperature dựa trên variance
+    adaptive_temperature: bool = True
+    adaptive_variance_threshold: float = 0.05
+    temperature_tighten_rate: float = 0.9
+    temperature_relax_rate: float = 1.05

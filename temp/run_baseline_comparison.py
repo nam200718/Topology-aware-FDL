@@ -19,6 +19,7 @@ from src.core.aggregator import FedAvgAggregator
 from temp.ring import RingTopology
 from temp.gossip import GossipTopology
 from temp.decentralized_engine import DecentralizedEngine
+from temp.attacks import check_inf_nan
 
 TOPOLOGY_REGISTRY = {
     "star":      (StarTopology,         CentralizedEngine),
@@ -27,6 +28,163 @@ TOPOLOGY_REGISTRY = {
     "hierarchical":  (HierarchicalTopology, HierarchicalEnsembleEngine),
     "hierarchical_ensemble":  (HierarchicalTopology, HierarchicalEnsembleEngine),
 }
+
+class DefendedCentralizedEngine(CentralizedEngine):
+    """Centralized Engine with reference_weights passed to defense aggregator."""
+    def __init__(self, config, topology, aggregator, device="cpu", defense_config=None):
+        super().__init__(config, topology, aggregator, device)
+        self.defense_config = defense_config
+        if defense_config is not None:
+            from src.defense.aggregator import SoftRejectionAggregator
+            self.aggregator = SoftRejectionAggregator(defense_config)
+
+    def run_round(self, round_num: int):
+        target_clients = self.topology.get_server_connected_clients()
+        pre_round_server_weights = self.server_weights.clone()
+
+        # Download
+        for client_id in target_clients:
+            self.clients_state[client_id].weights = self.server_weights.clone()
+
+        # Update
+        current_lr = self.get_current_lr(round_num)
+        updated_states = []
+        for client_id in target_clients:
+            state = self.clients_state[client_id].copy()
+            client_ds = self.client_train_datasets[client_id]
+
+            updated_state = self.updater.update(
+                state=state,
+                client_dataset=client_ds,
+                config=self.config.clients,
+                rng=self.local_rng,
+                current_lr=current_lr,
+            )
+            self.clients_state[client_id] = updated_state
+            updated_states.append(updated_state)
+
+        # INF/NAN Sentinel
+        for client_id in target_clients:
+            state = self.clients_state[client_id]
+            if not check_inf_nan(state.weights, pre_round_server_weights):
+                state.is_confirmed_malicious = True
+
+        # Aggregate with reference_weights
+        if updated_states:
+            if hasattr(self.aggregator, 'aggregate'):
+                import inspect
+                sig = inspect.signature(self.aggregator.aggregate)
+                if 'reference_weights' in sig.parameters:
+                    self.server_weights = self.aggregator.aggregate(
+                        updated_states, reference_weights=pre_round_server_weights
+                    )
+                else:
+                    self.server_weights = self.aggregator.aggregate(updated_states)
+            else:
+                self.server_weights = self.aggregator.aggregate(updated_states)
+
+        if hasattr(self.aggregator, 'decay_temperature'):
+            self.aggregator.decay_temperature()
+
+        # Metrics
+        acc, test_loss = self.evaluate_model(self.server_weights)
+
+        round_data = {
+            "round": round_num,
+            "test_accuracy": acc,
+            "test_loss": test_loss,
+            "participating_clients": len(target_clients),
+            "total_clients_targeted": len(target_clients),
+        }
+        if hasattr(self.aggregator, 'current_temperature'):
+            round_data["defense_temperature"] = self.aggregator.current_temperature
+
+        has_pers = getattr(self.config.clients, "use_ensemble", False) or (
+            getattr(self.config.clients, "personalization_method", "none") in ("ditto", "apfl")
+        )
+        if has_pers:
+            ens_acc, ens_loss = self.evaluate_ensemble()
+        else:
+            ens_acc, ens_loss = self._evaluate_global_on_client_partitions()
+
+        round_data["ensemble_test_accuracy"] = ens_acc
+        round_data["ensemble_test_loss"] = ens_loss
+
+        self.metrics.log_round(round_data)
+
+
+class DefendedDecentralizedEngine(DecentralizedEngine):
+    """Decentralized Engine with reference_weights passed to defense aggregator."""
+    def __init__(self, config, topology, aggregator, device="cpu", defense_config=None):
+        super().__init__(config, topology, aggregator, device)
+        self.defense_config = defense_config
+        if defense_config is not None:
+            from src.defense.aggregator import SoftRejectionAggregator
+            self.aggregator = SoftRejectionAggregator(defense_config)
+
+    def run_round(self, round_num: int):
+        all_clients = list(range(self.config.clients.num_clients))
+        pre_round_weights = {cid: self.clients_state[cid].weights.clone() for cid in all_clients}
+
+        # 1. Exchange: client aggregate neighbors' weights with reference to self
+        buffers = {}
+        for cid in all_clients:
+            neighbors = self.topology.get_neighbors(cid)
+            neighbor_states = [self.clients_state[n] for n in neighbors]
+            neighbor_states.append(self.clients_state[cid])  # include self
+            if hasattr(self.aggregator, 'aggregate'):
+                import inspect
+                sig = inspect.signature(self.aggregator.aggregate)
+                if 'reference_weights' in sig.parameters:
+                    buffers[cid] = self.aggregator.aggregate(
+                        neighbor_states, reference_weights=pre_round_weights[cid]
+                    )
+                else:
+                    buffers[cid] = self.aggregator.aggregate(neighbor_states)
+            else:
+                buffers[cid] = self.aggregator.aggregate(neighbor_states)
+
+        if hasattr(self.aggregator, 'decay_temperature'):
+            self.aggregator.decay_temperature()
+
+        # 2. Local Update on aggregated weights
+        current_lr = self.get_current_lr(round_num)
+        for cid in all_clients:
+            state = self.clients_state[cid].copy()
+            state.weights = buffers[cid]
+
+            client_ds = self.client_train_datasets[cid]
+            updated = self.updater.update(
+                state=state,
+                client_dataset=client_ds,
+                config=self.config.clients,
+                rng=self.local_rng,
+                current_lr=current_lr,
+            )
+            self.clients_state[cid] = updated
+
+        # 3. Global metrics = avg all clients
+        avg_weights = torch.mean(
+            torch.stack([self.clients_state[c].weights for c in all_clients]), dim=0
+        )
+        acc, test_loss = self.evaluate_model(avg_weights)
+
+        round_data = {
+            "round": round_num,
+            "test_accuracy": acc,
+            "test_loss": test_loss,
+            "participating_clients": len(all_clients),
+            "total_clients_targeted": len(all_clients),
+        }
+        if hasattr(self.aggregator, 'current_temperature'):
+            round_data["defense_temperature"] = self.aggregator.current_temperature
+
+        ens_acc, ens_loss = self._evaluate_global_on_client_partitions()
+        round_data["ensemble_test_accuracy"] = ens_acc
+        round_data["ensemble_test_loss"] = ens_loss
+
+        self.metrics.log_round(round_data)
+
 
 def load_yaml_config(path: str) -> dict:
     with open(path, "r") as f:
@@ -43,21 +201,33 @@ def run_single_topology(topo_config: dict, common_config_dict: dict) -> dict:
     config_dict["experiment_type"] = "single"
     
     # We must construct a MainConfig from the dict
-    # But since MainConfig usually takes a path, we can either write a temp yaml or construct directly.
-    # To keep it simple, let's write a temp config for this run.
     temp_path = "temp_run_config.yaml"
     with open(temp_path, "w") as f:
         yaml.dump(config_dict, f)
         
     exp_config = ExperimentConfig.from_yaml(temp_path)
     main_config = exp_config.build_configs()[0]["config"]
-    os.remove(temp_path)
+    if os.path.exists(temp_path):
+        os.remove(temp_path)
 
     # Instantiate
     TopoClass, EngineClass = TOPOLOGY_REGISTRY[topo_type]
+    topo_params = topo_config.get("params", {})
+    
+    # Configure ensemble and personalization flags based on topology type
+    if topo_type == "hierarchical_ensemble":
+        main_config.clients.hierarchical_ensemble = True
+        main_config.clients.compute_optimization_mode = "shared_backbone"
+        main_config.clients.personalization_method = "none"
+    else:
+        main_config.clients.hierarchical_ensemble = False
+        main_config.clients.use_ensemble = False
+        main_config.clients.compute_optimization_mode = "none"
+        main_config.clients.personalization_method = topo_params.get("personalization_method", "none")
+        if "ditto_lambda" in topo_params:
+            main_config.clients.ditto_lambda = topo_params["ditto_lambda"]
     
     # Init Topology
-    topo_params = topo_config.get("params", {})
     if topo_type == "gossip":
         topology = TopoClass(degree_k=topo_params.get("degree_k", 3))
     else:
@@ -69,18 +239,43 @@ def run_single_topology(topo_config: dict, common_config_dict: dict) -> dict:
     defense_mode = topo_params.get("defense_mode", "none")
     if defense_mode != "none":
         from src.defense.config import DefenseConfig
-        from src.defense.aggregator import SoftRejectionAggregator
         defense_cfg = DefenseConfig(
             defense_mode=defense_mode,
-            norm_bounding_enabled=True,
-            hard_rejection_enabled=True,
-            hard_rejection_threshold=0.0,
+            temperature=topo_params.get("temperature", 1.0),
+            temperature_decay=topo_params.get("temperature_decay", 0.95),
+            temperature_min=topo_params.get("temperature_min", 0.1),
+            defense_scope=topo_params.get("defense_scope", "cluster"),
+            norm_threshold=topo_params.get("norm_threshold", 2.0),
+            norm_bounding_enabled=topo_params.get("norm_bounding_enabled", True),
+            norm_bounding_multiplier=topo_params.get("norm_bounding_multiplier", 2.0),
+            hard_rejection_enabled=topo_params.get("hard_rejection_enabled", True),
+            hard_rejection_threshold=topo_params.get("hard_rejection_threshold", 0.0),
+            adaptive_temperature=topo_params.get("adaptive_temperature", True),
         )
-        aggregator = SoftRejectionAggregator(defense_cfg)
+        if topo_type in ("hierarchical_ensemble", "hierarchical"):
+            from src.defense.engine import DefendedEnsembleEngine
+            engine = DefendedEnsembleEngine(
+                main_config, topology, FedAvgAggregator(), device, defense_config=defense_cfg
+            )
+        elif topo_type == "star":
+            engine = DefendedCentralizedEngine(
+                main_config, topology, None, device, defense_config=defense_cfg
+            )
+        elif topo_type in ("ring", "gossip"):
+            engine = DefendedDecentralizedEngine(
+                main_config, topology, None, device, defense_config=defense_cfg
+            )
+        else:
+            from src.defense.aggregator import SoftRejectionAggregator
+            aggregator = SoftRejectionAggregator(defense_cfg)
+            engine = EngineClass(main_config, topology, aggregator, device)
     else:
         aggregator = FedAvgAggregator()
-        
-    engine = EngineClass(main_config, topology, aggregator, device)
+        engine = EngineClass(main_config, topology, aggregator, device)
+
+    # Set local_batch_size for GPU acceleration
+    cfg_batch_size = topo_params.get("local_batch_size", topo_params.get("batch_size", common_config_dict.get("clients", {}).get("local_batch_size", 128)))
+    main_config.clients.local_batch_size = cfg_batch_size
 
     # Hierarchical Partition Injection
     if common_config_dict.get("use_hierarchical_partition", False):
@@ -134,9 +329,6 @@ def run_single_topology(topo_config: dict, common_config_dict: dict) -> dict:
     final_global_acc = metrics[-1].get("test_accuracy", 0.0) if metrics else 0.0
     final_ens_acc = metrics[-1].get("ensemble_test_accuracy", final_global_acc) if metrics else 0.0
     
-    # For personalized, our codebase might log it differently or APFL/Ditto logs it. 
-    # For this script we will return what we have.
-    
     return {
         "label": label,
         "global_acc": final_global_acc,
@@ -148,7 +340,6 @@ def run_all(config_path: str):
     config = load_yaml_config(config_path)
     topologies = config.pop("topologies")
     byzantine_rates = config.pop("byzantine_rates", [0.0])
-    # Extract byzantine_types if provided, otherwise fallback to robustness.byzantine_type or "none"
     default_byz_type = config.get("robustness", {}).get("byzantine_type", "none")
     byzantine_types = config.pop("byzantine_types", [default_byz_type])
     
@@ -190,10 +381,9 @@ def run_all(config_path: str):
                 })
                 all_metrics[label] = res["metrics"]
                 
-                # Save individual metrics
+                # Save individual metrics as CSV (no JSON)
                 topo_safe_name = label.replace(" ", "_").replace("/", "_").replace("(", "").replace(")", "").replace("=", "").replace(".", "_")
-                with open(os.path.join(out_dir, f"{topo_safe_name}_metrics.json"), "w") as f:
-                    json.dump(res["metrics"], f, indent=4)
+                pd.DataFrame(res["metrics"]).to_csv(os.path.join(out_dir, f"{topo_safe_name}_metrics.csv"), index=False)
             
     # Save summary
     df = pd.DataFrame(results)
@@ -238,3 +428,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     run_all(args.config)
+
