@@ -1,0 +1,45 @@
+# Paper Table VI: Gaussian noise endpoints (mid fractions interpolated if needed)
+experiment_type: byzantine_matrix
+num_rounds: 15
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  total_local_steps: 5
+  compute_optimization_mode: shared_backbone
+
+robustness:
+  byzantine_type: random_noise
+
+non_iid:
+  enabled: true
+  alpha: 0.5
+
+byzantine_rates: [0.0, 0.4]
+
+topologies:
+  - type: star
+    label: "Star (FedAvg)"
+    params:
+      personalization_method: "none"
+  - type: star
+    label: "Star (Ditto)"
+    params:
+      personalization_method: "ditto"
+      ditto_lambda: 0.05
+  - type: hierarchical_ensemble
+    label: "HEP"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      personalization_method: "none"

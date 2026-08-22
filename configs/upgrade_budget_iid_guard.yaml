@@ -1,0 +1,50 @@
+# Guard cell: does budget=5 hold the IID margin over FedAvg (+0.14pp at B10)?
+experiment_type: comparison
+num_rounds: 25
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  compute_optimization_mode: shared_backbone
+  ensemble_weighting_mode: dynamic_confidence
+  ensemble_distillation: false
+  distillation_lambda: 0.0
+  total_local_steps: 10
+  loss_weight_beta: 1.0
+
+topologies:
+  - type: hierarchical_ensemble
+    label: "HEP Binomial B10 IID"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      warmup_min_rounds: 2
+      warmup_max_rounds: 10
+      personalization_method: "none"
+      head_training_schedule: "binomial"
+      total_local_steps: 10
+  - type: hierarchical_ensemble
+    label: "HEP Binomial B5 IID"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      warmup_min_rounds: 2
+      warmup_max_rounds: 10
+      personalization_method: "none"
+      head_training_schedule: "binomial"
+      total_local_steps: 5
+
+scenarios:
+  - id: iid
+    label: "IID (Baseline)"
+    non_iid: false

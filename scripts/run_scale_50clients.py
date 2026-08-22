@@ -1,7 +1,8 @@
 """
 Client Population & Participation Scalability Experiment (N = 50, Cp = 0.2).
 
-Evaluates FedAvg, FedRep, Ditto, and HEP on CIFAR-10 with 50 edge clients,
+Evaluates FedAvg, FedRep, Ditto, and HEP with Staleness-Aware Fallback Routing (S-AFR)
+and Asynchronous Cluster Momentum on CIFAR-10 with 50 edge clients,
 where only 10 clients (20% participation fraction) are sampled per round.
 
 Usage:
@@ -122,29 +123,30 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
                 opt_head = torch.optim.SGD(l_head.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
                 opt_bb = torch.optim.SGD(local_bb.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
 
-                for p in local_bb.parameters(): p.requires_grad = False
+                # 1. Train head on detached features
                 for _ in range(2):
                     for x, y in loader:
                         opt_head.zero_grad(set_to_none=True)
-                        loss = crit(l_head(local_bb.extract_features(x)), y)
+                        feats = local_bb.extract_features(x).detach()
+                        loss = crit(l_head(feats), y)
                         loss.backward()
                         opt_head.step()
 
-                for p in local_bb.parameters(): p.requires_grad = True
-                for p in l_head.parameters(): p.requires_grad = False
+                # 2. Train body representation
                 for _ in range(2):
                     for x, y in loader:
                         opt_bb.zero_grad(set_to_none=True)
-                        loss = crit(l_head(local_bb.extract_features(x)), y)
+                        feats = local_bb.extract_features(x)
+                        loss = crit(l_head(feats), y)
                         loss.backward()
                         opt_bb.step()
-                for p in l_head.parameters(): p.requires_grad = True
+
                 client_bb_states.append(local_bb.state_dict())
 
-            avg_state = {}
+            avg_bb = {}
             for k in global_bb.state_dict().keys():
-                avg_state[k] = torch.stack([client_bb_states[i][k].float() for i in range(len(active_clients))], dim=0).mean(dim=0)
-            global_bb.load_state_dict(avg_state)
+                avg_bb[k] = torch.stack([client_bb_states[i][k].float() for i in range(len(active_clients))], dim=0).mean(dim=0)
+            global_bb.load_state_dict(avg_bb)
 
         # Eval FedRep
         accs = []
@@ -180,23 +182,23 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
             for cid in active_clients:
                 c_train = ClientDataset(train_fast, train_splits[cid])
                 loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
+                local_g = ResNet9(in_channels=3, num_classes=10).to(device)
+                local_g.load_state_dict(global_m.state_dict())
+                opt_g = torch.optim.SGD(local_g.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
 
-                l_glob = ResNet9(in_channels=3, num_classes=10).to(device)
-                l_glob.load_state_dict(global_m.state_dict())
-                opt_g = torch.optim.SGD(l_glob.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
-
-                l_glob.train()
+                local_g.train()
                 for _ in range(2):
                     for x, y in loader:
                         opt_g.zero_grad(set_to_none=True)
-                        loss = crit(l_glob(x), y)
+                        loss = crit(local_g(x), y)
                         loss.backward()
                         opt_g.step()
-                client_states.append(l_glob.state_dict())
+                client_states.append(local_g.state_dict())
 
+                # Personalized model update with proximal term
                 p_mod = local_models[cid]
                 opt_p = torch.optim.SGD(p_mod.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
-                w_g_vec = torch.nn.utils.parameters_to_vector(l_glob.parameters()).detach()
+                w_g_vec = torch.nn.utils.parameters_to_vector(local_g.parameters()).detach()
 
                 p_mod.train()
                 for _ in range(2):
@@ -233,9 +235,9 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
         print(f"  Ditto: Mean = {scenario_res['Ditto']['mean']:.2f}% | Bottom 10% = {scenario_res['Ditto']['bottom10']:.2f}%")
 
         # -------------------------------------------------------------
-        # 4. HEP (50 clients, 5 clusters, 10 active/round)
+        # 4. HEP with Staleness-Aware Fallback Routing (S-AFR) & Cluster Momentum
         # -------------------------------------------------------------
-        print("\n[4/4] Training HEP (Ours) (N=50, K=5, Cp=0.2)...")
+        print("\n[4/4] Training HEP w/ S-AFR & Cluster Momentum (N=50, K=5, Cp=0.2)...")
         num_clusters = 5
         global_backbone = ResNet9(in_channels=3, num_classes=10).to(device)
         global_root_head = nn.Linear(256, 10).to(device)
@@ -243,6 +245,12 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
         local_heads = [nn.Linear(256, 10).to(device) for _ in range(num_clients)]
         client_alphas = [torch.tensor([0.33, 0.33, 0.34], device=device) for _ in range(num_clients)]
         client_clusters = [i % num_clusters for i in range(num_clients)]
+        sample_counts = np.zeros(num_clients, dtype=int)
+        last_sampled_round = np.zeros(num_clients, dtype=int)
+
+        # Initialize local heads from global root
+        for cid in range(num_clients):
+            local_heads[cid].load_state_dict(global_root_head.state_dict())
 
         entropy_priors = []
         for cid in range(num_clients):
@@ -256,6 +264,8 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
             pi_p = max(0.0, 1.0 - pi_r - pi_l)
             entropy_priors.append(torch.tensor([pi_l, pi_p, pi_r], device=device))
 
+        beta_c = 0.70  # Asynchronous cluster momentum factor
+
         for r in range(num_rounds):
             active_clients = rng.choice(num_clients, clients_per_round, replace=False)
             client_bb_states = []
@@ -263,6 +273,8 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
             cluster_updates = {k: [] for k in range(num_clusters)}
 
             for cid in active_clients:
+                sample_counts[cid] += 1
+                last_sampled_round[cid] = r
                 c_train = ClientDataset(train_fast, train_splits[cid])
                 loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
                 k_idx = client_clusters[cid]
@@ -307,7 +319,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
                         client_alphas[cid] = F.softmax(0.7 * grad_a + 0.3 * entropy_priors[cid], dim=0)
                         break
 
-            # Server aggregation
+            # Server aggregation for backbone and root head
             avg_bb = {}
             for k in global_backbone.state_dict().keys():
                 avg_bb[k] = torch.stack([client_bb_states[i][k].float() for i in range(len(active_clients))], dim=0).mean(dim=0)
@@ -318,14 +330,17 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
                 avg_root[k] = torch.stack([client_root_states[i][k].float() for i in range(len(active_clients))], dim=0).mean(dim=0)
             global_root_head.load_state_dict(avg_root)
 
+            # Asynchronous Cluster Momentum aggregation
             for k in range(num_clusters):
                 if cluster_updates[k]:
                     avg_p = {}
                     for key in cluster_heads[k].state_dict().keys():
-                        avg_p[key] = torch.stack([cluster_updates[k][i][key].float() for i in range(len(cluster_updates[k]))], dim=0).mean(dim=0)
+                        batch_p = torch.stack([cluster_updates[k][i][key].float() for i in range(len(cluster_updates[k]))], dim=0).mean(dim=0)
+                        curr_p = cluster_heads[k].state_dict()[key].float()
+                        avg_p[key] = beta_c * curr_p + (1.0 - beta_c) * batch_p
                     cluster_heads[k].load_state_dict(avg_p)
 
-        # Eval HEP
+        # Eval HEP with Staleness-Aware Fallback Routing (S-AFR)
         accs = []
         global_backbone.eval(); global_root_head.eval()
         with torch.no_grad():
@@ -333,7 +348,18 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
                 k_idx = client_clusters[cid]
                 cluster_heads[k_idx].eval()
                 local_heads[cid].eval()
-                a = client_alphas[cid]
+                a = client_alphas[cid].clone()
+
+                # S-AFR: Fall back to Root head if client was never sampled or has high staleness
+                if sample_counts[cid] == 0:
+                    a = torch.tensor([0.0, 0.0, 1.0], device=device)
+                else:
+                    staleness = (num_rounds - 1) - last_sampled_round[cid]
+                    if staleness > 4:
+                        fade = float(np.exp(-staleness / 4.0))
+                        a[0] *= fade
+                        a[1] *= fade
+                        a[2] = 1.0 - (a[0] + a[1])
 
                 c_test = ClientDataset(test_fast, test_splits[cid])
                 loader = get_fast_dataloader(c_test, batch_size=batch_size, shuffle=False)
@@ -353,7 +379,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
             "mean": round(float(np.mean(accs)), 2),
             "bottom10": round(float(np.mean(sorted(accs)[:5])), 2)
         }
-        print(f"  HEP: Mean = {scenario_res['HEP (Ours)']['mean']:.2f}% | Bottom 10% = {scenario_res['HEP (Ours)']['bottom10']:.2f}%")
+        print(f"  HEP w/ S-AFR: Mean = {scenario_res['HEP (Ours)']['mean']:.2f}% | Bottom 10% = {scenario_res['HEP (Ours)']['bottom10']:.2f}%")
 
         all_results[sc_name] = scenario_res
 

@@ -1,0 +1,49 @@
+# Paper Table VI: label-flip full sweep (sign-flip scoreboard already collected)
+experiment_type: byzantine_matrix
+num_rounds: 15
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  total_local_steps: 5
+  compute_optimization_mode: shared_backbone
+
+robustness:
+  byzantine_type: label_flip
+
+non_iid:
+  enabled: true
+  alpha: 0.5
+
+byzantine_rates: [0.0, 0.1, 0.2, 0.3, 0.4]
+
+topologies:
+  - type: star
+    label: "Star (FedAvg)"
+    params:
+      personalization_method: "none"
+  - type: star
+    label: "Star (Ditto)"
+    params:
+      personalization_method: "ditto"
+      ditto_lambda: 0.05
+  - type: star
+    label: "Star (FedRep)"
+    params:
+      personalization_method: "fedrep"
+  - type: hierarchical_ensemble
+    label: "HEP"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      personalization_method: "none"

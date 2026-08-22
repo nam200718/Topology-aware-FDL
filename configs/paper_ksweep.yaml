@@ -1,0 +1,45 @@
+# Paper Table VII-A: cluster count sensitivity (K=3 reference exists in main suite)
+experiment_type: comparison
+num_rounds: 25
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  total_local_steps: 5
+  compute_optimization_mode: shared_backbone
+
+topologies:
+  - type: hierarchical_ensemble
+    label: "HEP K1"
+    params:
+      num_clusters: 1
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+  - type: hierarchical_ensemble
+    label: "HEP K2"
+    params:
+      num_clusters: 2
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+  - type: hierarchical_ensemble
+    label: "HEP K5"
+    params:
+      num_clusters: 5
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+
+scenarios:
+  - id: non_iid_alpha_0.05
+    label: "Non-IID (Extreme alpha=0.05)"
+    non_iid: true
+    alpha: 0.05

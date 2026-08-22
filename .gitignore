@@ -161,3 +161,10 @@ cython_debug/
 .venv_amd/
 .venv312/
 .venv*/
+
+# Project-local: virtualenv, scratch diagnostics, suite runtime logs
+.venv312/
+scratch/
+outputs/
+
+.venv312/

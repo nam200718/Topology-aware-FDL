@@ -1,0 +1,58 @@
+# Paper Table IV-A: CIFAR-100 high-cardinality benchmark incl. two-stage validation
+experiment_type: comparison
+num_rounds: 1
+eval_interval: 1
+
+env:
+  seed: 42
+  output_dir: ./outputs/smoke
+  dataset: cifar100
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  total_local_steps: 5
+  compute_optimization_mode: shared_backbone
+
+topologies:
+  - type: star
+    label: "C100 Star (FedAvg)"
+    params:
+      personalization_method: "none"
+  - type: star
+    label: "C100 Star (Ditto)"
+    params:
+      personalization_method: "ditto"
+      ditto_lambda: 0.05
+  - type: star
+    label: "C100 Star (FedRep)"
+    params:
+      personalization_method: "fedrep"
+  - type: hierarchical_ensemble
+    label: "C100 HEP"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+  - type: hierarchical_ensemble
+    label: "C100 HEP TwoStage"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+      high_cardinality_two_stage: true
+
+scenarios:
+  - id: non_iid_alpha_0.5
+    label: "Non-IID (Moderate alpha=0.5)"
+    non_iid: true
+    alpha: 0.5
+  - id: non_iid_alpha_0.05
+    label: "Non-IID (Extreme alpha=0.05)"
+    non_iid: true
+    alpha: 0.05
+

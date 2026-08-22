@@ -32,23 +32,40 @@ class CentralizedEngine(BaseEngine):
             self.clients_state[client_id] = updated_state
             updated_states.append(updated_state)
             
-        # Aggregate
+        # Aggregate (defensive: drop wrong-length updates rather than kill
+        # the block; empty-data clients can return the broadcast verbatim)
         if updated_states:
-            self.server_weights = self.aggregator.aggregate(updated_states)
+            expected = len(self.server_weights)
+            bad = [s.client_id for s in updated_states if len(s.weights) != expected]
+            if bad:
+                print(f"[warn] dropping client updates with unexpected sizes: {bad}")
+                updated_states = [s for s in updated_states if len(s.weights) == expected]
+            if updated_states:
+                self.server_weights = self.aggregator.aggregate(updated_states)
             
-        # Metrics
+        # Metrics (skipped rounds log a lightweight row; final round always evaluated)
+        if not self.should_evaluate(round_num):
+            self.metrics.log_round({
+                "round": round_num,
+                "participating_clients": len(target_clients),
+                "total_clients_targeted": len(target_clients),
+                "evaluated": False,
+            })
+            return
+
         acc, test_loss = self.evaluate_model(self.server_weights)
-        
+
         round_data = {
             "round": round_num,
             "test_accuracy": acc,
             "test_loss": test_loss,
             "participating_clients": len(target_clients),
-            "total_clients_targeted": len(target_clients)
+            "total_clients_targeted": len(target_clients),
+            "evaluated": True,
         }
         
         # Always log per-client personalized accuracy for fair comparison
-        has_pers = getattr(self.config.clients, "use_ensemble", False) or (getattr(self.config.clients, "personalization_method", "none") in ("ditto", "apfl"))
+        has_pers = getattr(self.config.clients, "use_ensemble", False) or (getattr(self.config.clients, "personalization_method", "none") in ("ditto", "apfl", "fedrep", "fedper", "fedbabu"))
         if has_pers:
             ens_acc, ens_loss = self.evaluate_ensemble()
         else:
@@ -56,7 +73,16 @@ class CentralizedEngine(BaseEngine):
 
         round_data["ensemble_test_accuracy"] = ens_acc
         round_data["ensemble_test_loss"] = ens_loss
-            
+
+        # Final-round fairness artifact
+        if round_num == self.config.num_rounds and getattr(self, "_last_per_client_accuracy", None):
+            accs = sorted(self._last_per_client_accuracy.values())
+            k = max(1, int(np.ceil(0.1 * len(accs))))
+            round_data["bottom10_fairness"] = float(np.mean(accs[:k]))
+            round_data["per_client_accuracy"] = {
+                str(cid): round(a, 4) for cid, a in sorted(self._last_per_client_accuracy.items())
+            }
+
         self.metrics.log_round(round_data)
 
     def _evaluate_global_on_client_partitions(self):
@@ -76,12 +102,15 @@ class CentralizedEngine(BaseEngine):
         total_correct = 0
         total_samples = 0
         total_loss = 0.0
+        per_client_stats = {}
+        self._last_per_client_accuracy = {}
 
         for client_id in range(self.config.clients.num_clients):
             client_test_ds = ClientDataset(self.test_dataset, self.client_test_indices[client_id])
             if len(client_test_ds) == 0:
                 continue
-            test_loader = get_fast_dataloader(client_test_ds, batch_size=len(client_test_ds), shuffle=False)
+            c_correct, c_total = 0, 0
+            test_loader = get_fast_dataloader(client_test_ds, batch_size=min(len(client_test_ds), 1024), shuffle=False)
 
             with torch.no_grad():
                 for images, labels in test_loader:
@@ -91,8 +120,15 @@ class CentralizedEngine(BaseEngine):
                     total_loss += loss.item()
 
                     predicted = logits.argmax(dim=1)
+                    hits = (predicted == labels).sum().item()
                     total_samples += labels.size(0)
-                    total_correct += (predicted == labels).sum().item()
+                    total_correct += hits
+                    c_correct += hits
+                    c_total += labels.size(0)
+            if c_total > 0:
+                per_client_stats[client_id] = (c_correct / c_total) * 100.0
+
+        self._last_per_client_accuracy = per_client_stats
 
         if total_samples == 0:
             return 0.0, 0.0

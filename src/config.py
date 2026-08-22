@@ -14,8 +14,8 @@ class EnvironmentConfig(BaseModel):
     # Optional subset sizes for faster experiments
     train_subset: Optional[int] = None
     test_subset: Optional[int] = None
-    # Dataset to use ("mnist" or "cifar10")
-    dataset: Literal["mnist", "cifar10"] = "mnist"
+    # Dataset to use ("mnist", "cifar10" or "cifar100")
+    dataset: Literal["mnist", "cifar10", "cifar100"] = "mnist"
 
 
 class TopologyConfig(BaseModel):
@@ -25,8 +25,8 @@ class TopologyConfig(BaseModel):
 
 class ClientConfig(BaseModel):
     num_clients: int = 100
-    # Model architecture selection: "simple_cnn" or "resnet9"
-    model_name: Literal["simple_cnn", "resnet9"] = "simple_cnn"
+    # Model architecture selection: "simple_cnn", "resnet9" or "mobilenetv3"
+    model_name: Literal["simple_cnn", "resnet9", "mobilenetv3"] = "simple_cnn"
     # Approximate model dimensions for the lightweight vector update model
     model_dim: int = 50
     # learning rate or step size for local updates
@@ -49,7 +49,10 @@ class ClientConfig(BaseModel):
     ensemble_distillation: bool = False
     # Scaling factor for mutual distillation loss
     distillation_lambda: float = 0.0
-    # Total local step budget per round to distribute adaptively across ensemble heads
+    # Total local step budget per round to distribute adaptively across ensemble heads.
+    # Default 5 validated >= 10 across IID/moderate skew at ~2x less wall time
+    # (outputs/comparison_study_20260822_005556, _013747); keeps HEP compute
+    # comparable to baselines training local_steps=3.
     total_local_steps: int = 5
     # Loss scaling weight beta for loss-calibrated ensemble weighting
     loss_weight_beta: float = 1.0
@@ -59,12 +62,79 @@ class ClientConfig(BaseModel):
     use_heterogeneity_prior: bool = True
     # Exponential scaling for heterogeneity prior (1.0 = linear)
     heterogeneity_gamma: float = 1.0
-    # Algorithm personalization method: "none", "ditto", "apfl"
-    personalization_method: Literal["none", "ditto", "apfl"] = "none"
+    # Algorithm personalization method: "none", "ditto", "apfl",
+    # "fedrep", "fedper", "fedbabu"
+    personalization_method: Literal["none", "ditto", "apfl", "fedrep", "fedper", "fedbabu"] = "none"
     # Ditto proximal L2 penalty parameter lambda
     ditto_lambda: float = 0.1
     # APFL initial mixing weight alpha
     apfl_alpha: float = 0.5
+
+    # ------------------------------------------------------------------
+    # Previously-inlined hyperparameters (hoisted during clean-refactor).
+    # Defaults reproduce legacy behavior exactly; provenance noted inline.
+    # ------------------------------------------------------------------
+    # Cosine LR-decay floor (was an undeclared getattr fallback in BaseEngine).
+    min_lr: float = 0.001
+    # Local mini-batch cap (legacy: batch_size = min(32, len(dataset))).
+    local_batch_size: int = 32
+    # Head-training schedule: "binomial" partition-of-unity (default; closes
+    # IID gap +5.1pp and moderate-skew +3.2pp vs legacy, see
+    # outputs/comparison_study_20260821_182734) or "piecewise" (legacy if/else
+    # budgets, kept for paper ablation tables).
+    head_training_schedule: Literal["binomial", "piecewise"] = "binomial"
+    # Anchor floor for root-head loss weight under extreme skew (binomial only).
+    binomial_anchor_min: float = 0.15
+    # Two-stage high-cardinality schedule: freeze backbone while training the
+    # linear heads, then one root-anchored backbone epoch. Targets CIFAR-100 regimes.
+    high_cardinality_two_stage: bool = False
+    # Engages when dataset cardinality reaches this many classes
+    # (learnings doc §3, Rec. 1).
+    two_stage_min_classes: int = 100
+    # Suppress the weakest head at moderate skew when cluster affinity is clear.
+    top2_routing: bool = False
+    # Minimum cosine affinity gap vs. second-best cluster to suppress a head.
+    top2_affinity_margin: float = 0.10
+
+    # --- Ensemble inference calibration (learnings doc §5.3: sharp-local /
+    #     soft-global logit rescaling; validated inference-only) ---
+    eval_temp_local: float = 0.6
+    eval_temp_parent: float = 0.8
+    eval_temp_root: float = 1.0
+    # Blend-weight learning rate scale: alpha_lr = local_lr * this factor.
+    ensemble_alpha_lr_scale: float = 0.05
+    # Final blend mixing: w_final = mix * learned + (1 - mix) * heterogeneity prior.
+    prior_mix: float = 0.5
+    # Hard IID routing cutoff on R_skew at evaluation (legacy shortcut; kept for
+    # ablation parity until binomial schedule fully supersedes it).
+    iid_route_threshold: float = 0.85
+
+    # --- Robust aggregation (server-side; zero client cost) ---
+    # "fedavg" | "trimmed_mean" | "soft_cosine"
+    robust_aggregation_mode: Literal["fedavg", "trimmed_mean", "soft_cosine"] = "fedavg"
+    # Trimmed-mean trimming ratio per coordinate.
+    trimmed_mean_beta: float = 0.20
+    # Softmax temperature for cosine-trust weights (lower = sharper rejection).
+    soft_cosine_temperature: float = 0.5
+    # Clamp update norms to k * lower-quartile norm before trust weighting.
+    norm_bound_k: float = 3.0
+    # Aggregate BN running stats via median instead of mean ("median") or ignore
+    # them entirely ("server"); "mean" preserves legacy FedAvg behavior.
+    buffer_aggregation: Literal["mean", "median"] = "mean"
+
+    # --- Partial participation fairness (S-AFR) ---
+    # Fraction of clients sampled per round (1.0 = full participation, legacy).
+    participation_fraction: float = 1.0
+    # Staleness-aware fallback routing: fade local/parent blend weight toward
+    # the root head for clients not sampled recently (exp decay).
+    s_afr_enabled: bool = False
+    # Staleness (rounds) beyond which fade begins.
+    s_afr_staleness_window: int = 4
+    # Exponential decay constant for the staleness fade.
+    s_afr_fade_tau: float = 4.0
+    # Server-side cluster-head momentum: w_new = beta * w_old + (1-beta) * avg.
+    # 0.0 disables momentum (legacy FedAvg replacement semantics).
+    cluster_momentum_beta: float = 0.0
 
 class RobustnessConfig(BaseModel):
     byzantine_rate: float = 0.0
@@ -81,6 +151,10 @@ class NonIIDConfig(BaseModel):
 class SimulationConfig(BaseModel):
     experiment_name: str = "baseline_run"
     num_rounds: int = 100
+    # Evaluate metrics every N rounds (final round is always evaluated).
+    # Evaluation consumes no RNG and does not modify model state, so this
+    # changes monitoring granularity only - never training trajectories.
+    eval_interval: int = 1
     
     env: EnvironmentConfig = Field(default_factory=EnvironmentConfig)
     topology: TopologyConfig = Field(default_factory=TopologyConfig)
@@ -154,11 +228,25 @@ class ExperimentConfig(BaseModel):
         is_ensemble = (topo_type == "hierarchical_ensemble") or (overrides.get("compute_optimization_mode") == "shared_backbone")
         base["use_ensemble"] = is_ensemble or base.get("use_ensemble", False)
         base["hierarchical_ensemble"] = (topo_type == "hierarchical_ensemble") or base.get("hierarchical_ensemble", False)
-        
+
         valid_keys = set(ClientConfig.model_fields.keys())
         for k, v in overrides.items():
             if k in valid_keys:
                 base[k] = v
+
+        # Align the compute mode with architecture reality. A globally-set
+        # "shared_backbone" mode must not leak into entries that never train a
+        # multi-head model, otherwise the engine seeds those clients with
+        # multi-head-sized initial weights (mixed-size aggregation crash).
+        method = base.get("personalization_method", "none")
+        routes_multihead = (
+            topo_type == "hierarchical_ensemble"
+            or method == "apfl"
+            or base.get("use_ensemble")
+            or base.get("hierarchical_ensemble")
+        )
+        if not routes_multihead and base.get("compute_optimization_mode") == "shared_backbone":
+            base["compute_optimization_mode"] = "none"
 
         return ClientConfig(**base)
 

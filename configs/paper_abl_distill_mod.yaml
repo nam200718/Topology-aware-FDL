@@ -1,0 +1,35 @@
+# Missing ablation cell: distillation x moderate skew
+experiment_type: comparison
+num_rounds: 25
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  total_local_steps: 5
+  compute_optimization_mode: shared_backbone
+
+topologies:
+  - type: hierarchical_ensemble
+    label: "AB Distill Mod"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+      ensemble_distillation: true
+      distillation_lambda: 0.5
+
+scenarios:
+  - id: non_iid_alpha_0.5
+    label: "Non-IID (Moderate alpha=0.5)"
+    non_iid: true
+    alpha: 0.5

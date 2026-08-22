@@ -3,6 +3,7 @@
 
 experiment_type: comparison
 num_rounds: 25
+eval_interval: 5
 
 env:
   seed: 42
@@ -21,7 +22,10 @@ clients:
   ensemble_weighting_mode: dynamic_confidence
   ensemble_distillation: false
   distillation_lambda: 0.0
-  total_local_steps: 10
+  # Budget 5 validated >= budget 10 on IID + moderate skew at ~2x less wall
+  # time (see docs/experiment_learnings_and_failed_attempts.md section 4d);
+  # keeps HEP local compute comparable to baselines (local_steps=3).
+  total_local_steps: 5
   loss_weight_beta: 1.0
 
 robustness:

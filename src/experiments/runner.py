@@ -160,8 +160,8 @@ class ExperimentRunner:
         all_histories.append({"entry": entry, "history": hx})
 
         final_acc = hx[-1].get("test_accuracy", 0.0)
-        peak_acc = max(h.get("test_accuracy", 0.0) for h in hx)
-        last5_acc = float(np.mean([h.get("test_accuracy", 0.0) for h in hx[-5:]]))
+        peak_acc = max((h.get("test_accuracy", 0.0) for h in hx if "test_accuracy" in h), default=0.0)
+        last5_acc = float(np.mean([h["test_accuracy"] for h in hx[-5:] if "test_accuracy" in h])) if any("test_accuracy" in h for h in hx[-5:]) else 0.0
         if config.topology.type == "hierarchical_ensemble" and "ensemble_test_accuracy" in hx[-1]:
             final_acc = hx[-1]["ensemble_test_accuracy"]
             peak_acc = max(h.get("ensemble_test_accuracy", 0.0) for h in hx if "ensemble_test_accuracy" in h)
@@ -206,7 +206,7 @@ class ExperimentRunner:
                 steps_per_round = getattr(config.clients, "local_steps", 1)
 
             global_acc = hx[-1].get("test_accuracy", 0.0)
-            global_last5 = round(float(np.mean([h.get("test_accuracy", 0.0) for h in hx[-5:]])), 2)
+            global_last5 = round(float(np.mean([h["test_accuracy"] for h in hx[-5:] if "test_accuracy" in h])), 2) if any("test_accuracy" in h for h in hx[-5:]) else 0.0
 
             summary_results.append({
                 "Topology": topo_label,
@@ -273,8 +273,8 @@ class ExperimentRunner:
             all_histories.append({"entry": entry, "history": hx})
 
             final_acc = hx[-1].get("test_accuracy", 0.0)
-            peak_acc = max(h.get("test_accuracy", 0.0) for h in hx)
-            last5_acc = round(float(np.mean([h.get("test_accuracy", 0.0) for h in hx[-5:]])), 2)
+            peak_acc = max((h.get("test_accuracy", 0.0) for h in hx if "test_accuracy" in h), default=0.0)
+            last5_acc = round(float(np.mean([h["test_accuracy"] for h in hx[-5:] if "test_accuracy" in h])), 2) if any("test_accuracy" in h for h in hx[-5:]) else 0.0
 
             if "ensemble_test_accuracy" in hx[-1]:
                 final_acc = hx[-1]["ensemble_test_accuracy"]

@@ -1,0 +1,46 @@
+# Paper Table IV-B: 50-client partial participation (Cp=0.2) with S-AFR on/off
+experiment_type: comparison
+num_rounds: 25
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 50
+  local_lr: 0.05
+  local_steps: 3
+  total_local_steps: 5
+  participation_fraction: 0.2
+
+topologies:
+  - type: star
+    label: "S50 Star (FedAvg)"
+    params:
+      personalization_method: "none"
+  - type: star
+    label: "S50 Star (FedRep)"
+    params:
+      personalization_method: "fedrep"
+  - type: hierarchical_ensemble
+    label: "S50 HEP S-AFR"
+    params:
+      num_clusters: 5
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+      s_afr_enabled: true
+
+scenarios:
+  - id: non_iid_alpha_0.5
+    label: "Non-IID (Moderate alpha=0.5)"
+    non_iid: true
+    alpha: 0.5
+  - id: non_iid_alpha_0.1
+    label: "Non-IID (Severe alpha=0.1)"
+    non_iid: true
+    alpha: 0.1

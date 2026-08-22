@@ -1,0 +1,45 @@
+# Paper Table V: MobileNetV3-Small architectural generalizability
+experiment_type: comparison
+num_rounds: 25
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: mobilenetv3
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  total_local_steps: 5
+
+topologies:
+  - type: star
+    label: "MN Star (FedAvg)"
+    params:
+      personalization_method: "none"
+  - type: star
+    label: "MN Star (Ditto)"
+    params:
+      personalization_method: "ditto"
+      ditto_lambda: 0.05
+  - type: star
+    label: "MN Star (FedRep)"
+    params:
+      personalization_method: "fedrep"
+  - type: hierarchical_ensemble
+    label: "MN HEP"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+
+scenarios:
+  - id: non_iid_alpha_0.05
+    label: "Non-IID (Extreme alpha=0.05)"
+    non_iid: true
+    alpha: 0.05

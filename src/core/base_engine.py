@@ -31,14 +31,23 @@ class BaseEngine(ABC):
         
         # Fetch datasets
         dataset_name = getattr(self.config.env, "dataset", "mnist").lower()
-        if dataset_name == "cifar10":
-            print("Downloading and dividing CIFAR-10 dataset...")
-            from src.data.dataset import get_cifar10
-            train_ds, test_ds = get_cifar10(
-                train_subset=getattr(self.config.env, "train_subset", None),
-                test_subset=getattr(self.config.env, "test_subset", None),
-                seed=getattr(self.config.env, "seed", 42)
-            )
+        if dataset_name in ("cifar10", "cifar100"):
+            if dataset_name == "cifar100":
+                from src.data.dataset import get_cifar100
+                print("Downloading and dividing CIFAR-100 dataset...")
+                train_ds, test_ds = get_cifar100(
+                    train_subset=getattr(self.config.env, "train_subset", None),
+                    test_subset=getattr(self.config.env, "test_subset", None),
+                    seed=getattr(self.config.env, "seed", 42)
+                )
+            else:
+                print("Downloading and dividing CIFAR-10 dataset...")
+                from src.data.dataset import get_cifar10
+                train_ds, test_ds = get_cifar10(
+                    train_subset=getattr(self.config.env, "train_subset", None),
+                    test_subset=getattr(self.config.env, "test_subset", None),
+                    seed=getattr(self.config.env, "seed", 42)
+                )
             self.in_channels = 3
         else:
             print("Downloading and dividing MNIST dataset...")
@@ -48,6 +57,7 @@ class BaseEngine(ABC):
                 seed=getattr(self.config.env, "seed", 42)
             )
             self.in_channels = 1
+        self.num_classes = 100 if dataset_name == "cifar100" else 10
 
         self.train_dataset: torch.utils.data.Dataset = train_ds
         self.test_dataset: torch.utils.data.Dataset = test_ds
@@ -103,18 +113,28 @@ class BaseEngine(ABC):
         model_name = getattr(self.config.clients, "model_name", "simple_cnn")
         
         if is_ensemble and compute_mode == "shared_backbone":
-            from src.core.model import MultiHeadSimpleCNN, MultiHeadResNet9
-            dummy_model = MultiHeadResNet9(in_channels=self.in_channels) if model_name == "resnet9" else MultiHeadSimpleCNN(in_channels=self.in_channels)
+            from src.core.model import MultiHeadSimpleCNN, MultiHeadResNet9, MultiHeadMobileNetV3Small
+            if model_name == "mobilenetv3":
+                dummy_model = MultiHeadMobileNetV3Small(in_channels=self.in_channels, num_classes=self.num_classes)
+            elif model_name == "resnet9":
+                dummy_model = MultiHeadResNet9(in_channels=self.in_channels, num_classes=self.num_classes)
+            else:
+                dummy_model = MultiHeadSimpleCNN(in_channels=self.in_channels, num_classes=self.num_classes)
         else:
-            from src.core.model import SimpleCNN, ResNet9
-            dummy_model = ResNet9(in_channels=self.in_channels) if model_name == "resnet9" else SimpleCNN(in_channels=self.in_channels)
+            from src.core.model import SimpleCNN, ResNet9, MobileNetV3Small
+            if model_name == "mobilenetv3":
+                dummy_model = MobileNetV3Small(in_channels=self.in_channels, num_classes=self.num_classes)
+            elif model_name == "resnet9":
+                dummy_model = ResNet9(in_channels=self.in_channels, num_classes=self.num_classes)
+            else:
+                dummy_model = SimpleCNN(in_channels=self.in_channels, num_classes=self.num_classes)
 
         initial_w = model_to_vector(dummy_model).detach().to(self.device)
         num_params = initial_w.numel()
         print(f"Model ({model_name}) instantiated with {num_params} parameters.")
         
         from src.core.updater import PyTorchLocalUpdater
-        self.updater = PyTorchLocalUpdater(device=device, in_channels=self.in_channels, model_name=model_name)
+        self.updater = PyTorchLocalUpdater(device=device, in_channels=self.in_channels, model_name=model_name, num_classes=self.num_classes)
         self.server_weights: torch.Tensor = initial_w.clone()
         
         # Track clients and pre-cache datasets
@@ -138,11 +158,11 @@ class BaseEngine(ABC):
             self.clients_state[client_id] = state
             
     def get_current_lr(self, round_num: int) -> float:
-        base_lr = getattr(self.config.clients, "local_lr", 0.03)
+        base_lr = self.config.clients.local_lr
         num_rounds = getattr(self.config, "num_rounds", 50)
         if num_rounds <= 1:
             return base_lr
-        min_lr = getattr(self.config.clients, "min_lr", 0.001)
+        min_lr = self.config.clients.min_lr
         import math
         cosine_decay = 0.5 * (1.0 + math.cos(math.pi * (round_num - 1) / (num_rounds - 1)))
         return min_lr + (base_lr - min_lr) * cosine_decay
@@ -154,6 +174,11 @@ class BaseEngine(ABC):
             print(f"Round {round_num}/{self.config.num_rounds} completed.")
 
         self.save_metrics()
+
+    def should_evaluate(self, round_num: int) -> bool:
+        """True on every eval_interval-th round and always on the final round."""
+        interval = max(1, getattr(self.config, "eval_interval", 1))
+        return round_num == self.config.num_rounds or round_num % interval == 0
     @abstractmethod
     def run_round(self, round_num: int):
         pass
@@ -205,13 +230,14 @@ class BaseEngine(ABC):
         use_ensemble = getattr(self.config.clients, "use_ensemble", False)
         pers_method = getattr(self.config.clients, "personalization_method", "none")
         if not use_ensemble and pers_method == "none":
-            return 0.0, 0.0
-            
+            return 0.0, 0.0            
         alpha = getattr(self.config.clients, "ensemble_alpha", 0.5)
         criterion = torch.nn.CrossEntropyLoss(reduction='sum')
         total_correct = 0
         total_samples = 0
         total_loss = 0.0
+        per_client_stats = {}
+        self._last_per_client_accuracy = {}
         
         global_model = self.updater.global_model
         local_model = self.updater.local_model
@@ -232,6 +258,7 @@ class BaseEngine(ABC):
                     if idxs is None or len(idxs) == 0:
                         continue
 
+                    c_correct, c_total = 0, 0
                     c_images = images_all[idxs]
                     c_labels = labels_all[idxs]
                     logits_global = logits_global_all[idxs]
@@ -239,7 +266,7 @@ class BaseEngine(ABC):
                     vector_to_model(state.local_weights.to(self.device), local_model)
                     logits_local = local_model(c_images)
 
-                    if pers_method == "ditto":
+                    if pers_method in ("ditto", "fedrep", "fedper", "fedbabu"):
                         logits_ensemble = logits_local
                     elif pers_method == "apfl":
                         apfl_a = getattr(state, "apfl_alpha", 0.5)
@@ -250,8 +277,13 @@ class BaseEngine(ABC):
                     loss = criterion(logits_ensemble, c_labels)
                     total_loss += loss.item()
                     predicted = logits_ensemble.argmax(dim=1)
+                    hits = (predicted == c_labels).sum().item()
                     total_samples += c_labels.size(0)
-                    total_correct += (predicted == c_labels).sum().item()
+                    total_correct += hits
+                    c_correct += hits
+                    c_total += c_labels.size(0)
+                    if c_total > 0:
+                        per_client_stats[client_id] = (c_correct / c_total) * 100.0
         else:
             from src.data.dataset import get_fast_dataloader
             for client_id in range(self.config.clients.num_clients):
@@ -261,7 +293,8 @@ class BaseEngine(ABC):
                 client_test_ds = self.client_test_datasets[client_id]
                 if len(client_test_ds) == 0:
                     continue
-                test_loader = get_fast_dataloader(client_test_ds, batch_size=len(client_test_ds), shuffle=False)
+                c_correct, c_total = 0, 0
+                test_loader = get_fast_dataloader(client_test_ds, batch_size=min(len(client_test_ds), 1024), shuffle=False)
                 with torch.no_grad():
                     for images, labels in test_loader:
                         images, labels = images.to(self.device), labels.to(self.device)
@@ -269,7 +302,7 @@ class BaseEngine(ABC):
                         vector_to_model(state.local_weights.to(self.device), local_model)
                         logits_local = local_model(images)
 
-                        if pers_method == "ditto":
+                        if pers_method in ("ditto", "fedrep", "fedper", "fedbabu"):
                             logits_ensemble = logits_local
                         elif pers_method == "apfl":
                             apfl_a = getattr(state, "apfl_alpha", 0.5)
@@ -280,12 +313,18 @@ class BaseEngine(ABC):
                         loss = criterion(logits_ensemble, labels)
                         total_loss += loss.item()
                         predicted = logits_ensemble.argmax(dim=1)
+                        hits = (predicted == labels).sum().item()
                         total_samples += labels.size(0)
-                        total_correct += (predicted == labels).sum().item()
-            
+                        total_correct += hits
+                        c_correct += hits
+                        c_total += labels.size(0)
+                if c_total > 0:
+                    per_client_stats[client_id] = (c_correct / c_total) * 100.0
+
         if total_samples == 0:
             return 0.0, 0.0
-            
+
+        self._last_per_client_accuracy = per_client_stats
         acc = 100 * total_correct / total_samples
         avg_loss = total_loss / total_samples
         return acc, avg_loss

@@ -1,0 +1,43 @@
+# Robust aggregation cells only (legacy FedAvg-agg results already captured in
+# outputs/byzantine_matrix_20260821_214137).
+experiment_type: byzantine_matrix
+num_rounds: 15
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  compute_optimization_mode: shared_backbone
+  ensemble_weighting_mode: dynamic_confidence
+  ensemble_distillation: false
+  distillation_lambda: 0.0
+  total_local_steps: 10
+
+robustness:
+  byzantine_type: sign_flip
+
+non_iid:
+  enabled: true
+  alpha: 0.5
+
+byzantine_rates: [0.0, 0.4]
+
+topologies:
+  - type: hierarchical_ensemble
+    label: "HEP SoftCosine Agg"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      warmup_min_rounds: 2
+      warmup_max_rounds: 10
+      personalization_method: "none"
+      robust_aggregation_mode: "soft_cosine"

@@ -1,0 +1,51 @@
+# Paper Table VIII component ablation under the upgraded protocol
+experiment_type: comparison
+num_rounds: 25
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  total_local_steps: 5
+  compute_optimization_mode: shared_backbone
+
+topologies:
+  - type: hierarchical_ensemble
+    label: "HEP w Distillation"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+      ensemble_distillation: true
+      distillation_lambda: 0.5
+  - type: hierarchical_ensemble
+    label: "HEP Random Clustering"
+    params:
+      num_clusters: 3
+      cluster_method: "random"
+      personalization_method: "none"
+  - type: hierarchical_ensemble
+    label: "HEP No Entropy Prior"
+    params:
+      num_clusters: 3
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+      use_heterogeneity_prior: false
+
+scenarios:
+  - id: iid
+    label: "IID (Baseline)"
+    non_iid: false
+  - id: non_iid_alpha_0.05
+    label: "Non-IID (Extreme alpha=0.05)"
+    non_iid: true
+    alpha: 0.05

@@ -1,8 +1,4 @@
 import torch
-try:
-    import torch_directml  # type: ignore
-except ImportError:
-    torch_directml = None
 from typing import Union
 from src.config import SimulationConfig
 from src.topologies.star import StarTopology
@@ -11,6 +7,7 @@ from src.topologies.checks import (
     check_star_invariant,
     check_hierarchical_invariant,
 )
+from src.utils.device import resolve_device
 
 from src.core.aggregator import FedAvgAggregator
 from src.core.centralized_engine import CentralizedEngine
@@ -18,24 +15,13 @@ from src.core.hierarchical_ensemble_engine import HierarchicalEnsembleEngine
 
 
 def detect_device() -> str:
-    """Detect available accelerator hardware (CUDA, DirectML, MPS) or fallback to CPU."""
-    if torch_directml is not None:
-        try:
-            if torch_directml.is_available():
-                dev = torch_directml.device()
-                return dev if isinstance(dev, str) else str(dev)
-        except Exception:
-            pass
-    if hasattr(torch, "accelerator") and torch.accelerator.is_available():
-        acc = torch.accelerator.current_accelerator()
-        if acc is not None:
-            return acc.type
-        return "cuda" if torch.cuda.is_available() else "cpu"
-    elif torch.cuda.is_available():
-        return "cuda"
-    elif hasattr(torch, "backends") and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-        return "mps"
-    return "cpu"
+    """Detect a verified accelerator (DirectML/CUDA/MPS) or fall back to CPU.
+
+    Delegates to resolve_device(), which self-verifies the accelerator op
+    suite and honors the HEP_FORCE_DEVICE environment variable.
+    """
+    dev = resolve_device()
+    return dev if isinstance(dev, str) else str(dev)
 
 
 class TopologyEngineFactory:

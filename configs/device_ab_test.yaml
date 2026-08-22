@@ -1,0 +1,34 @@
+# Minimal config for device A/B timing (not for paper numbers)
+experiment_type: comparison
+num_rounds: 2
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs/ab_timing
+  dataset: cifar10
+  train_subset: 3000
+  test_subset: 900
+
+clients:
+  model_name: resnet9
+  num_clients: 6
+  local_lr: 0.05
+  local_steps: 3
+  compute_optimization_mode: shared_backbone
+  ensemble_weighting_mode: dynamic_confidence
+  total_local_steps: 10
+
+topologies:
+  - type: hierarchical_ensemble
+    label: "AB Timing"
+    params:
+      num_clusters: 2
+      cluster_method: "update_similarity"
+      personalization_method: "none"
+
+scenarios:
+  - id: non_iid_alpha_0.5
+    label: "Non-IID alpha=0.5"
+    non_iid: true
+    alpha: 0.5
