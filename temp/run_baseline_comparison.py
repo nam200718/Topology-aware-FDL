@@ -122,6 +122,32 @@ class DefendedDecentralizedEngine(DecentralizedEngine):
             from src.defense.aggregator import SoftRejectionAggregator
             self.aggregator = SoftRejectionAggregator(defense_config)
 
+    def _evaluate_weights_on_client_partitions(self, weights):
+        from src.core.model import vector_to_model
+        from src.data.dataset import get_fast_dataloader
+        model = self.updater.global_model
+        vector_to_model(weights.to(self.device), model)
+        model.eval()
+        criterion = torch.nn.CrossEntropyLoss(reduction='sum')
+        total_correct = 0
+        total_samples = 0
+        total_loss = 0.0
+        with torch.no_grad():
+            for client_id in range(self.config.clients.num_clients):
+                client_test_ds = self.client_test_datasets[client_id]
+                if len(client_test_ds) == 0:
+                    continue
+                loader = get_fast_dataloader(client_test_ds, batch_size=min(len(client_test_ds), 1024), shuffle=False)
+                for images, labels in loader:
+                    images, labels = images.to(self.device), labels.to(self.device)
+                    outputs = model(images)
+                    total_loss += criterion(outputs, labels).item()
+                    total_correct += (outputs.argmax(dim=1) == labels).sum().item()
+                    total_samples += labels.size(0)
+        if total_samples == 0:
+            return 0.0, 0.0
+        return (100.0 * total_correct / total_samples), (total_loss / total_samples)
+
     def run_round(self, round_num: int):
         all_clients = list(range(self.config.clients.num_clients))
         pre_round_weights = {cid: self.clients_state[cid].weights.clone() for cid in all_clients}
@@ -179,7 +205,7 @@ class DefendedDecentralizedEngine(DecentralizedEngine):
         if hasattr(self.aggregator, 'current_temperature'):
             round_data["defense_temperature"] = self.aggregator.current_temperature
 
-        ens_acc, ens_loss = self._evaluate_global_on_client_partitions()
+        ens_acc, ens_loss = self._evaluate_weights_on_client_partitions(avg_weights)
         round_data["ensemble_test_accuracy"] = ens_acc
         round_data["ensemble_test_loss"] = ens_loss
 
