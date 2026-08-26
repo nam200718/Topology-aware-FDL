@@ -1,0 +1,47 @@
+# Baseline fidelity re-run part 2: FedALA (new baseline) full grid plus
+# sanity re-runs for corrected Ditto anchor / canonical-path APFL / parity
+# FedRep on the two extreme regimes.
+experiment_type: comparison
+num_rounds: 25
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs/baseline_fidelity
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  total_local_steps: 5
+
+topologies:
+  - type: star
+    label: "Star (FedALA)"
+    params:
+      personalization_method: "fedala"
+
+scenarios:
+  - id: iid
+    label: "IID (Baseline)"
+    non_iid: false
+  - id: non_iid_alpha_1.0
+    label: "Non-IID (Mild alpha=1.0)"
+    non_iid: true
+    alpha: 1.0
+  - id: non_iid_alpha_0.5
+    label: "Non-IID (Moderate alpha=0.5)"
+    non_iid: true
+    alpha: 0.5
+  - id: non_iid_alpha_0.1
+    label: "Non-IID (Severe alpha=0.1)"
+    non_iid: true
+    alpha: 0.1
+  - id: non_iid_alpha_0.05
+    label: "Non-IID (Extreme alpha=0.05)"
+    non_iid: true
+    alpha: 0.05

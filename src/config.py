@@ -4,7 +4,7 @@ import yaml
 from pydantic import BaseModel, Field
 from typing import Literal, Dict, Any, Optional, List, Union
 
-TopologyType = Literal["star", "star_randomized", "ring", "hierarchical", "hierarchical_ensemble", "gossip", "layered"]
+TopologyType = Literal["star", "star_cfl", "star_randomized", "ring", "hierarchical", "hierarchical_ensemble", "gossip", "layered"]
 
 class EnvironmentConfig(BaseModel):
     # Where to save outputs
@@ -62,13 +62,26 @@ class ClientConfig(BaseModel):
     use_heterogeneity_prior: bool = True
     # Exponential scaling for heterogeneity prior (1.0 = linear)
     heterogeneity_gamma: float = 1.0
-    # Algorithm personalization method: "none", "ditto", "apfl",
+    # Algorithm personalization method: "none", "ditto", "apfl", "fedala",
     # "fedrep", "fedper", "fedbabu"
-    personalization_method: Literal["none", "ditto", "apfl", "fedrep", "fedper", "fedbabu"] = "none"
+    personalization_method: Literal["none", "ditto", "apfl", "fedala", "fedrep", "fedper", "fedbabu"] = "none"
     # Ditto proximal L2 penalty parameter lambda
     ditto_lambda: float = 0.1
     # APFL initial mixing weight alpha
     apfl_alpha: float = 0.5
+    # FedRep: head-only epochs before joint training each round (total local
+    # passes == local_steps for compute parity with other baselines)
+    fedrep_head_epochs: int = 1
+    # FedBABU (canonical): deployment-time head fine-tuning SGD steps before
+    # per-client evaluation; head stays frozen during federated rounds
+    babu_finetune_steps: int = 100
+    # FedALA adaptive local aggregation (official defaults from TsingZ0/FedALA)
+    ala_rand_percent: int = 80
+    ala_layer_idx: int = 2
+    ala_eta: float = 1.0
+    ala_threshold: float = 0.1
+    ala_num_pre_loss: int = 10
+    ala_max_epochs: int = 50
 
     # ------------------------------------------------------------------
     # Previously-inlined hyperparameters (hoisted during clean-refactor).
@@ -83,8 +96,10 @@ class ClientConfig(BaseModel):
     # outputs/comparison_study_20260821_182734) or "piecewise" (legacy if/else
     # budgets, kept for paper ablation tables).
     head_training_schedule: Literal["binomial", "piecewise"] = "binomial"
-    # Anchor floor for root-head loss weight under extreme skew (binomial only).
-    binomial_anchor_min: float = 0.15
+    # Anchor floor for root-head loss weight under extreme skew (binomial only; None/0.0 uses dynamic anchor).
+    binomial_anchor_min: float = 0.0
+    # Enable parameter-free dynamic self-adaptive parameters (Hill-number R_skew, dynamic anchor, Poisson staleness, Kalman momentum)
+    dynamic_parameters: bool = True
     # Two-stage high-cardinality schedule: freeze backbone while training the
     # linear heads, then one root-anchored backbone epoch. Targets CIFAR-100 regimes.
     high_cardinality_two_stage: bool = False
@@ -98,6 +113,8 @@ class ClientConfig(BaseModel):
 
     # --- Ensemble inference calibration (learnings doc §5.3: sharp-local /
     #     soft-global logit rescaling; validated inference-only) ---
+    # Enable dynamic logit dispersion temperature matching across heads
+    dynamic_temperature: bool = True
     eval_temp_local: float = 0.6
     eval_temp_parent: float = 0.8
     eval_temp_root: float = 1.0
@@ -105,6 +122,10 @@ class ClientConfig(BaseModel):
     ensemble_alpha_lr_scale: float = 0.05
     # Final blend mixing: w_final = mix * learned + (1 - mix) * heterogeneity prior.
     prior_mix: float = 0.5
+    # Mask unobserved classes at inference time during personalized client evaluation
+    active_class_inference_mask: bool = True
+    # Mask unobserved classes on Local & Parent heads during training
+    active_class_loss_mask: bool = True
     # Hard IID routing cutoff on R_skew at evaluation (legacy shortcut; kept for
     # ablation parity until binomial schedule fully supersedes it).
     iid_route_threshold: float = 0.85
@@ -238,10 +259,12 @@ class ExperimentConfig(BaseModel):
         # "shared_backbone" mode must not leak into entries that never train a
         # multi-head model, otherwise the engine seeds those clients with
         # multi-head-sized initial weights (mixed-size aggregation crash).
+        # APFL intentionally routes through the canonical dual-model path:
+        # the shared-trunk fast path deviates from Deng et al. (2020), where
+        # global and local models are independent.
         method = base.get("personalization_method", "none")
         routes_multihead = (
             topo_type == "hierarchical_ensemble"
-            or method == "apfl"
             or base.get("use_ensemble")
             or base.get("hierarchical_ensemble")
         )

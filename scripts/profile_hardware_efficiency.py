@@ -64,6 +64,8 @@ def profile_batch_latencies(device: str, num_warmup: int = 25, num_measured: int
     # -------------------------------------------------------------
     # 1. FedAvg (1 model, 1 forward, 1 backward, 1 step)
     # -------------------------------------------------------------
+    import gc
+    gc.collect()
     model_fedavg = ResNet9(in_channels=in_channels, num_classes=num_classes).to(torch_device)
     opt_fedavg = torch.optim.SGD(model_fedavg.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
 
@@ -102,6 +104,9 @@ def profile_batch_latencies(device: str, num_warmup: int = 25, num_measured: int
         "optimizer_ms": round(opt_mean, 2),
         "total_ms": round(fwd_mean + bwd_mean + opt_mean, 2),
     }
+
+    del model_fedavg, opt_fedavg
+    gc.collect()
 
     # -------------------------------------------------------------
     # 2. Ditto (2 separate models: Global + Personalized with Proximal Loss)
@@ -164,6 +169,9 @@ def profile_batch_latencies(device: str, num_warmup: int = 25, num_measured: int
         "total_ms": round(fwd_mean + bwd_mean + opt_mean, 2),
     }
 
+    del model_global, model_local, opt_global, opt_local
+    gc.collect()
+
     # -------------------------------------------------------------
     # 3. HEP (1 Shared Backbone + 3 Heads Compute Multiplexing)
     # -------------------------------------------------------------
@@ -205,6 +213,9 @@ def profile_batch_latencies(device: str, num_warmup: int = 25, num_measured: int
         "total_ms": round(fwd_mean + bwd_mean + opt_mean, 2),
     }
 
+    del model_thep, opt_thep
+    gc.collect()
+
     return results
 
 
@@ -221,11 +232,12 @@ def profile_memory_across_batch_sizes(device: str) -> pd.DataFrame:
 
     for b in batch_sizes:
         # 1. FedAvg
-        model_f = ResNet9(in_channels=in_channels, num_classes=num_classes).to(torch_device)
+        model_f = ResNet9(in_channels=in_channels, num_classes=num_classes)
         m_params = get_model_memory_mb(model_f)
         act_mb = (b * 64 * 32 * 32 * 4 * 12) / (1024 * 1024)
         opt_mb = m_params
         peak_f = m_params + opt_mb + act_mb
+        del model_f
 
         records.append({
             "Batch Size": b,
@@ -235,12 +247,13 @@ def profile_memory_across_batch_sizes(device: str) -> pd.DataFrame:
         })
 
         # 2. Ditto
-        model_g = ResNet9(in_channels=in_channels, num_classes=num_classes).to(torch_device)
-        model_l = ResNet9(in_channels=in_channels, num_classes=num_classes).to(torch_device)
+        model_g = ResNet9(in_channels=in_channels, num_classes=num_classes)
+        model_l = ResNet9(in_channels=in_channels, num_classes=num_classes)
         ditto_params = get_model_memory_mb(model_g) + get_model_memory_mb(model_l)
         ditto_opt = ditto_params
         ditto_act = act_mb * 2
         peak_ditto = ditto_params + ditto_opt + ditto_act
+        del model_g, model_l
 
         records.append({
             "Batch Size": b,
@@ -250,11 +263,12 @@ def profile_memory_across_batch_sizes(device: str) -> pd.DataFrame:
         })
 
         # 3. HEP
-        model_thep = MultiHeadResNet9(in_channels=in_channels, num_classes=num_classes).to(torch_device)
+        model_thep = MultiHeadResNet9(in_channels=in_channels, num_classes=num_classes)
         thep_params = get_model_memory_mb(model_thep)
         thep_opt = thep_params
         thep_act = act_mb * 1.05
         peak_thep = thep_params + thep_opt + thep_act
+        del model_thep
 
         records.append({
             "Batch Size": b,
@@ -262,6 +276,8 @@ def profile_memory_across_batch_sizes(device: str) -> pd.DataFrame:
             "Model Params (MB)": thep_params,
             "Peak VRAM (MB)": round(peak_thep, 2),
         })
+        import gc
+        gc.collect()
 
     return pd.DataFrame(records)
 
@@ -423,8 +439,8 @@ def main():
     print(f"Target Hardware Device: {device}\n")
 
     # 1. Profile Latency
-    print("[1/3] Profiling per-batch forward/backward latency (150 batches)...")
-    latencies = profile_batch_latencies(device=device, num_warmup=25, num_measured=150)
+    print("[1/3] Profiling per-batch forward/backward latency (30 batches)...")
+    latencies = profile_batch_latencies(device=device, num_warmup=10, num_measured=30)
     for m, res in latencies.items():
         print(f"  {m:<14}: Total = {res['total_ms']:.2f} ms/batch | Forward = {res['forward_ms']:.2f} ms | Backward = {res['backward_ms']:.2f} ms")
 

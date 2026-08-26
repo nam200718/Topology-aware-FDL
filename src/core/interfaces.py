@@ -25,6 +25,10 @@ class ClientState:
         self.r_skew: float = 0.5
         self.head_losses: Dict[str, float] = {}
         self.head_steps: Dict[str, int] = {}
+
+        # FedALA persistent adaptive-aggregation state
+        self.ala_weights: Optional[List[torch.Tensor]] = None
+        self.ala_start_phase: bool = True
         
     def copy(self):
         new_state = ClientState(self.client_id, self.weights.clone())
@@ -44,6 +48,9 @@ class ClientState:
         new_state.r_skew = self.r_skew
         new_state.head_losses = dict(self.head_losses)
         new_state.head_steps = dict(self.head_steps)
+        if self.ala_weights is not None:
+            new_state.ala_weights = [w.clone() for w in self.ala_weights]
+        new_state.ala_start_phase = self.ala_start_phase
         return new_state
 
 class Topology(ABC):

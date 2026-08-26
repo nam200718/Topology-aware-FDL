@@ -1,0 +1,48 @@
+# Baseline fidelity re-run part 1: canonical FedBABU full grid plus
+# FedRep / Ditto / APFL sanity rows (IID + extreme skew only) after the
+# anchor fix, compute-parity fix, and APFL dual-model routing fix.
+experiment_type: comparison
+num_rounds: 25
+eval_interval: 5
+
+env:
+  seed: 42
+  output_dir: ./outputs/baseline_fidelity
+  dataset: cifar10
+  train_subset: 10000
+  test_subset: 3000
+
+clients:
+  model_name: resnet9
+  num_clients: 15
+  local_lr: 0.05
+  local_steps: 3
+  total_local_steps: 5
+
+topologies:
+  - type: star
+    label: "Star (FedBABU)"
+    params:
+      personalization_method: "fedbabu"
+      babu_finetune_steps: 100
+
+scenarios:
+  - id: iid
+    label: "IID (Baseline)"
+    non_iid: false
+  - id: non_iid_alpha_1.0
+    label: "Non-IID (Mild alpha=1.0)"
+    non_iid: true
+    alpha: 1.0
+  - id: non_iid_alpha_0.5
+    label: "Non-IID (Moderate alpha=0.5)"
+    non_iid: true
+    alpha: 0.5
+  - id: non_iid_alpha_0.1
+    label: "Non-IID (Severe alpha=0.1)"
+    non_iid: true
+    alpha: 0.1
+  - id: non_iid_alpha_0.05
+    label: "Non-IID (Extreme alpha=0.05)"
+    non_iid: true
+    alpha: 0.05

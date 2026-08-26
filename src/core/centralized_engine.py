@@ -65,7 +65,7 @@ class CentralizedEngine(BaseEngine):
         }
         
         # Always log per-client personalized accuracy for fair comparison
-        has_pers = getattr(self.config.clients, "use_ensemble", False) or (getattr(self.config.clients, "personalization_method", "none") in ("ditto", "apfl", "fedrep", "fedper", "fedbabu"))
+        has_pers = getattr(self.config.clients, "use_ensemble", False) or (getattr(self.config.clients, "personalization_method", "none") in ("ditto", "apfl", "fedala", "fedrep", "fedper", "fedbabu"))
         if has_pers:
             ens_acc, ens_loss = self.evaluate_ensemble()
         else:

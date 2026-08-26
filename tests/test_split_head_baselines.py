@@ -29,8 +29,10 @@ class TestSplitHeadBaselines:
         updated = updater.update(state.copy(), ds, cfg, None)
 
         assert updated.local_weights is not None
-        assert updated.local_head_state is not None
         assert updated.weights.shape == state.weights.shape
+        # All three methods persist a head state; FedBABU's snapshot is its
+        # (untrained) random init, restored verbatim every round.
+        assert updated.local_head_state is not None
 
     def test_upload_is_body_only(self, method):
         """Head coordinates must be zeroed pre-aggregation."""
@@ -43,12 +45,17 @@ class TestSplitHeadBaselines:
 
         mask = updater._head_param_mask(updater.global_model)
         assert mask.any(), "mask must select the classification head"
+        assert not mask.all(), "mask must not select the entire model"
         assert torch.all(updated.weights[mask] == 0), "uploaded head coords must be zero"
+        assert not torch.all(updated.weights[~mask] == 0), "uploaded body coords must NOT be zero"
         # Private model keeps trained head values distinct from upload
         assert not torch.all(updated.local_weights[mask] == 0)
 
     def test_private_head_persists_across_rounds(self, method):
-        """Round 2 must restore round 1's private head before training."""
+        """Round 2 must restore round 1's private head before training
+        (FedBABU intentionally keeps its head at init and is skipped)."""
+        if method == "fedbabu":
+            pytest.skip("Canonical FedBABU does not persist trained head state")
         updater = PyTorchLocalUpdater(device="cpu", in_channels=1)
         ds = _make_ds()
         cfg = ClientConfig(personalization_method=method, local_steps=2, total_local_steps=3)

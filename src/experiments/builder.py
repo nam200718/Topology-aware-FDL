@@ -35,6 +35,10 @@ class TopologyEngineFactory:
         if topo_type in ("star", "star_randomized"):
             topology = StarTopology()
             engine_cls = CentralizedEngine
+        elif topo_type == "star_cfl":
+            topology = StarTopology()
+            from src.core.cfl_engine import CFLEngine
+            engine_cls = CFLEngine
         elif topo_type == "hierarchical_ensemble":
             clusters = params.get("num_clusters", 3)
             topology = HierarchicalTopology(num_clusters=clusters)
@@ -60,7 +64,7 @@ def check_invariants(topology, config: SimulationConfig):
     topo_type = config.topology.type
     num_clients = config.clients.num_clients
 
-    if topo_type in ("star", "star_randomized"):
+    if topo_type in ("star", "star_cfl", "star_randomized"):
         check_star_invariant(topology, num_clients)
     elif topo_type == "hierarchical_ensemble":
         check_hierarchical_invariant(topology, num_clients)

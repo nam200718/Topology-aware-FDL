@@ -254,7 +254,8 @@ class HierarchicalEnsembleEngine(BaseEngine):
                     new_weights = self.server_weights.clone()
                 else:
                     new_weights = self._aggregate_states_robustly(states, parent_references[hid])
-                self._apply_cluster_momentum(hid, new_weights)
+                member_deltas = [current_deltas[s.client_id] for s in states if s.client_id in current_deltas]
+                self._apply_cluster_momentum(hid, new_weights, intra_cluster_deltas=member_deltas)
 
         # 4. Global Aggregation (Server aggregates root models)
         all_root_contributions = []
@@ -373,11 +374,23 @@ class HierarchicalEnsembleEngine(BaseEngine):
     # Cluster-head server-side momentum
     # ------------------------------------------------------------------
 
-    def _apply_cluster_momentum(self, hid, new_weights):
-        """w_new = beta * w_old + (1 - beta) * candidate. beta=0 -> plain replacement."""
-        beta = getattr(self.config.clients, "cluster_momentum_beta", 0.0)
+    def _apply_cluster_momentum(self, hid, new_weights, intra_cluster_deltas=None):
+        """Dynamic Kalman / MMSE Momentum: beta_c = V_k / (V_k + ||Delta_k||^2)"""
         old = self.cluster_heads_state[hid].weights
-        if beta > 0.0 and old is not None and old.shape == new_weights.shape:
+        if old is None or old.shape != new_weights.shape:
+            self.cluster_heads_state[hid].weights = new_weights
+            return
+
+        beta = getattr(self.config.clients, "cluster_momentum_beta", 0.0)
+        if beta == 0.0 and intra_cluster_deltas is not None and len(intra_cluster_deltas) > 1:
+            stacked_d = torch.stack(intra_cluster_deltas)
+            mean_d = torch.mean(stacked_d, dim=0)
+            norm_sq = torch.sum(mean_d ** 2).item()
+            var_k = torch.mean(torch.sum((stacked_d - mean_d) ** 2, dim=1)).item()
+            beta = float(var_k / (var_k + norm_sq + 1e-8))
+            beta = min(0.90, max(0.10, beta))
+
+        if beta > 0.0:
             self.cluster_heads_state[hid].weights = beta * old + (1.0 - beta) * new_weights
         else:
             self.cluster_heads_state[hid].weights = new_weights
@@ -472,12 +485,29 @@ class HierarchicalEnsembleEngine(BaseEngine):
                                 loss_beta, tau, static_weights)
                             blend_weights = self._apply_top2_routing(dynamic, client_id)
                         w_local, w_parent, w_root = blend_weights
+                        # Dynamic Logit Dispersion Temperature Matching
+                        if getattr(self.config.clients, "dynamic_temperature", True):
+                            std_l = logits_local.std().item()
+                            std_p = logits_parent.std().item()
+                            std_r = logits_root.std().item()
+                            if std_r > 1e-6:
+                                t_l = max(0.2, min(2.0, std_l / std_r))
+                                t_p = max(0.2, min(2.0, std_p / std_r))
+                                t_r = 1.0
+                            else:
+                                t_l, t_p, t_r = temps
+                        else:
+                            t_l, t_p, t_r = temps
 
                         logits_ensemble = (
-                            w_local * (logits_local / temps[0])
-                            + w_parent * (logits_parent / temps[1])
-                            + w_root * (logits_root / temps[2])
+                            w_local * (logits_local / t_l)
+                            + w_parent * (logits_parent / t_p)
+                            + w_root * (logits_root / t_r)
                         )
+                        if getattr(self.config.clients, "active_class_inference_mask", True) and getattr(state, "active_mask", None) is not None:
+                            mask = state.active_mask.to(self.device).unsqueeze(0)
+                            logits_ensemble = logits_ensemble.masked_fill(~mask, -1e9)
+
                         loss = criterion(logits_ensemble, labels)
                         total_loss += loss.item()
                         predicted = logits_ensemble.argmax(dim=1)
@@ -569,7 +599,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
         if client_r_skew >= iid_threshold:
             return (0.0, 0.0, 1.0)
 
-        if not clients_cfg.s_afr_enabled or round_num is None:
+        if not getattr(clients_cfg, "s_afr_enabled", False) or round_num is None:
             return None
 
         last_sampled = self.last_sampled_round.get(client_id, None)
@@ -577,11 +607,19 @@ class HierarchicalEnsembleEngine(BaseEngine):
             return None
 
         staleness = round_num - last_sampled
-        if staleness <= clients_cfg.s_afr_staleness_window:
+        staleness_win = getattr(clients_cfg, "s_afr_staleness_window", 0)
+        if staleness <= staleness_win:
             return None
 
-        # Fade the personalized heads toward the root head as staleness grows.
-        fade = float(np.exp(-staleness / clients_cfg.s_afr_fade_tau))
+        # Dynamic Poisson Staleness scale: tau_0 = 1 / C_p,i
+        fade_tau = getattr(clients_cfg, "s_afr_fade_tau", None)
+        if fade_tau is None or fade_tau <= 0:
+            part_count = getattr(state, "participation_count", 1)
+            tau_0 = max(1.0, float(round_num) / float(max(1, part_count)))
+        else:
+            tau_0 = fade_tau
+
+        fade = float(np.exp(-staleness / tau_0))
         prior = getattr(state, "ensemble_alpha", None)
         if prior is not None and len(prior) == 3:
             w_local, w_parent = prior[0] * fade, prior[1] * fade

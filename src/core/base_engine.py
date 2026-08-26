@@ -226,12 +226,60 @@ class BaseEngine(ABC):
         avg_loss = total_loss / total_samples
         return acc, avg_loss
 
+    def _fedbabu_deployment_heads(self):
+        """Canonical FedBABU deployment stage (Oh et al., ICLR 2022): the head
+        is trained on each client's local data after federated training ends
+        (body frozen). Returns {cid: head_state_dict} for evaluation."""
+        pers_method = getattr(self.config.clients, "personalization_method", "none")
+        if pers_method != "fedbabu":
+            return {}
+        local_model = self.updater.local_model
+        head_module = local_model.fc2 if hasattr(local_model, "fc2") else local_model.classifier
+        steps = int(getattr(self.config.clients, "babu_finetune_steps", 100))
+        lr = self.config.clients.local_lr
+        heads = {}
+        for client_id in range(self.config.clients.num_clients):
+            state = self.clients_state[client_id]
+            if getattr(state, "is_byzantine", False) or getattr(state, "local_weights", None) is None:
+                continue
+            vector_to_model(state.local_weights.to(self.device), local_model)
+            for name, p in local_model.named_parameters():
+                p.requires_grad_(name.startswith(("fc2", "classifier")))
+            optimizer = torch.optim.SGD(
+                [p for n, p in local_model.named_parameters() if n.startswith(("fc2", "classifier"))],
+                lr=lr)
+            train_ds = self.client_train_datasets.get(client_id)
+            if train_ds is None or len(train_ds) == 0:
+                continue
+            from src.data.dataset import get_fast_dataloader
+            loader = get_fast_dataloader(train_ds,
+                                         batch_size=min(32, len(train_ds)),
+                                         shuffle=True)
+            local_model.train()
+            done = 0
+            while done < steps:
+                for images, labels in loader:
+                    if images.device != self.device:
+                        images, labels = images.to(self.device), labels.to(self.device)
+                    optimizer.zero_grad(set_to_none=True)
+                    loss = torch.nn.CrossEntropyLoss()(local_model(images), labels)
+                    loss.backward()
+                    optimizer.step()
+                    done += 1
+                    if done >= steps:
+                        break
+            heads[client_id] = {k: v.detach().clone() for k, v in head_module.state_dict().items()}
+        for p in local_model.parameters():
+            p.requires_grad_(True)
+        return heads
+
     def evaluate_ensemble(self):
         use_ensemble = getattr(self.config.clients, "use_ensemble", False)
         pers_method = getattr(self.config.clients, "personalization_method", "none")
         if not use_ensemble and pers_method == "none":
             return 0.0, 0.0            
         alpha = getattr(self.config.clients, "ensemble_alpha", 0.5)
+        babu_heads = self._fedbabu_deployment_heads() if pers_method == "fedbabu" else {}
         criterion = torch.nn.CrossEntropyLoss(reduction='sum')
         total_correct = 0
         total_samples = 0
@@ -264,9 +312,13 @@ class BaseEngine(ABC):
                     logits_global = logits_global_all[idxs]
 
                     vector_to_model(state.local_weights.to(self.device), local_model)
+                    if client_id in babu_heads:
+                        head_module = local_model.fc2 if hasattr(local_model, "fc2") else local_model.classifier
+                        head_module.load_state_dict(babu_heads[client_id])
+                    local_model.eval()
                     logits_local = local_model(c_images)
 
-                    if pers_method in ("ditto", "fedrep", "fedper", "fedbabu"):
+                    if pers_method in ("ditto", "fedala", "fedrep", "fedper", "fedbabu"):
                         logits_ensemble = logits_local
                     elif pers_method == "apfl":
                         apfl_a = getattr(state, "apfl_alpha", 0.5)
@@ -300,9 +352,13 @@ class BaseEngine(ABC):
                         images, labels = images.to(self.device), labels.to(self.device)
                         logits_global = global_model(images)
                         vector_to_model(state.local_weights.to(self.device), local_model)
+                        if client_id in babu_heads:
+                            head_module = local_model.fc2 if hasattr(local_model, "fc2") else local_model.classifier
+                            head_module.load_state_dict(babu_heads[client_id])
+                        local_model.eval()
                         logits_local = local_model(images)
 
-                        if pers_method in ("ditto", "fedrep", "fedper", "fedbabu"):
+                        if pers_method in ("ditto", "fedala", "fedrep", "fedper", "fedbabu"):
                             logits_ensemble = logits_local
                         elif pers_method == "apfl":
                             apfl_a = getattr(state, "apfl_alpha", 0.5)

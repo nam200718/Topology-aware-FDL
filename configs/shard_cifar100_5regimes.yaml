@@ -1,4 +1,4 @@
-# Paper Table IV-A: CIFAR-100 high-cardinality benchmark incl. two-stage validation
+﻿# CIFAR-100 5-Regime Benchmark for Upgraded High-Cardinality HEP
 experiment_type: comparison
 num_rounds: 25
 eval_interval: 5
@@ -14,32 +14,16 @@ clients:
   model_name: resnet9
   num_clients: 15
   local_lr: 0.05
-  local_steps: 3
+  local_steps: 5
   total_local_steps: 5
   compute_optimization_mode: shared_backbone
+  high_cardinality_two_stage: true
+  active_class_inference_mask: true
+  active_class_loss_mask: true
 
 topologies:
-  - type: star
-    label: "C100 Star (FedAvg)"
-    params:
-      personalization_method: "none"
-  - type: star
-    label: "C100 Star (Ditto)"
-    params:
-      personalization_method: "ditto"
-      ditto_lambda: 0.1
-  - type: star
-    label: "C100 Star (FedRep)"
-    params:
-      personalization_method: "fedrep"
   - type: hierarchical_ensemble
-    label: "C100 HEP"
-    params:
-      num_clusters: 3
-      cluster_method: "update_similarity"
-      personalization_method: "none"
-  - type: hierarchical_ensemble
-    label: "C100 HEP TwoStage"
+    label: "C100 HEP (Upgraded High-Cardinality)"
     params:
       num_clusters: 3
       cluster_method: "update_similarity"
@@ -47,10 +31,21 @@ topologies:
       high_cardinality_two_stage: true
 
 scenarios:
+  - id: iid
+    label: "IID (Baseline)"
+    non_iid: false
+  - id: non_iid_alpha_1.0
+    label: "Non-IID (Mild alpha=1.0)"
+    non_iid: true
+    alpha: 1.0
   - id: non_iid_alpha_0.5
     label: "Non-IID (Moderate alpha=0.5)"
     non_iid: true
     alpha: 0.5
+  - id: non_iid_alpha_0.1
+    label: "Non-IID (Severe alpha=0.1)"
+    non_iid: true
+    alpha: 0.1
   - id: non_iid_alpha_0.05
     label: "Non-IID (Extreme alpha=0.05)"
     non_iid: true

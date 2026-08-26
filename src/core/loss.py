@@ -56,6 +56,55 @@ class ClassFrequencyBalancedMaskedLoss(nn.Module):
             return F.cross_entropy(logits, targets)
 
 
+def compute_normalized_entropy_r_skew(probs: torch.Tensor, num_classes: int) -> float:
+    """
+    Normalized exponential Shannon entropy label skew metric:
+        R_skew = (exp(H(p)) - 1) / (C - 1)
+    where exp(H(p)) is the effective number of classes observed.
+    Properties:
+        - 1 class observed (Dirac skew): H = 0 -> R_skew = 0.0 (Pure Local Specialization)
+        - Uniform k classes observed: H = ln(k) -> R_skew = (k - 1) / (C - 1)
+        - Uniform C classes observed (IID): H = ln(C) -> R_skew = 1.0 (Pure Global Consensus)
+    """
+    import math
+    if num_classes <= 1:
+        return 1.0
+    probs = probs[probs > 0]
+    if len(probs) == 0:
+        return 1.0
+    entropy = -(probs * torch.log(probs + 1e-8)).sum().item()
+    eff_classes = math.exp(entropy)
+    r_skew = (eff_classes - 1.0) / float(num_classes - 1.0)
+    return float(min(1.0, max(0.0, r_skew)))
+
+
+# Backward compatibility alias
+compute_hill_number_r_skew = compute_normalized_entropy_r_skew
+
+
+def compute_dynamic_binomial_loss_weights(r_skew: float, num_classes: int = 10, local_classes: int = 2, num_clusters: int = 3):
+    """
+    Dynamic partition-of-unity head weighting with data-support anchor floor:
+        a_i = max(1 / (2*K), |Y_i| / C)
+        lambda_r = a_i + (1 - a_i) * R_skew^2
+        lambda_p = 2 * R_skew * (1 - R_skew)
+        lambda_l = (1 - R_skew)^2
+    Guarantees:
+        - Exact continuous partition of unity: sum(alpha_k) == 1.0 for all clients
+        - Data-support scaled anchor: clients observing narrow label subsets retain sufficient root anchoring
+        - Zero manual hyperparameters: a_i is computed dynamically per client from system invariants.
+    """
+    a_i = max(1.0 / (2.0 * max(1, num_clusters)), float(local_classes) / float(max(1, num_classes)))
+    lr = a_i + (1.0 - a_i) * (r_skew ** 2)
+    lp = 2.0 * r_skew * (1.0 - r_skew)
+    ll = (1.0 - r_skew) ** 2
+    total = lr + lp + ll
+    alpha_r = lr / total
+    alpha_p = lp / total
+    alpha_l = ll / total
+    return lr, lp, ll, alpha_r, alpha_p, alpha_l
+
+
 def compute_binomial_loss_weights(r_skew: float, anchor_min: float = 0.15):
     """
     Continuous differentiable binomial entropy loss weighting:
@@ -75,6 +124,7 @@ def compute_binomial_loss_weights(r_skew: float, anchor_min: float = 0.15):
     alpha_p = lp / total
     alpha_l = ll / total
     return lr, lp, ll, alpha_r, alpha_p, alpha_l
+
 
 
 

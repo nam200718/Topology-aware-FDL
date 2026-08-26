@@ -26,7 +26,7 @@ topologies:
     label: "Conv Star (Ditto)"
     params:
       personalization_method: "ditto"
-      ditto_lambda: 0.05
+      ditto_lambda: 0.1
   - type: hierarchical_ensemble
     label: "Conv HEP"
     params:
