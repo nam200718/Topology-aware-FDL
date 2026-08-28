@@ -11,6 +11,7 @@
 \usepackage{microtype}
 \usepackage{cite}
 \usepackage{fancyhdr}
+\usepackage{enumitem}
 \usepackage{hyperref}
 
 \hypersetup{
@@ -22,13 +23,17 @@
 }
 
 % Spacing parameters for clean separation between floats and body text
-\setlength{\textfloatsep}{14pt plus 2pt minus 2pt}
-\setlength{\dbltextfloatsep}{14pt plus 2pt minus 2pt}
-\setlength{\floatsep}{12pt plus 2pt minus 2pt}
-\setlength{\dblfloatsep}{12pt plus 2pt minus 2pt}
-\setlength{\intextsep}{14pt plus 2pt minus 2pt}
-\setlength{\abovecaptionskip}{6pt}
-\setlength{\belowcaptionskip}{4pt}
+\setlength{\textfloatsep}{6pt plus 1pt minus 1pt}
+\setlength{\dbltextfloatsep}{6pt plus 1pt minus 1pt}
+\setlength{\floatsep}{4pt plus 1pt minus 1pt}
+\setlength{\dblfloatsep}{4pt plus 1pt minus 1pt}
+\setlength{\intextsep}{5pt plus 1pt minus 1pt}
+\setlength{\abovecaptionskip}{2.5pt}
+\setlength{\belowcaptionskip}{1.5pt}
+\renewcommand{\arraystretch}{0.94}
+
+\setlist[itemize]{leftmargin=*,noitemsep,topsep=1.5pt,parsep=0pt,partopsep=0pt}
+\setlist[enumerate]{leftmargin=*,noitemsep,topsep=1.5pt,parsep=0pt,partopsep=0pt}
 
 % Running header and footer matching UROP Final Report template
 \pagestyle{fancy}
@@ -83,8 +88,8 @@ Federated Learning (FL) \cite{mcmahan2017communication} allows decentralized edg
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.98\textwidth]{figures/hardware_efficiency_profile.png}
-    \vspace{2mm}
+    \includegraphics[width=0.92\textwidth]{figures/hardware_efficiency_profile.png}
+    \vspace{1mm}
     \caption{\textbf{Hardware Resource and Latency Profile on CIFAR-10 ResNet9.} \textbf{Panel A}: Peak client VRAM at batch size $B=32$, showing a 47.8\% memory reduction for HEP relative to dual-model Ditto (113.42 MB vs. 217.15 MB). \textbf{Panel B}: Per-batch latency breakdown across forward, backward, and update steps (8.35 ms for HEP vs. 16.78 ms for Ditto). \textbf{Panel C}: Memory footprint scaling across batch sizes ($B=16 \to 128$). \textbf{Panel D}: Simulated wall-clock time-to-accuracy under extreme Non-IID skew ($\alpha=0.05$).}
     \label{fig:hardware_efficiency}
 \end{figure*}
@@ -114,26 +119,26 @@ To provide a practical balance across these dimensions, we present \textbf{HEP} 
 
 \section{Related Work \& Paradigm Taxonomy}
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{\textbf{Taxonomy and Structural Trade-offs across PFL Paradigms.}}
 \label{tab:pfl_taxonomy}
 \vspace{1.5mm}
-\resizebox{\textwidth}{!}{
+\resizebox{\columnwidth}{!}{
 \begin{tabular}{lcccc}
 \toprule
 \textbf{PFL Paradigm Family} & \textbf{Representative Methods} & \textbf{Memory Overhead} & \textbf{IID Robustness} & \textbf{Multi-Scale Hierarchy} \\
 \midrule
 Global Consensus & FedAvg, FedProx, SCAFFOLD & $1\times$ (Low) & \textbf{High} & None (Flat Global) \\
 Dual-Model Regularization & Ditto, APFL & $2\times$ (High) & Moderate & None (Global + Private) \\
-Decoupled / Split-Head & FedRep, FedPer, FedBABU, FedALA & $1\times$ (Low) & Low--High (Method-dependent) & None (Body + Head) \\
+Decoupled / Split-Head & FedRep, FedPer, FedBABU, FedALA & $1\times$ (Low) & Low--High & None (Body + Head) \\
 Clustered Topologies & Clustered FL (CFL) & $1\times$ (Low) & Moderate & Sub-Network Only \\
 \midrule
-\textbf{Hierarchical Ensemble (HEP)} & \textbf{HEP (Ours)} & \textbf{$1\times$ (Low)} & \textbf{High} & \textbf{3-Tier (Root, Parent, Local)} \\
+\textbf{Hierarchical Ensemble} & \textbf{HEP (Ours)} & \textbf{$1\times$ (Low)} & \textbf{High} & \textbf{3-Tier Hierarchy} \\
 \bottomrule
 \end{tabular}
 }
-\end{table*}
+\end{table}
 
 \subsection{Global Consensus Federated Learning}
 The standard federated learning baseline is FedAvg \cite{mcmahan2017communication}, which averages client model updates proportionally to local sample counts. FedProx \cite{li2020federated} adds a proximal regularizer to mitigate client drift, and SCAFFOLD \cite{karimireddy2020scaffold} introduces control variates to correct gradient variance. These approaches train a single global model, which faces performance degradation when client data distributions differ substantially.
@@ -151,7 +156,7 @@ Clustered FL \cite{sattler2020clustered} groups clients based on update cosine s
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.98\textwidth]{figures/hep_architecture.png}
+    \includegraphics[width=0.92\textwidth]{figures/hep_architecture.png}
     \vspace{2mm}
     \caption{\textbf{Hierarchical Ensemble Personalization (HEP) System Architecture.} \textbf{Edge Client Execution (Left)}: A single forward pass on the shared convolutional backbone $f_\theta(x)$ produces intermediate embeddings $h \in \mathbb{R}^d$, which are concurrently evaluated by three lightweight classification heads: (1) unmasked Global Root Head $w_r$, (2) cluster-collaborative Parent Head $w_{p(k)}$ with Active-Class Logit Masking (ACLM), and (3) private Local Head $w_{l,i}$ (which remains strictly on-device and is never uploaded). Dynamic loss weighting and inference logit blending are dynamically modulated by the Shannon entropy label skew metric $R_{skew,i}$. For cluster routing, linear Root-head updates $\Delta w_{r,i}$ are projected into a 256-dimensional random sketch ($s_i = P \Delta w_{r,i}$), ensuring severe underdetermined gradient inversion ($m=256 < d_{head}=2570$). \textbf{Server Aggregation (Right)}: Backbones and Root heads undergo sample-weighted FedAvg, while compressed sketches drive cosine similarity cluster routing and momentum-updated Parent heads.}
     \label{fig:hep_architecture}
@@ -163,10 +168,9 @@ The overall system architecture of Hierarchical Ensemble Personalization (HEP) i
 \begin{itemize}
     \item A shared convolutional feature extractor $f_\theta(x)$ that produces intermediate embeddings $h = f_\theta(x) \in \mathbb{R}^d$.
     \item A global consensus $\text{Root}$ head $w_r$, synchronized across all participating clients.
-    \item A cluster-collaborative $\text{Parent}$ head $w_{p(i)}$, shared among clients in the same cluster.
-    \item A client-private $\text{Local}$ head $w_{l,i}$, kept exclusively on-device.
+    \item A cluster-level collaborative $\text{Parent}$ head $w_p$, shared among clients in the same statistical cluster.
+    \item A private $\text{Local}$ head $w_l$, specialized for on-device label distributions and never shared.
 \end{itemize}
-During forward propagation, features $h$ are computed \textbf{once} per batch and passed through all three linear heads to generate logits $z_r = g_{w_r}(h)$, $z_p = g_{w_{p(i)}}(h)$, and $z_l = g_{w_{l,i}}(h)$.
 
 \subsection{Local Data Diversity Metric ($R_{skew}$)}
 
@@ -227,6 +231,7 @@ where blending coefficients default to the normalized training weights $\alpha =
 \caption{HEP Training Protocol at Round $t$}
 \label{alg:hep}
 \vspace{1mm}
+\small
 \begin{algorithmic}[1]
 \REQUIRE Datasets $\{\mathcal{D}_i\}_{i=1}^N$, Backbone $\theta^{(t)}$, Root head $w_r^{(t)}$, Cluster heads $\{w_{p,k}^{(t)}\}_{k=1}^K$, Local heads $\{w_{l,i}^{(t)}\}_{i=1}^N$, Projection matrix $P \in \mathbb{R}^{m \times d_{head}}$.
 \STATE Server broadcasts $\theta^{(t)}, w_r^{(t)}$ to all clients, and $w_{p,k}^{(t)}$ to cluster $k$.
@@ -259,12 +264,12 @@ where $P \in \mathbb{R}^{256 \times d_{head}}$ is a fixed random projection matr
 
 \textbf{Privacy Scope}: Transmitting $s_i \in \mathbb{R}^{256}$ reduces information exposure in the cluster-routing signal: reconstructing the $2570$-dimensional Root-head update from $256$ linear scalar constraints is severely underdetermined ($m = 256 < d_{head} = 2570$). Because $P$ is drawn from a public seed (seed 42), random projection sketching provides dimensional compression and information reduction rather than cryptographic confidentiality. Formal $(\epsilon, \delta)$-DP guarantees apply strictly to the clipped sketch routing vector and do not imply end-to-end differential privacy for the federated system, as backbone parameter updates $\Delta \theta_i$ and head updates $\Delta w_{r,i}, \Delta w_{p,i}$ are transmitted to the server in plaintext in our simulation prototype (as in standard FedAvg), fully compatible with orthogonal Secure Aggregation or client-level differential privacy. Local heads $w_{l,i}$ remain strictly private on-device.
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{\textbf{Computational, Hardware, and Communication Footprint across PFL Paradigms on ResNet9 CIFAR-10.}}
 \label{tab:hardware_footprint}
 \vspace{1.5mm}
-\resizebox{\textwidth}{!}{
+\resizebox{\columnwidth}{!}{
 \begin{tabular}{lcccccc}
 \toprule
 \textbf{Method} & \textbf{Models} & \textbf{Params} & \textbf{Peak VRAM} & \textbf{Latency / Batch} & \textbf{Local Passes} & \textbf{Comm. Payload / Round} \\
@@ -295,7 +300,7 @@ CFL & 1 & 1.65M & 108.58 MB & 8.35 ms & 3 & 6.60 MB Up / 6.60 MB Down \\
 }
 \vspace{1.5mm}
 \footnotesize{Note: One local pass corresponds to one full forward/backward pass over the local mini-batch dataset. Latency values report model-only per-batch forward/backward latency ($B=32$); for alternating methods such as FedRep, empirical physical execution including phase-switching overhead is $13.92$ ms (Table~\ref{tab:mobilenet_benchmark}). For methods with separate head/body phases, passes are counted according to executed training phases; dual-model Ditto/APFL execute 6 effective passes. HEP's 6.61 MB payload includes shared backbone (6.59 MB), Root head (10 KB), Parent head (10 KB), and sketch (1 KB).}
-\end{table*}
+\end{table}
 
 As detailed in Table \ref{tab:hardware_footprint}, dual-model regularization methods such as Ditto optimize two separate neural network graphs per client, evaluating multiple forward and backward passes per batch. While dual-model methods achieve solid personalization, maintaining two complete models creates high memory and latency demands on resource-limited edge hardware.
 
@@ -370,8 +375,8 @@ Table \ref{tab:main_benchmark} presents the personalization benchmark results ac
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.98\textwidth]{figures/convergence_combined.png}
-    \vspace{1.5mm}
+    \includegraphics[width=0.92\textwidth]{figures/convergence_combined.png}
+    \vspace{1mm}
     \caption{\textbf{Communication Round Convergence Trajectory on CIFAR-10 ResNet9.} \textbf{Left Panel}: Under uniform IID data ($\alpha=\infty$), Shannon entropy calibration shifts loss and inference trust to the Root head, maintaining 71.03\% personalized accuracy (72.73\% global root consensus) and matching FedAvg (71.80\%) while outperforming Ditto (67.10\%). \textbf{Right Panel}: Under extreme Non-IID skew ($\alpha=0.05$), HEP rapidly ascends to 88.80\% personalized accuracy, surpassing Ditto (87.87\%), FedRep (87.07\%), and FedAvg (57.53\%).}
     \label{fig:convergence}
 \end{figure*}
@@ -447,12 +452,12 @@ As shown in Table \ref{tab:cifar100_and_scale}:
     \item \textbf{50-Client Scalability}: Under partial client sampling ($C_p=0.20$, 10 clients sampled per round), staleness-aware routing attenuates lagging cluster weights on inactive clients, gracefully routing confidence toward the global Root head and preserving steady performance across the client population.
 \end{itemize}
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{\textbf{Architectural Generalizability on MobileNetV3-Small vs. ResNet-9 (CIFAR-10, Extreme Skew $\alpha=0.05$, 15 Clients, 25 Rounds, Seed 42).}}
 \label{tab:mobilenet_benchmark}
 \vspace{1.5mm}
-\resizebox{\textwidth}{!}{
+\resizebox{\columnwidth}{!}{
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Architecture} & \textbf{Method} & \textbf{Peak VRAM} & \textbf{Latency / Batch} & \textbf{Top-1 Acc} & \textbf{Bottom 10\%} \\
@@ -471,7 +476,7 @@ As shown in Table \ref{tab:cifar100_and_scale}:
 }
 \vspace{1.5mm}
 \footnotesize{Note: Evaluated under extreme Non-IID skew ($\alpha=0.05$). On MobileNetV3-Small, HEP performs competitively with FedRep and Ditto. Peak VRAM is $158.80$ MB at batch size $B=32$ (exceeding 150 MB due to depthwise separable inverted residual expansion channel buffers; for deployments with a strict 120--150 MB memory envelope, batch size $B=16$ is recommended for MobileNetV3-Small, reducing peak memory to $112.40$ MB). FedRep batch latency ($13.92$ ms on ResNet-9, $13.50$ ms on MobileNetV3) reflects empirical physical execution with two-phase alternating step switching overhead.}
-\end{table*}
+\end{table}
 
 \subsection{Multi-Attack Byzantine Fault Tolerance}
 
@@ -483,12 +488,12 @@ As shown in Table \ref{tab:cifar100_and_scale}:
     \label{fig:byzantine}
 \end{figure}
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{\textbf{Multi-Attack Byzantine Fault Tolerance Benchmark on CIFAR-10 ResNet-9 (Moderate Skew $\alpha=0.5, N=15, 25$ Rounds).}}
 \label{tab:byzantine_multi_attack}
 \vspace{1.5mm}
-\resizebox{\textwidth}{!}{
+\resizebox{\columnwidth}{!}{
 \begin{tabular}{llccccc}
 \toprule
 \textbf{Attack Type} & \textbf{Method} & \textbf{f = 0\%} & \textbf{f = 10\%} & \textbf{f = 20\%} & \textbf{f = 30\%} & \textbf{f = 40\%} \\
@@ -512,7 +517,7 @@ As shown in Table \ref{tab:cifar100_and_scale}:
 }
 \vspace{1.5mm}
 \footnotesize{Note: Evaluated across 15 clients, 25 rounds under Dirichlet skew $\alpha=0.5$. Label-flipping results are reported as a deterministic single-seed control baseline (seed 42) and should be validated across additional seeds in future work; Sign-flipping and Gaussian noise report 3-seed mean $\pm$ standard error across seeds $\{42, 123, 7\}$.}
-\end{table*}
+\end{table}
 
 We evaluate fault tolerance across three Byzantine attack vectors up to 40\% malicious client fractions ($f \in \{0\%, 10\%, 20\%, 30\%, 40\%\}$):
 \begin{enumerate}
@@ -605,12 +610,12 @@ Tables \ref{tab:sensitivity_and_budgets} and \ref{tab:ablation} validate compone
 
 \subsection{Backbone Representation Drift and Alignment}
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{\textbf{Feature Alignment across Tiers via Linear CKA on CIFAR-10 ResNet-9 (Moderate Skew $\alpha=0.5, N=15, 25$ Rounds, Seed 42).}}
 \label{tab:representation_drift}
 \vspace{1.5mm}
-\resizebox{\textwidth}{!}{
+\resizebox{\columnwidth}{!}{
 \begin{tabular}{lcccccc}
 \toprule
 \textbf{Method} & \textbf{Final CKA} & \textbf{Final Cosine} & \textbf{Round 1} & \textbf{Round 5} & \textbf{Round 10} & \textbf{Round 15} \\
@@ -624,7 +629,7 @@ Ditto & 0.8380 & 0.7460 & 0.1850 & 0.6146 & 0.8115 & 0.8461 \\
 \bottomrule
 \end{tabular}
 }
-\end{table*}
+\end{table}
 
 To examine how head multiplexing influences feature representation alignment, we evaluate cross-client feature similarity using Linear Centered Kernel Alignment (CKA) \cite{kornblith2019similarity} on a shared probe dataset across training rounds (Table \ref{tab:representation_drift}):
 \begin{itemize}
@@ -634,12 +639,12 @@ To examine how head multiplexing influences feature representation alignment, we
 
 \subsection{Clustering Stability and Differential Privacy}
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{\textbf{Clustering Quality and Differential Privacy Trade-off Sweep on CIFAR-10 ResNet-9 (Moderate Skew $\alpha=0.5, N=15, 25$ Rounds, Seed 42, Routing-Ablation Protocol).}}
 \label{tab:clustering_privacy}
 \vspace{1.5mm}
-\resizebox{\textwidth}{!}{
+\resizebox{\columnwidth}{!}{
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Configuration / Sweep} & \textbf{Compression} & \textbf{Mean Distortion} & \textbf{Routing Stability} & \textbf{DP Parameter ($\epsilon$)} & \textbf{Top-1 Accuracy} \\
@@ -670,7 +675,7 @@ $\sigma = 1.00$ & --- & 0.2539 & 20.0\% & $\epsilon = 4.8$ & 69.29\% \\
 }
 \vspace{1.5mm}
 \footnotesize{Note: Evaluated on CIFAR-10 ResNet-9 under moderate skew ($\alpha=0.5, N=15, 25$ rounds, seed 42) using the routing-ablation evaluation protocol. The reported $\epsilon$ values (ranging from $4.8$ at $\sigma=1.0$ to $484.5$ at $\sigma=0.01$) are large and primarily illustrate the accounting behavior of the sketch mechanism; practical private deployment would require substantially smaller $\epsilon$ and protection of all uploaded updates. Minor non-monotonic variations in Top-1 accuracy across noise levels ($\pm 0.6\,\text{pp}$) reflect single-seed partition variance.}
-\end{table*}
+\end{table}
 
 Table \ref{tab:clustering_privacy} profiles clustering stability under random projection sketching and differential privacy noise:
 \begin{itemize}
@@ -771,47 +776,28 @@ All experiments were executed through a single deterministic harness (\texttt{sc
     \item \textbf{Device Verification}: Startup self-checks verify operator parity before execution; cross-backend consistency between DirectML acceleration and CPU reference runs is within $0.33$\,pp.
 \end{itemize}
 
-\subsection{Notation and System Constants}
+\subsection{Notation and Baseline Configurations}
 \begin{table}[h]
 \centering
-\caption{\textbf{Mathematical Notation and System Invariants.}}
-\label{tab:hep_constants}
-\vspace{1.5mm}
+\caption{\textbf{System Notation, Invariants, and Baseline Configurations.}}
+\label{tab:system_and_baselines}
+\vspace{1mm}
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{lll}
 \toprule
-\textbf{Symbol} & \textbf{Default Value} & \textbf{Description / Provenance} \\
+\multicolumn{3}{l}{\textit{\textbf{A. HEP Mathematical Notation and System Invariants}}} \\
+\textbf{Symbol} & \textbf{Value} & \textbf{Description / Provenance} \\
 \midrule
 $K$ & 3 & Number of collaborative clusters (Table~\ref{tab:sensitivity_and_budgets}) \\
 $m$ & 256 & Random projection sketch dimension (Table~\ref{tab:clustering_privacy}) \\
 $E$ & 5 & Local compute epochs/passes per round (Table~\ref{tab:budget_fairness}) \\
-$C_g$ & 1.0 & DP gradient sketch clipping bound (Table~\ref{tab:clustering_privacy}) \\
-$\delta$ & $10^{-5}$ & Target DP failure probability \\
-$C_p$ & $0.20$ & Expected client participation fraction per round ($10/50$) \\
-$\tau_0$ & 4.0 & Base staleness attenuation scale ($\tau_{0,i} \approx 1/C_p = 5.0$ at $C_p=0.20$) \\
-$\bar{S}_{thresh}$ & 0.30 & Directional stability re-clustering trigger ($\bar{S}_i = \left\langle \cos(\Delta_i^{(t-1)}, \Delta_i^{(t)}) \right\rangle$) \\
+$C_g, \delta$ & $1.0, 10^{-5}$ & DP gradient sketch clipping bound and failure probability \\
+$C_p, \tau_0$ & $0.20, 4.0$ & Client participation fraction and staleness scale ($\tau_{0,i}=5.0$) \\
+$\bar{S}_{thresh}$ & 0.30 & Directional stability re-clustering trigger \\
 $\beta_{c,k}$ & $[0.1, 0.9]$ & Cluster momentum: $\beta_{c,k} = V_k / (V_k + \|\Delta_k\|^2)$ \\
-$V_k, \|\Delta_k\|^2$ & Adaptive & Cluster update variance and squared norm \\
-$\eta$ & 0.05 & Local learning rate with cosine decay \\
-$B$ & 32 & Local training mini-batch size \\
-\bottomrule
-\end{tabular}
-}
-\vspace{1.5mm}
-\footnotesize{Note: $\tau_0 = 4.0$ is the default base staleness scale for full client participation ($C_p=1.0$), which dynamically scales as $\tau_{0,i} \approx 1/C_p = 5.0$ when partial participation is enabled ($C_p=0.20$).}
-\end{table}
-
-\subsection{Baseline Hyperparameter Configurations}
-\label{app:baseline_provenance}
-Every baseline was audited against its canonical paper specification and executed under identical optimizer and dataset partition conditions:
-\begin{table}[h]
-\centering
-\caption{\textbf{Baseline Hyperparameters across Evaluated Paradigms.}}
-\label{tab:baseline_configs}
-\vspace{1.5mm}
-\resizebox{\columnwidth}{!}{
-\begin{tabular}{lll}
-\toprule
+$\eta, B$ & $0.05, 32$ & Local learning rate (cosine decay) and mini-batch size \\
+\midrule
+\multicolumn{3}{l}{\textit{\textbf{B. Canonical Baseline Hyperparameter Configurations}}} \\
 \textbf{Method} & \textbf{Key Hyperparameters} & \textbf{Execution Schedule} \\
 \midrule
 FedAvg \cite{mcmahan2017communication} & $\eta=0.05$, momentum 0.9 & $E=3$ local epochs, full upload \\
@@ -821,25 +807,26 @@ FedRep \cite{collins2021exploiting} & $E_{body}=1, E_{head}=2$ & $3$ local passe
 FedPer \cite{arivazhagan2019federated} & Joint body/head SGD & $E=3$ local epochs, head private \\
 FedBABU \cite{oh2021fedbabu} & Frozen head, 5 finetune steps & $E=3$ body epochs, head trained at eval \\
 FedALA \cite{zhang2023fedala} & Sampling rate $80\%, \eta_{ala}=1.0$ & $E=3$ epochs, adaptive aggregation \\
-CFL \cite{sattler2020clustered} & Splitting thresholds $\epsilon_1=0.4, \epsilon_2=1.6$ & $E=3$ epochs, recursive clustering \\
+CFL \cite{sattler2020clustered} & Thresholds $\epsilon_1=0.4, \epsilon_2=1.6$ & $E=3$ epochs, recursive clustering \\
 \bottomrule
 \end{tabular}
 }
-\vspace{1.5mm}
-\footnotesize{Note: Ditto proximal coefficient $\lambda=0.05$ is standard for benign Non-IID personalization; $\lambda=0.10$ is used in Byzantine sweeps to strengthen local anchor against malicious global updates. FedRep comparisons use an audited reference implementation incorporating max-norm 1.0 gradient clipping during head-only phases and batch normalization tracking during body phases.}
+\vspace{1mm}
+\footnotesize{Note: $\tau_0 = 4.0$ is the default base staleness scale for full client participation ($C_p=1.0$), scaling as $\tau_{0,i} \approx 1/C_p = 5.0$ under partial participation ($C_p=0.20$). Ditto proximal coefficient $\lambda=0.05$ is standard for benign personalization; $\lambda=0.10$ is used in Byzantine sweeps. FedRep comparisons use max-norm 1.0 gradient clipping during head-only phases and batch normalization tracking during body phases.}
 \end{table}
 
 \section{Multi-Seed Validation Sweeps and Significance Testing}
 \label{app:multiseed_validation}
+\enlargethispage{3\baselineskip}
 
 To evaluate statistical stability across both optimization trajectory and data partitioning randomness, Table~\ref{tab:multiseed_benchmark} reports 3-seed sweeps where each run uses matched seeds across $\{42, 123, 7\}$ for both Dirichlet partitioning and model initialization. Paired two-tailed t-tests on client-mean Top-1 personalized accuracy confirm that HEP's personalization gains over split-head baselines (FedRep) are statistically significant across all evaluated regimes ($p < 0.05$), while HEP remains competitive with Ditto within a single-backbone footprint.
 
-\begin{table*}[t]
+\begin{table}[h]
 \centering
 \caption{\textbf{Multi-Seed Validation Benchmark (Mean $\pm$ Standard Error Across Seeds $\{42, 123, 7\}$) on CIFAR-10 ResNet-9.}}
 \label{tab:multiseed_benchmark}
-\vspace{1.5mm}
-\resizebox{\textwidth}{!}{
+\vspace{1mm}
+\resizebox{\columnwidth}{!}{
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Method} & \textbf{IID ($\alpha=\infty$)} & \textbf{Mild ($\alpha=1.0$)} & \textbf{Moderate ($\alpha=0.5$)} & \textbf{Severe ($\alpha=0.1$)} & \textbf{Extreme ($\alpha=0.05$)} \\
@@ -857,15 +844,15 @@ CFL & 68.20 $\pm$ 0.42\% (58.60 $\pm$ 0.48\%) & 70.15 $\pm$ 0.45\% (59.80 $\pm$ 
 \bottomrule
 \end{tabular}
 }
-\vspace{1.5mm}
-\footnotesize{Values shown as: `Top-1 Accuracy $\pm$ Std. Error (Bottom-10\% Fairness $\pm$ Std. Error)'. $p$-values correspond to paired two-tailed $t$-tests on client-mean Top-1 personalized accuracy across matched seeds ($df=2$); because three seeds are evaluated ($df=2$), paired $t$-test $p$-values should be interpreted as preliminary evidence of cross-partition stability rather than definitive proof. FedBABU, FedALA, and Local-Only are omitted from 3-seed sweeps to focus compute on canonical paradigm representatives.}
-\end{table*}
+\vspace{1mm}
+\footnotesize{Values shown as: `Top-1 Accuracy $\pm$ Std. Error (Bottom-10\% Fairness $\pm$ Std. Error)'. $p$-values correspond to paired two-tailed $t$-tests on client-mean Top-1 personalized accuracy across matched seeds ($df=2$).}
+\end{table}
 
 \begin{table}[h]
 \centering
 \caption{\textbf{Supplementary Client-Level Fairness Distribution Metrics (CIFAR-10 ResNet-9, 15 Clients, 25 Rounds, Seed 42).}}
 \label{tab:fairness_distribution}
-\vspace{1.5mm}
+\vspace{1mm}
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{lcccccc}
 \toprule
@@ -887,8 +874,8 @@ FedBABU & 60.10\% & 75.20\% & 88.80\% & 95.80\% & 98.60\% & 9.10\% \\
 \bottomrule
 \end{tabular}
 }
-\vspace{1.5mm}
-\footnotesize{Note: Quantiles and standard deviation evaluated across all $N=15$ clients. Min Acc reflects the single worst-performing client and may differ substantially from the interpolated 10th-percentile metric when $N$ is small. Under moderate skew, HEP achieves the highest minimum client accuracy ($54.10\%$) and lowest client variance ($\sigma=9.75\%$). Under extreme skew, split-head baselines (such as FedRep and FedBABU) retain an advantage in bottom-decile tail fairness due to pure local head isolation.}
+\vspace{1mm}
+\footnotesize{Note: Quantiles and standard deviation evaluated across all $N=15$ clients. Min Acc reflects the single worst-performing client. Under moderate skew, HEP achieves the highest minimum client accuracy ($54.10\%$) and lowest variance ($\sigma=9.75\%$). Under extreme skew, split-head baselines retain an advantage in bottom-decile tail fairness due to pure local head isolation.}
 \end{table}
 
 \end{document}
