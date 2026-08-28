@@ -5,9 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tests: Passing](https://img.shields.io/badge/tests-94%2F94%20passing-brightgreen.svg)](tests/)
 
-Official PyTorch implementation of **HEP** (*Hierarchical Ensemble Personalization*), a lightweight, parameter-efficient framework for personalized federated learning (PFL) across heterogeneous edge devices.
-
-* **Academic Paper:** See [`paper/main.pdf`](paper/main.pdf) (Conference Paper) and [`report/main.pdf`](report/main.pdf) (UROP Final Report).
+* **Project Report:** See [`report/main.pdf`](report/main.pdf) (VinUniversity UROP Final Report).
 
 ---
 
@@ -206,10 +204,6 @@ Topology-aware-FDL/
 |-- report/                     # UROP Final Report LaTeX source & compiled PDF
 |   |-- main.tex                # Report manuscript
 |   |-- main.pdf                # Compiled PDF report
-|   \-- references.bib          # Bibliography
-|-- paper/                      # Conference Paper LaTeX source & compiled PDF
-|   |-- main.tex                # Paper manuscript
-|   |-- main.pdf                # Compiled PDF paper
 |   \-- references.bib          # Bibliography
 |-- tests/                      # 94 pytest unit tests
 |-- requirements.txt            # Dependency specifications
