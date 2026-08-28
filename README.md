@@ -133,35 +133,46 @@ All benchmark results are evaluated under a standardized deterministic single-se
 ### Core Mathematical Formulations
 
 #### 1. Local Label Skew Metric
+
 $$
 R_{\text{skew},i} = \frac{\exp\big(H(p_i)\big) - 1}{C - 1} \in [0, 1]
 $$
+
 Evaluates empirical class balance ($0$ = extreme single-class skew, $1$ = uniform IID).
 
 #### 2. Normalized Anchored Binomial Loss Weights
+
 $$
-q_{r,i} = a_i + (1 - a_i) R_{\text{skew},i}^2, \quad q_{p,i} = 2 R_{\text{skew},i} (1 - R_{\text{skew},i}), \quad q_{l,i} = (1 - R_{\text{skew},i})^2
-$$
-$$
-\lambda_{k,i} = \frac{q_{k,i}}{q_{r,i} + q_{p,i} + q_{l,i}}, \quad \forall k \in \{r, p, l\}
+\begin{aligned}
+q_{r,i} &= a_i + (1 - a_i) R_{\text{skew},i}^2 \\
+q_{p,i} &= 2 R_{\text{skew},i} (1 - R_{\text{skew},i}) \\
+q_{l,i} &= (1 - R_{\text{skew},i})^2 \\
+\lambda_{k,i} &= \frac{q_{k,i}}{q_{r,i} + q_{p,i} + q_{l,i}}, \quad \forall k \in \{r, p, l\}
+\end{aligned}
 $$
 
 #### 3. 3-Head Composite Loss Objective with ACLM
+
 $$
 \mathcal{L}_{\text{batch}} = \lambda_{r,i} \mathcal{L}_{\text{CE}}(z_r, y) + \lambda_{p,i} \mathcal{L}_{\text{CE}}^{\text{masked}}(z_p, y) + \lambda_{l,i} \mathcal{L}_{\text{CE}}^{\text{masked}}(z_l, y)
 $$
+
 Computes features once per batch and applies Active-Class Logit Masking (ACLM) to Parent and Local heads.
 
 #### 4. Inference Prediction Blending
+
 $$
 z_{\text{pred}} = \alpha_r z_r + \gamma_i (\alpha_p z_p + \alpha_l z_l) + \mathbf{m}_i
 $$
+
 Blends multi-head predictions at test time with staleness attenuation ($\gamma_i = \exp(-\tau_i/\tau_{0,i})$).
 
 #### 5. Privacy-Preserving Random Projection Sketching
+
 $$
 s_i = P \cdot \Delta w_{r,i} \in \mathbb{R}^{256}
 $$
+
 Compresses Root-head updates ($2570$ dimensions) into a $256$-dimensional summary to make gradient reconstruction severely underdetermined.
 
 ---
