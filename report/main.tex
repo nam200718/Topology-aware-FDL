@@ -769,7 +769,7 @@ The author gratefully acknowledges the Undergraduate Research Opportunities Prog
 
 All experiments were executed through a single deterministic harness (\texttt{scripts/run\_comparison.py}) with the following environment and system configurations:
 \begin{itemize}
-    \item \textbf{Software Environment}: Python 3.11, PyTorch 2.1+, CUDA 12.0+ / DirectML backend with deterministic CPU fallback. Exact repository release tag: \texttt{v1.0.0} (commit \texttt{a1b2c3d}) at \url{https://github.com/nam200718/Topology-aware-FDL}.
+    \item \textbf{Software Environment}: Python 3.11, PyTorch 2.1+, CUDA 12.0+ / DirectML backend with deterministic CPU fallback. Exact repository release tag: \texttt{v1.0.0} (commit \texttt{2c2b15d}) at \url{https://github.com/nam200718/Topology-aware-FDL}.
     \item \textbf{Data Partitioning}: Standard single-seed benchmarks (Tables II--XII) generate Dirichlet partitions with seed 42; multi-seed validation sweeps (Appendix B) vary both the random optimization seed and partition seed across $\{42, 123, 7\}$ to evaluate robustness against partition randomness.
     \item \textbf{Device Verification}: Startup self-checks verify operator parity before execution; cross-backend consistency between DirectML acceleration and CPU reference runs is within $0.33$\,pp.
 \end{itemize}
