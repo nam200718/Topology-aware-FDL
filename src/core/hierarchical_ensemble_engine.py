@@ -75,6 +75,12 @@ class HierarchicalEnsembleEngine(BaseEngine):
         if self.cluster_method is None:
             self.cluster_method = "label_aware" if topo_params.get("cluster_by_label_dist", False) else "random"
 
+        # Expose the topology's actual cluster count to client-side analytics
+        # (dynamic anchor a_i = max(1/(2K), |Y_i|/C)); clamped like the
+        # k-means builders so phantom empty heads cannot skew the anchor.
+        self.config.clients.num_clusters = max(
+            1, min(self.topology.num_clusters, self.config.clients.num_clients))
+
         self.warmup_min_rounds = topo_params.get("warmup_min_rounds", 2)
         self.warmup_max_rounds = topo_params.get("warmup_max_rounds", 10)
         self.stability_threshold = topo_params.get("stability_threshold", 0.30)
@@ -172,6 +178,10 @@ class HierarchicalEnsembleEngine(BaseEngine):
             delta = (updated_state.weights - weights_before[client_id]).detach()
             current_deltas[client_id] = delta
             self.last_sampled_round[client_id] = round_num
+            # Persist cumulative participation for S-AFR's dynamic tau_0
+            # (read from the persistent state: copy() does not carry it).
+            updated_state.participation_count = (
+                getattr(self.clients_state[client_id], "participation_count", 0) + 1)
 
         # Track directional cluster affinity for Top-2 head routing at eval time
         if self.cluster_method == "update_similarity":

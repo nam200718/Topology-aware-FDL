@@ -8,10 +8,13 @@ from src.data.dataset import ClientDataset
 from src.defense.config import DefenseConfig
 from src.defense.aggregator import SoftRejectionAggregator
 from src.defense.trust_tracker import TrustTracker
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from temp.attacks import check_inf_nan
+
+
+def check_inf_nan(weights: torch.Tensor, initial_weights: torch.Tensor) -> bool:
+    """True = CLEAN, False = MALICIOUS (Inf/NaN detected)."""
+    delta = weights - initial_weights
+    return not (torch.isnan(delta).any() or torch.isinf(delta).any())
+
 
 
 class DefendedEnsembleEngine(HierarchicalEnsembleEngine):

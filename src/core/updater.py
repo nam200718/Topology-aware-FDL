@@ -110,7 +110,12 @@ class PyTorchLocalUpdater:
                 class_counts[u_cls.long()] = c_counts.float()
 
                 # Parameter-Free Hill-number Order-1 Perplexity Skew Ratio: R_skew = (exp(H) - 1) / (C - 1)
-                r_skew = compute_hill_number_r_skew(probs, num_classes)
+                total = class_counts.sum()
+                if total > 0:
+                    probs = class_counts / total
+                    r_skew = compute_hill_number_r_skew(probs, num_classes)
+                else:
+                    r_skew = 0.5
         except Exception:
             r_skew = 0.5
             active_mask = torch.ones(num_classes, dtype=torch.bool, device=self.device)

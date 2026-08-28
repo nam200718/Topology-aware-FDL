@@ -98,6 +98,10 @@ class ClientConfig(BaseModel):
     head_training_schedule: Literal["binomial", "piecewise"] = "binomial"
     # Anchor floor for root-head loss weight under extreme skew (binomial only; None/0.0 uses dynamic anchor).
     binomial_anchor_min: float = 0.0
+    # Cluster count K used by the dynamic anchor a_i = max(1/(2K), |Y_i|/C).
+    # Overwritten by HierarchicalEnsembleEngine with the topology's actual
+    # cluster count at init; default 3 matches the paper's canonical K.
+    num_clusters: int = 3
     # Enable parameter-free dynamic self-adaptive parameters (Hill-number R_skew, dynamic anchor, Poisson staleness, Kalman momentum)
     dynamic_parameters: bool = True
     # Two-stage high-cardinality schedule: freeze backbone while training the
@@ -215,6 +219,9 @@ class ExperimentConfig(BaseModel):
     """
     experiment_type: ExperimentType = "single"
     num_rounds: int = 10
+    # Evaluate every N-th round plus the final round. Forwarded to each
+    # SimulationConfig so should_evaluate() honors YAML eval_interval keys.
+    eval_interval: int = 1
 
     env: EnvironmentConfig = Field(default_factory=EnvironmentConfig)
     clients: ClientConfig = Field(default_factory=ClientConfig)
@@ -295,10 +302,10 @@ class ExperimentConfig(BaseModel):
             topo = self.topology or (self.topologies[0] if self.topologies else TopologyEntry(type="star", label="Star"))
             label = topo.label or topo.type.replace("_", " ").capitalize()
             exp_name = f"{topo.type}_single"
-
             sim_config = SimulationConfig(
                 experiment_name=exp_name,
                 num_rounds=self.num_rounds,
+                eval_interval=max(1, self.eval_interval),
                 env=env,
                 topology=TopologyConfig(type=topo.type, params=topo.params),
                 clients=self._make_client_config(topo.type, topo.params),
@@ -321,6 +328,7 @@ class ExperimentConfig(BaseModel):
                     sim_config = SimulationConfig(
                         experiment_name=exp_name,
                         num_rounds=self.num_rounds,
+                        eval_interval=max(1, self.eval_interval),
                         env=env,
                         topology=TopologyConfig(type=topo.type, params=topo.params),
                         clients=self._make_client_config(topo.type, topo.params),
@@ -349,6 +357,7 @@ class ExperimentConfig(BaseModel):
                     sim_config = SimulationConfig(
                         experiment_name=exp_name,
                         num_rounds=self.num_rounds,
+                eval_interval=max(1, self.eval_interval),
                         env=env,
                         topology=TopologyConfig(type=topo.type, params=topo.params),
                         clients=self._make_client_config(topo.type, topo.params),

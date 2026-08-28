@@ -152,6 +152,7 @@ class BaseEngine(ABC):
         for client_id in range(self.config.clients.num_clients):
             state = ClientState(client_id, initial_w.clone())
             state.data_samples = len(self.client_indices[client_id])
+            state.participation_count = 0
             if self.rng.rand() < getattr(self.config.robustness, "byzantine_rate", 0.0):
                 state.is_byzantine = True
                 state.byzantine_type = self.config.robustness.byzantine_type

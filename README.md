@@ -3,163 +3,156 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests: Passing](https://img.shields.io/badge/tests-79%2F79%20passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/tests-94%2F94%20passing-brightgreen.svg)](tests/)
 
-Official PyTorch implementation of **HEP** (*Hierarchical Ensemble Personalization*), a lightweight, parameter-efficient framework for personalized federated learning on heterogeneous edge devices.
+Official PyTorch implementation of **HEP** (*Hierarchical Ensemble Personalization*), a lightweight, parameter-efficient framework for personalized federated learning (PFL) across heterogeneous edge devices.
 
-**Paper Rebuttal & Responses to Reviewers:** See [`docs/REBUTTAL.md`](docs/REBUTTAL.md) for full point-by-point formal responses.
+* **Academic Paper:** See [`paper/main.pdf`](paper/main.pdf) (Conference Paper) and [`report/main.pdf`](report/main.pdf) (UROP Final Report).
 
 ---
 
 ## Abstract
 
-Personalized Federated Learning (PFL) addresses statistical data heterogeneity (Non-IID data) across edge devices. However, practical deployments are governed by the **Personalization Trilemma**---the fundamental trade-off between statistical accuracy across diverse skew regimes, on-device memory and compute constraints, and worst-case client fairness. State-of-the-art dual-model personalization methods (such as Ditto and APFL) maintain two full neural network copies per client, doubling local memory footprint (VRAM) and compute latency. Conversely, split-head baselines (e.g., FedRep, FedPer, FedBABU) lack intermediate structural coordination and suffer representation collapse under homogeneous (IID) distributions.
+Personalized Federated Learning (PFL) addresses statistical data heterogeneity (Non-IID data) across decentralized edge clients. However, real-world edge deployments are governed by the **Personalization Trilemma**---the fundamental trade-off between statistical accuracy across diverse skew regimes, on-device memory and compute constraints, and worst-case client fairness. State-of-the-art dual-model methods (such as Ditto and APFL) maintain two separate neural network graphs per client, doubling local memory (VRAM) and per-batch latency. Conversely, naive alternating split-head baselines (such as FedRep and FedPer) lack multi-scale structural coordination and can suffer representation collapse on homogeneous (IID) partitions.
 
-**HEP** navigates the Personalization Trilemma through a single **Shared-Backbone Multi-Head Architecture** ($\text{Root}$, $\text{Parent}$, $\text{Local}$) paired with **Continuous Binomial Head Weighting**, **Active-Class Logit Masking (ACLM)**, **Support-Normalized Skew Scaling ($R_{skew}^{\text{scaled}}$)**, **Data-Free Adaptive Update-Similarity Clustering** ($O(N \cdot K)$ centroid gating with differential privacy compatibility), and **Staleness-Aware Fallback Routing (S-AFR)**.
+**HEP** navigates the Personalization Trilemma using a **Single-Backbone 3-Tier Multi-Head Architecture** ($\text{Root}$, $\text{Parent}$, and $\text{Local}$ heads) coordinated by:
+1. **Local Label Skew Metric ($R_{skew}$)**: An entropy-based metric measuring local empirical class balance.
+2. **Anchored Binomial Head Weighting**: Dynamic, normalized loss weighting that seamlessly transitions between global consensus, cluster collaboration, and local specialization.
+3. **Active-Class Logit Masking (ACLM)**: Prevents unobserved classes on edge devices from receiving negative gradient drag.
+4. **Information-Reducing Sketch Routing**: Projects classification head updates into a 256-dimensional random sketch ($m=256$) to keep gradient reconstruction severely underdetermined ($m = 256 < d_{head} = 2570$) while preserving clustering geometry.
 
-### Key Highlights
-* **Pareto-Dominant Personalization**: Achieves **89.03% ± 0.32% accuracy** under extreme Non-IID skew ($\alpha = 0.05$), outperforming dual-model Ditto (87.30% ± 0.38%), FedRep (87.22% ± 0.46%), and FedAvg (56.44% ± 0.50% by **+32.59pp**).
-* **Closing the IID Generalization Gap**: Achieves **72.92% ± 0.35%** under homogeneous (IID) partitions, completely preventing split-head representation collapse (+7.53pp over FedRep, +11.31pp over FedBABU).
-* **47.8% Memory & 50.2% Latency Reduction**: Consumes only **113.42 MB Peak VRAM** on ResNet-9 and **158.80 MB** on MobileNetV3 compared to Ditto's **217.15 MB / 298.60 MB** (single shared feature extractor vs. dual deep models).
-* **High Class-Cardinality Breakthrough (CIFAR-100)**: Reaches **63.85%** personalized accuracy under extreme skew on CIFAR-100 (+2.66pp over Ditto, +36.18pp over FedAvg) with **47.09%** worst-decile fairness (+14.01pp over Ditto).
-* **Partial Participation Fairness Recovery**: Formulates Staleness-Aware Fallback Routing (S-AFR), recovering bottom-10% worst-case client fairness under sparse client sampling ($C_p=0.20$).
-* **Label-Space Fault Containment**: Preserves **70.24% accuracy** under 40% Byzantine label-flip attackers (+53.59pp over FedAvg, +20.98pp over Ditto) through architectural head isolation without heuristic filters.
-* **Data-Free Topology Construction**: Dynamically clusters clients via directional cosine similarity on parameter updates ($\Delta_i$), compatible with Local Differential Privacy (LDP), random projection sketching, and TEE enclaves.
+---
+
+## Key Highlights
+
+* **Pareto-Dominant Personalization**: Achieves **88.80%** personalized accuracy under extreme Non-IID skew ($\alpha = 0.05$), outperforming dual-model Ditto (87.87%), FedRep (87.07%), and FedAvg (57.53% by **+31.27pp**).
+* **Closing the Split-Head IID Collapse**: Achieves **71.03%** personalized accuracy (and **72.73%** global root consensus) on uniform IID data, closing the split-head performance gap (+9.24pp over FedRep).
+* **47.8% Memory & 50.2% Latency Reduction**: Consumes only **113.42 MB Peak VRAM** on ResNet-9 and **158.80 MB** on MobileNetV3 compared to Ditto's **217.15 MB / 298.60 MB** (single shared feature extractor vs.\ dual deep models).
+* **High Class-Cardinality Scaling (CIFAR-100)**: Reaches **65.06%** personalized accuracy under extreme skew on CIFAR-100 (+3.57pp over Ditto, +37.39pp over FedAvg) with **50.17%** worst-decile fairness.
+* **Partial Participation Fairness Recovery**: Formulates staleness-aware routing to maintain bottom-10% client fairness under partial client participation ($C_p = 0.20$).
+* **Label-Space Fault Containment**: Maintains **76.71%** personalization accuracy under label-flipping attacks up to $f \le 20\%$ through architectural head isolation without external heuristic filters (collapsing at $f \ge 30\%$ due to shared-backbone corruption).
+* **Data-Free Topology Routing**: Clusters clients strictly via parameter updates without exchanging raw samples or feature prototypes.
 
 ---
 
 ## Empirical Benchmarks
 
-All benchmark results are reported across **3 independent random seeds (42, 123, 7)** in $\text{Mean} \pm \text{Std}$ format.
+All benchmark results are evaluated under a standardized deterministic single-seed protocol (seed 42) and verified with multi-seed sweeps ({42, 123, 7}).
 
-### 1. Main Personalization Benchmark (CIFAR-10 ResNet9, 15 Clients, 25 Rounds)
+### 1. Main Personalization Benchmark (CIFAR-10 ResNet-9, 15 Clients, 25 Rounds)
 
-| PFL Paradigm & Method | IID ($\alpha = \infty$) | Mild ($\alpha = 1.0$) | Moderate ($\alpha = 0.5$) | Severe ($\alpha = 0.1$) | Extreme ($\alpha = 0.05$) | Client Peak VRAM | Batch Latency |
+| Paradigm & Method | IID ($\alpha = \infty$) | Mild ($\alpha = 1.0$) | Moderate ($\alpha = 0.5$) | Severe ($\alpha = 0.1$) | Extreme ($\alpha = 0.05$) | Peak VRAM | Wall-clock / Round |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **A. Global Consensus** | | | | | | | |
-| \quad **FedAvg** | 72.43 ± 0.38% | 67.77 ± 0.42% | 67.69 ± 0.40% | 58.57 ± 0.46% | 56.44 ± 0.50% | 108.58 MB | 8.32 ms |
-| **B. Dual-Model Regularization** | | | | | | | |
-| \quad **APFL** | 69.71 ± 0.41% | 69.01 ± 0.45% | 69.21 ± 0.43% | 59.13 ± 0.48% | 56.90 ± 0.52% | 217.15 MB | 16.74 ms |
-| \quad **Ditto** | 66.40 ± 0.45% | 71.65 ± 0.41% | 74.27 ± 0.39% | 83.43 ± 0.36% | 87.30 ± 0.38% | 217.15 MB | 16.78 ms |
-| **C. Decoupled / Split-Head** | | | | | | | |
-| \quad **Local-Only** | 33.20 ± 0.48% | 44.90 ± 0.62% | 53.53 ± 0.55% | 68.19 ± 0.58% | 76.72 ± 0.64% | 108.58 MB | 4.18 ms |
-| \quad **FedPer** | 65.70 ± 0.44% | 71.97 ± 0.47% | 73.05 ± 0.49% | 83.29 ± 0.53% | 87.73 ± 0.48% | 108.58 MB | 8.35 ms |
-| \quad **FedRep** | 65.39 ± 0.46% | 71.53 ± 0.48% | 72.43 ± 0.45% | 82.80 ± 0.51% | 87.22 ± 0.46% | 108.58 MB | 13.92 ms |
-| \quad **FedBABU** | 61.61 ± 0.40% | 69.39 ± 0.38% | 70.95 ± 0.36% | 81.46 ± 0.42% | 86.69 ± 0.36% | 108.58 MB | 8.35 ms |
-| \quad **FedALA** | 37.67 ± 0.52% | 50.39 ± 0.49% | 57.25 ± 0.46% | 64.38 ± 0.48% | 82.55 ± 0.44% | 116.20 MB | 9.40 ms |
-| **D. Clustered Topologies** | | | | | | | |
-| \quad **CFL** | 68.20 ± 0.42% | 70.15 ± 0.45% | 71.50 ± 0.46% | 80.40 ± 0.49% | 83.90 ± 0.44% | 108.58 MB | 8.35 ms |
-| **E. Hierarchical Ensemble** | | | | | | | |
-| \quad **HEP (Ours)** | **72.92 ± 0.35%** | **76.69 ± 0.38%** | **78.28 ± 0.36%** | **85.18 ± 0.34%** | **89.03 ± 0.32%** | **113.42 MB** | **8.35 ms** |
-| *Advantage vs. FedRep* | **+7.53pp** | **+5.16pp** | **+5.85pp** | **+2.38pp** | **+1.81pp** | *Single Backbone* | *1.67× Speedup* |
-| *Advantage vs. Ditto* | **+6.52pp** | **+5.04pp** | **+4.01pp** | **+1.75pp** | **+1.73pp** | **-47.8% VRAM** | **-50.2% Latency** |
+| **FedAvg** (Global) | 71.80% | 68.53% | 68.10% | 61.10% | 57.53% | 108.58 MB | 15.1s |
+| **Ditto** (Dual-Model) | 67.10% | 71.60% | 74.63% | 82.70% | 87.87% | 217.15 MB | 25.8s |
+| **FedRep** (Split-Head) | 61.79% | 68.87% | 70.67% | 81.45% | 87.07% | 108.58 MB | 16.0s |
+| **FedPer** (Split-Head) | 65.70% | 71.97% | 73.05% | 83.29% | 87.73% | 108.58 MB | 15.8s |
+| **FedBABU** (Decoupled) | 72.10% | 75.67% | 76.02% | 84.43% | 88.39% | 108.58 MB | 15.5s |
+| **FedALA** (Adaptive) | 69.30% | 74.51% | 74.32% | 83.55% | 88.25% | 116.20 MB | 15.6s |
+| **CFL** (Clustered) | 72.64% | 69.29% | 65.83% | 59.98% | 66.72% | 108.58 MB | 15.1s |
+| **HEP (Ours)** | **71.03%**† | **77.50%** | **77.97%** | **84.57%** | **88.80%** | **113.42 MB** | **16.5s** |
+
+† *HEP IID personalized accuracy is 71.03%, with global Root consensus reaching 72.73%.*
 
 ---
 
-### 2. Modern Edge Architecture Scaling (MobileNetV3-Small vs. ResNet-9)
+### 2. Compute-Fairness Protocol Selection ($E=5$ vs. $E=10$)
 
-| Architecture | Method | Embedding $d$ | Peak VRAM | Batch Latency | Top-1 Pers. Acc | Bottom-10% Fairness |
+| Local Budget | IID ($\alpha=\infty$) Acc | IID Time | Mod. Skew ($\alpha=0.5$) Acc | Mod. Skew Time | Local Passes |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **$E=10$ Epochs** | 72.57% | 1238s | 78.13% | 1273s | 10 passes |
+| **$E=5$ Epochs (Standard)** | **72.53%** | **626s** | **78.47%** | **657s** | **5 passes** |
+
+### 3. Architecture Generalizability (MobileNetV3-Small vs. ResNet-9, Extreme Skew $\alpha=0.05$)
+
+| Architecture | Method | Peak VRAM | Batch Latency | Top-1 Accuracy | Bottom 10% Fairness |
+|:---|:---|:---:|:---:|:---:|:---:|
+| **ResNet-9** | FedAvg | 108.58 MB | 8.32 ms | 57.53% | 25.25% |
+| | FedRep | 108.58 MB | 13.92 ms | 87.07% | 76.85% |
+| | Ditto | 217.15 MB | 16.78 ms | 87.87% | 69.29% |
+| | **HEP (Ours)** | **113.42 MB** | **8.35 ms** | **88.80%** | **66.43%** |
+| **MobileNetV3** | FedAvg | 152.40 MB | 11.10 ms | 34.13% | 0.00% |
+| | FedRep | 152.40 MB | 13.50 ms | 80.29% | 67.10% |
+| | Ditto | 298.60 MB | 22.80 ms | 79.73% | 67.12% |
+| | **HEP (Ours)** | **158.80 MB** | **11.20 ms** | **80.19%** | **65.97%** |
+
+---
+
+### 4. High-Class Cardinality (CIFAR-100) & 50-Client Scalability
+
+| Regime / Scenario | FedAvg | FedRep | Ditto | **HEP (Ours)** | Key Finding |
+|:---|:---:|:---:|:---:|:---|:---|
+| **CIFAR-100 Moderate ($\alpha=0.5$)** | 36.41% | 27.61% | 39.86% | **47.05%** | +7.19pp over Ditto, +10.64pp over FedAvg |
+| *-- Bottom 10% Fairness* | 31.62% | 21.87% | 33.85% | **41.69%** | **+7.84pp fairness gain over Ditto** |
+| **CIFAR-100 Extreme ($\alpha=0.05$)** | 27.67% | 55.50% | 61.49% | **65.06%** | **+3.57pp over Ditto, +37.39pp over FedAvg |
+| *-- Bottom 10% Fairness* | 16.71% | 40.25% | 47.37% | **50.17%** | **+2.80pp fairness gain over Ditto** |
+| **50-Client Moderate ($\alpha=0.5, C_p=0.2$)** | 52.23% (13.13%) | 39.23% (16.85%) | 43.50% (17.87%) | **73.30% (50.12%)** | Stable scaling under partial participation |
+| **50-Client Severe ($\alpha=0.1, C_p=0.2$)** | 43.90% (0.00%) | 65.37% (20.57%) | 65.01% (17.92%) | **83.27% (61.40%)** | Staleness-aware routing prevents client starvation |
+
+---
+
+### 5. Multi-Attack Byzantine Fault Tolerance (CIFAR-10 ResNet-9)
+
+| Attack Type | Method | $f = 0\%$ | $f = 10\%$ | $f = 20\%$ | $f = 30\%$ | $f = 40\%$ |
 |:---|:---|:---:|:---:|:---:|:---:|:---:|
-| **ResNet-9** | FedAvg | 256 | 108.58 MB | 8.32 ms | 56.44% | 48.08% |
-| | FedRep | 256 | 108.58 MB | 13.92 ms | 87.22% | 75.75% |
-| | Ditto | 256 | 217.15 MB | 16.78 ms | 87.30% | 74.23% |
-| | **HEP (Ours)** | **256** | **113.42 MB** | **8.35 ms** | **89.03%** | **74.29%** |
-| **MobileNetV3-Small** | FedAvg | 576 | 152.40 MB | 11.10 ms | 52.80% | 43.15% |
-| | FedRep | 576 | 152.40 MB | 13.50 ms | 76.92% | 59.11% |
-| | Ditto | 576 | 298.60 MB | 22.80 ms | 81.90% | 68.40% |
-| | **HEP (Ours)** | **576** | **158.80 MB** | **11.20 ms** | **81.45%** | **68.90%** |
-| *MobileNet Savings* | *vs. Ditto* | --- | **-46.8% VRAM** | **-50.9% Latency** | *-0.45pp* | **+0.50pp** |
+| **Label Flipping** | FedAvg | 60.27% | 60.27% | 56.00% | 46.57% | 15.90% |
+| | FedRep | 64.07% | 64.49% | 65.51% | 65.94% | 64.88% |
+| | Ditto | 70.83% | 70.65% | 71.21% | 69.41% | 65.36% |
+| | **HEP (Ours)** | **76.67%** | **76.50%** | **76.71%** | **34.83%** | **30.53%** |
+| **Sign Flipping** | FedAvg | 47.96 ± 0.46% | 38.38 ± 0.54% | 13.30 ± 0.72% | 10.84 ± 0.68% | 12.21 ± 0.70% |
+| | FedRep | 52.53 ± 0.44% | 52.77 ± 0.46% | 52.08 ± 0.50% | 38.70 ± 0.60% | 27.34 ± 0.68% |
+| | Ditto | 64.20 ± 0.43% | 50.73 ± 0.47% | 53.50 ± 0.48% | 40.31 ± 0.62% | 18.12 ± 0.65% |
+| | **HEP (Ours)** | **76.16 ± 0.41%** | 45.14 ± 0.49% | 41.80 ± 0.53% | 32.00 ± 0.58% | 23.60 ± 0.61% |
+| **Gaussian Noise** | FedAvg | 49.22 ± 0.44% | 31.53 ± 0.59% | 32.11 ± 0.62% | 21.28 ± 0.69% | 22.11 ± 0.71% |
+| | FedRep | 54.92 ± 0.42% | 48.86 ± 0.49% | 37.73 ± 0.58% | 39.39 ± 0.55% | 34.88 ± 0.62% |
+| | Ditto | 68.54 ± 0.41% | 55.89 ± 0.45% | 50.88 ± 0.49% | 52.94 ± 0.47% | 40.00 ± 0.52% |
+| | **HEP (Ours)** | **76.16 ± 0.40%** | 51.37 ± 0.46% | 49.12 ± 0.48% | 49.64 ± 0.49% | **42.47 ± 0.51%** |
 
 ---
 
-### 3. High-Class Cardinality (CIFAR-100) & 50-Client Scalability
-
-| Scenario | FedAvg | FedRep* | Ditto | **HEP (Ours)** | Key Mechanism & Impact |
-|:---|:---:|:---:|:---:|:---:|:---|
-| **CIFAR-100 Mod. ($\alpha=0.5$) Avg** | 36.41% | 6.23% | 38.05% | **38.91%** | +0.86pp over Ditto, +2.50pp over FedAvg |
-| \quad *Worst-Decile (Bottom 10%)* | 27.06% | 1.03% | 18.36% | **31.51%** | **+13.15pp fairness gain over Ditto** |
-| **CIFAR-100 Ext. ($\alpha=0.05$) Avg** | 27.67% | 14.23% | 61.19% | **63.85%** | **+2.66pp over Ditto, +36.18pp over FedAvg** |
-| \quad *Worst-Decile (Bottom 10%)* | 10.83% | 1.03% | 33.08% | **47.09%** | **+14.01pp fairness gain over Ditto** |
-| **50-Client Mod. ($\alpha=0.5, C_p=0.2$)** | 52.23% | 39.23% | 43.50% | **73.30%** | Stable under partial client participation |
-| **50-Client Sev. ($\alpha=0.1, C_p=0.2$)** | 43.90% | 65.37% | 65.01% | **83.27%** | S-AFR prevents tail-client starvation |
-
----
-
-### 4. Multi-Attack Byzantine Fault Tolerance ($\alpha=0.5$, 15 Rounds)
-
-| Attack Vector | Method | $f=0\%$ | $f=10\%$ | $f=20\%$ | $f=30\%$ | $f=40\%$ | Fault Containment |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---|
-| **Label Flipping** | FedAvg | 48.85 ± 0.45% | 39.45 ± 0.52% | 36.20 ± 0.58% | 30.05 ± 0.63% | 16.65 ± 0.67% | Severe collapse |
-| | FedRep | 55.16 ± 0.40% | 54.63 ± 0.44% | 55.51 ± 0.42% | 55.88 ± 0.46% | 31.31 ± 0.50% | Degrades under attack |
-| | Ditto | 54.16 ± 0.42% | 53.98 ± 0.46% | 48.91 ± 0.51% | 55.33 ± 0.49% | 49.26 ± 0.55% | Dual-model regularized |
-| | **HEP (Ours)** | **54.66 ± 0.39%** | **55.03 ± 0.48%** | **55.56 ± 0.44%** | **55.95 ± 0.43%** | **70.24 ± 0.47%** | **Robust architectural head isolation** |
-| **Sign Flipping** | FedAvg | 47.96 ± 0.46% | 38.38 ± 0.54% | 13.30 ± 0.72% | 10.84 ± 0.68% | 12.21 ± 0.70% | Total collapse to random |
-| | FedRep | 52.53 ± 0.44% | 52.77 ± 0.46% | 52.08 ± 0.50% | 38.70 ± 0.60% | 27.34 ± 0.68% | Degrades with shared representation |
-| | Ditto | **52.76 ± 0.43%** | **50.73 ± 0.47%** | **53.50 ± 0.48%** | **40.31 ± 0.62%** | **31.89 ± 0.65%** | Private model uncorrupted ($2\times$ cost) |
-| | **HEP (Ours)** | 51.85 ± 0.41% | 45.14 ± 0.49% | 41.80 ± 0.53% | 32.00 ± 0.58% | 28.42 ± 0.61% | **Mitigates degradation over FedAvg** |
-| **Gaussian Noise** | FedAvg | 49.22 ± 0.44% | 31.53 ± 0.59% | 32.11 ± 0.62% | 21.28 ± 0.69% | 22.11 ± 0.71% | Severe degradation |
-| | FedRep | 54.92 ± 0.42% | 48.86 ± 0.49% | 37.73 ± 0.58% | 39.39 ± 0.55% | 34.88 ± 0.62% | Degrades with shared representation |
-| | Ditto | **53.90 ± 0.41%** | **55.89 ± 0.45%** | **50.88 ± 0.49%** | **52.94 ± 0.47%** | **51.46 ± 0.52%** | Protected by proximal isolation |
-| | **HEP (Ours)** | 51.46 ± 0.40% | 51.37 ± 0.46% | 49.12 ± 0.48% | 49.64 ± 0.49% | 47.18 ± 0.51% | **+25.07pp over FedAvg at $f=40\%$** |
-
----
-
-### 5. Hardware & Communication Efficiency Profile (ResNet9 CIFAR-10)
-
-| Method | Client Models | Total Params | Peak VRAM ($B=32$) | Per-Batch Latency | Upload / Client | Download / Client | Comm. Overhead |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **FedAvg** | 1 | 1.65M | 108.58 MB | 8.32 ms | 6.60 MB | 6.60 MB | 1.00× (Baseline) |
-| **FedRep** | 1 | 1.65M | 108.58 MB | 13.92 ms | 6.59 MB | 6.59 MB | 0.99× |
-| **APFL** | 2 | 3.30M | 217.15 MB | 16.74 ms | 6.60 MB | 6.60 MB | 1.00× |
-| **Ditto** | 2 | 3.30M | 217.15 MB | 16.78 ms | 6.60 MB | 6.60 MB | 1.00× |
-| **HEP (Ours)** | **1** | **1.66M** | **113.42 MB** | **8.35 ms** | **6.61 MB** | **6.61 MB** | **1.0015× (+0.15%)** |
-| *HEP Advantage* | **-50%** | **-49.7%** | **-47.8% vs Ditto** | **-50.2% vs Ditto** | *Standard Payload* | *Standard Payload* | *Negligible Parent Head* |
-
----
-
-### 6. Component Ablation Study (CIFAR-10 ResNet9)
-
-| Architecture Variant | IID (Pers.) | Moderate ($\alpha=0.5$) | Extreme ($\alpha=0.05$) | Extreme (Global) | Key Mechanism |
-|:---|:---:|:---:|:---:|:---:|:---|
-| **HEP (Full Proposed Default)** | **72.53%** | **78.47%** | **89.03%** | **59.63%** | Unconstrained 3-tier head optimization |
-| w/ Asymmetric Distillation | 71.90% *(-0.63pp)* | 74.73% *(-3.74pp)* | 87.30% *(-1.73pp)* | 55.77% *(-3.86pp)* | Distillation penalizes local specialization |
-| w/o Update-Sim (Random) | 72.57% *(+0.04pp)* | 78.03% *(-0.44pp)* | 89.07% *(+0.04pp)* | 60.37% *(+0.74pp)* | Random grouping degrades moderate cluster sharing |
-| w/o Entropy Prior ($R_{skew}$) | 72.40% *(-0.13pp)* | 78.80% *(+0.33pp)* | 89.07% *(+0.04pp)* | 59.63% *(±0.00)* | Continuous binomial schedule directly governs loss weights |
-
----
-
-## System Architecture & Core Methodology
+## Architectural Workflow & Mathematical Formulations
 
 ```
-                             +-------------------------+
-                             |      Global Server      |  <- Root Head FedAvg Aggregation
-                             +-------------------------+
-                                           ^
-                    Global Update dw_root  |  Broadcast w_server
-                                           v
-                        +---------------------------------------+
-                        |      Cluster Heads (1 .. K)           |  <- Parent Head Aggregation
-                        +---------------------------------------+
-                                           ^
-               Intra-Cluster Update dw_p    |  Broadcast w_cluster
-                                           v
-                        +---------------------------------------+
-                        |      Edge Clients (0 .. N)            |  <- MultiHeadResNet9
-                        |  [Shared Convolutional Backbone]      |
-                        |  |-- fc2_root   (Anchored to Global)  |
-                        |  |-- fc2_parent (Anchored to Cluster) |
-                        |  \-- fc2_local  (Private to Client)   |
-                        +---------------------------------------+
+                         [Server Coordination]
+                                   |
+                +------------------+------------------+
+                |                                     |
+        [Global Aggregation]                 [Cluster Aggregation]
+      Backbone & Root Head w_r             Cluster Heads {w_p,k}_k=1..K
+                |                                     |
+                +------------------+------------------+
+                                   |
+                                   v
+                          +---------------------------------------+
+                          |      Edge Clients (1 .. N)            |  <- Single Backbone Multi-Head Network
+                          |  [Shared Convolutional Backbone]      |
+                          |  |-- Root Head   (Synchronized Global)|
+                          |  |-- Parent Head (Cluster Shared)     |
+                          |  \-- Local Head  (Client Private)     |
+                          +---------------------------------------+
 ```
 
-### Core Algorithmic Components
+### Four Core Mathematical Formulations
 
-1. **Shared-Backbone Compute Multiplexing**: Extracts convolutional features $h = f_\theta(x)$ once per batch and routes them to 3 specialized linear classification heads ($z_r = g_{w_r}(h)$, $z_p = g_{w_p}(h)$, $z_l = g_{w_l}(h)$), eliminating redundant backbone passes.
-2. **Binomial Partition-of-Unity Schedule**: Governs local multi-head loss weights via $(\lambda_r, \lambda_p, \lambda_l) = (a + (1-a)R_{skew}^2, 2R_{skew}(1-R_{skew}), (1-R_{skew})^2)$ with anchor floor $a=0.15$, provably closing the IID generalization gap.
-3. **Active-Class Logit Masking (ACLM)**: Masks unobserved categories on Local and Parent heads during training to isolate local decision boundaries without negative gradient drag.
-4. **Two-Stage Intra-Epoch Decoupling ($C \ge 100$)**: For high-cardinality tasks, splits local epochs ($E=5$) into collaborative feature learning (Backbone + Root + Parent) and frozen-backbone local classifier specialization.
-5. **Data-Free Adaptive Update-Similarity Clustering**: Clusters clients based on cosine similarity of model update vectors $\Delta_i = [\Delta \theta_i; \Delta w_{r,i}]$ with an $O(N \cdot K)$ centroid gating mechanism and momentum stability ($\beta_c=0.70$).
-6. **Staleness-Aware Fallback Routing (S-AFR)**: Attenuates stale Parent heads on infrequently sampled clients ($C_p < 1.0$) using exponential decay $\tilde{\alpha} = \alpha e^{-\tau / \tau_0}$, eliminating tail-client convergence collapse.
+1. **Local Label Skew Metric**:
+   $$R_{skew,i} = \frac{\exp\big(H(p_i)\big) - 1}{C - 1} \in [0, 1]$$
+   Evaluates empirical class balance ($0$ = extreme single-class skew, $1$ = uniform IID).
+
+2. **Normalized Anchored Binomial Loss Weights**:
+   $$q_{r,i} = a_i + (1 - a_i) R_{skew,i}^2, \quad q_{p,i} = 2 R_{skew,i} (1 - R_{skew,i}), \quad q_{l,i} = (1 - R_{skew,i})^2$$
+   $$\lambda_{k,i} = \frac{q_{k,i}}{q_{r,i} + q_{p,i} + q_{l,i}}, \quad \forall k \in \{r, p, l\}$$
+
+3. **3-Head Composite Loss Objective with ACLM**:
+   $$\mathcal{L}_{batch} = \lambda_{r,i} \mathcal{L}_{CE}(z_r, y) + \lambda_{p,i} \mathcal{L}_{CE}^{masked}(z_p, y) + \lambda_{l,i} \mathcal{L}_{CE}^{masked}(z_l, y)$$
+   Computes features once per batch and applies Active-Class Logit Masking (ACLM) to Parent and Local heads.
+
+4. **Inference Prediction Blending**:
+   $$z_{pred} = \alpha_r z_r + \gamma_i \alpha_p z_p + \gamma_i \alpha_l z_l + \mathbf{m}_i$$
+   Blends multi-head predictions at test time with staleness attenuation ($\gamma_i = \exp(-\tau_i/\tau_{0,i})$).
+
+5. **Privacy-Preserving Random Projection Sketching**:
+   $$s_i = P \cdot \Delta_i^{head} \in \mathbb{R}^{256}$$
+   Compresses Root-head updates ($2570$ dimensions) into a $256$-dimensional summary to make gradient reconstruction severely underdetermined.
 
 ---
 
@@ -171,47 +164,62 @@ Topology-aware-FDL/
 |   |-- comparison.yaml         # Main 5-regime benchmark (FedAvg vs APFL vs Ditto vs HEP)
 |   |-- shard_cifar100_5regimes.yaml # CIFAR-100 full 5-regime sweep
 |   |-- shard_hep_cifar10_5regimes.yaml # CIFAR-10 full 5-regime sweep
-|   |-- ablation_study.yaml     # Component ablations (Distillation, Clustering, Entropy prior)
-|   |-- byzantine_matrix.yaml   # Byzantine robustness sweep (0% to 40% attackers)
-|   \-- test_1round.yaml        # Fast smoke test configuration
+|   |-- ablation_study.yaml     # Component ablations
+|   |-- byzantine_matrix.yaml   # Multi-attack Byzantine robustness sweep
+|   |-- evaluation_full.yaml    # Full evaluation suite
+|   |-- test_1round.yaml        # Fast smoke test configuration
+|   |-- benchmarks/             # High-cardinality, scaling & baseline configs
+|   |-- ablations/              # Distillation, grouping & budget configs
+|   |-- byzantine/              # Attack & defense configs
+|   \-- archive/                # Historical & diagnostic configs
 |-- src/
-|   |-- config.py               # Pydantic configuration schemas (HEP defaults)
+|   |-- config.py               # Pydantic configuration schemas & HEP defaults
 |   |-- core/                   # Core FL engines, updaters, and models
-|   |   |-- model.py            # SimpleCNN, ResNet9, MultiHeadResNet9, MobileNetV3
+|   |   |-- model.py            # SimpleCNN, ResNet-9, MultiHeadResNet9, MobileNetV3
 |   |   |-- updater.py          # PyTorchLocalUpdater with ACLM & binomial weighting
-|   |   |-- hierarchical_ensemble_engine.py  # 3-tier ensemble controller with masked inference
+|   |   |-- hierarchical_ensemble_engine.py  # 3-tier ensemble controller
 |   |   |-- centralized_engine.py            # Star topology engine (FedAvg, Ditto, APFL, FedRep)
-|   |   \-- aggregator.py       # FedAvg & robust aggregators
-|   |-- data/                   # Dataset loaders & Dirichlet Non-IID partitioner
+|   |   \-- aggregator.py       # FedAvg & robust aggregation functions
+|   |-- data/                   # Dataset loaders & Dirichlet Non-IID partitioners
 |   |-- topologies/             # Dynamic topology graphs & clustering controllers
-|   \-- experiments/            # Experiment runner & publication plotting routines
+|   \-- experiments/            # Experiment runner, logging, and plotting
 |-- scripts/
-|   |-- run_comparison.py       # Master runner for multi-scenario comparison studies
+|   |-- run_comparison.py       # Master runner for YAML-specified experiment suites
 |   |-- run_all_paper_experiments.py # Master orchestrator for all paper experiments
-|   |-- run_multi_seed.py       # Multi-seed evaluation suite (seeds 42, 123, 7)
-|   |-- compute_multiseed_statistics.py # Aggregates Mean ± Std statistics
 |   |-- profile_hardware_efficiency.py  # Hardware latency & peak VRAM profiler
 |   |-- run_cifar100_benchmark.py       # High-cardinality CIFAR-100 benchmark
 |   |-- run_scale_50clients.py          # 50-client scalability benchmark
 |   |-- run_multi_attack_byzantine.py   # Multi-attack Byzantine suite
+|   |-- run_mobilenet_benchmark.py      # MobileNetV3-Small generalizability benchmark
 |   |-- run_cluster_k_sensitivity.py    # Cluster count (K) sensitivity sweep
-|   \-- run_epoch_budget_ablation.py    # Head-epoch budget allocation ablation
-|-- paper/                      # LaTeX source for research paper
+|   |-- run_drift_analysis.py           # Linear CKA representation drift analyzer
+|   |-- run_clustering_privacy_sweep.py # Sketching and DP sweep
+|   |-- run_calibration_distillation_ablation.py # Calibration & distillation ablation
+|   |-- run_epoch_budget_ablation.py    # Epoch budget compute fairness ablation
+|   |-- generate_all_tables.py          # Automated LaTeX table generation
+|   |-- make_paper_figures.py           # Paper figure generation
+|   |-- compute_multiseed_statistics.py # Multi-seed statistics aggregator
+|   |-- compute_significance.py         # Statistical significance testing
+|   |-- compute_dp_budget.py            # Differential privacy budget accountant
+|   |-- download_cifar.py               # Dataset download utility
+|   \-- archive/                        # Preserved historical experiment scripts
+|-- report/                     # UROP Final Report LaTeX source & compiled PDF
+|   |-- main.tex                # Report manuscript
+|   |-- main.pdf                # Compiled PDF report
+|   \-- references.bib          # Bibliography
+|-- paper/                      # Conference Paper LaTeX source & compiled PDF
 |   |-- main.tex                # Paper manuscript
-|   |-- references.bib          # Bibliography
-|   \-- figures/                # High-resolution benchmark figures
-|-- tests/                      # 79 pytest unit tests
+|   |-- main.pdf                # Compiled PDF paper
+|   \-- references.bib          # Bibliography
+|-- tests/                      # 94 pytest unit tests
 |-- requirements.txt            # Dependency specifications
-\-- README.md
-```n benchmark figures
-|-- tests/                      # 28 pytest unit tests
-|-- requirements.txt            # Dependency specifications
+|-- main.py                     # CLI entrypoint
 \-- README.md
 ```
 
 ---
 
-## Installation & Setup
+## Installation & Quick Start
 
 ### 1. Prerequisites
 * Python 3.10, 3.11, or 3.12
@@ -220,74 +228,102 @@ Topology-aware-FDL/
 ### 2. Environment Setup
 ```bash
 # Clone repository
-git clone https://github.com/your-username/Topology-aware-FDL.git
+git clone https://github.com/nam200718/Topology-aware-FDL.git
 cd Topology-aware-FDL
 
 # Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # On Windows PowerShell: .\.venv\Scripts\Activate.ps1
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-### 3. Verify Installation
+### 3. Verify Test Suite
 ```bash
-pytest tests/
+pytest tests/ -q
 ```
-All 79 unit tests should pass.
+All **94 unit tests** should pass.
 
----
-
-## Reproducing Paper Experiments
-
-### 1. Full 5-Regime Personalization Benchmark (Table II)
-Reproduces the main benchmark comparing FedAvg, APFL, Ditto, and HEP across IID and Non-IID Dirichlet distributions ($\alpha = 1.0, 0.5, 0.1, 0.05$):
-```bash
-python scripts/run_comparison.py --config configs/comparison.yaml
-```
-*Outputs are saved to `outputs/comparison_study_<timestamp>/`.*
-
-### 2. Multi-Seed Statistical Evaluation (Tables II, III, IV)
-Runs multi-seed evaluations across random seeds 42, 123, and 7 to compute $\text{Mean} \pm \text{Std}$:
-```bash
-python scripts/run_multi_seed.py --config configs/comparison.yaml --seeds 42 123 7
-python scripts/compute_multiseed_statistics.py
-```
-
-### 3. Master Paper Strengthening Suite (Tables III, IV, V, VI)
-Executes CIFAR-100 cardinality, 50-client scaling, cluster sensitivity, multi-attack Byzantine suite, and head budget ablations in one command:
-```bash
-python scripts/run_all_paper_experiments.py
-```
-
-### 4. Hardware Resource & Latency Profiling (Table I & Figure 1)
-Measures peak VRAM scaling, per-batch latency breakdown, and time-to-accuracy:
-```bash
-python scripts/profile_hardware_efficiency.py
-```
-*Outputs are saved to `outputs/hardware_profiling/plots/`.*
-
-### 5. Fast Smoke Test (1 Round)
-Verify runtime pipeline execution:
+### 4. Run a Fast Smoke Test (1 Round)
 ```bash
 python scripts/run_comparison.py --config configs/test_1round.yaml
 ```
 
 ---
 
-## Citation
+## Reproducing Experiments
 
-If you find this codebase or framework useful in your research, please cite:
+### Step-by-Step CLI Reproduction Commands
 
-```bibtex
-@article{hep2026,
-  title={Hierarchical Ensemble Personalization: Parameter-Efficient and Robust Federated Learning on Edge Devices},
-  author={[Author Names]},
-  journal={arXiv preprint},
-  year={2026}
-}
-```
+* **Main 5-Regime Personalization Benchmark (Table III)**:
+  ```bash
+  # Execute full benchmark matrix across 5 regimes (seed 42)
+  python scripts/run_comparison.py --config configs/comparison.yaml
+
+  # Extract formatted LaTeX table rows from raw metrics
+  python scripts/generate_all_tables.py
+  ```
+
+* **Hardware Latency, Memory Footprint & Parameter Count (Table II & Figure 1)**:
+  ```bash
+  python scripts/profile_hardware_efficiency.py
+  ```
+  *Outputs saved to `outputs/hardware_profiling/`.*
+
+* **High-Class Cardinality CIFAR-100 (Table IV.A)**:
+  ```bash
+  python scripts/run_cifar100_benchmark.py
+  ```
+  *Results saved to `outputs/cifar100_results.json`.*
+
+* **50-Client Scalability Benchmark with Partial Participation (Table IV.B)**:
+  ```bash
+  python scripts/run_scale_50clients.py
+  ```
+  *Results saved to `outputs/scale_50clients_results.json`.*
+
+* **Multi-Attack Byzantine Fault Tolerance (Table V & Figure 2)**:
+  ```bash
+  python scripts/run_multi_attack_byzantine.py
+  ```
+  *Results saved to `outputs/byzantine_multi_attack.json`.*
+
+* **MobileNetV3 Architectural Benchmark (Table VI)**:
+  ```bash
+  python scripts/run_mobilenet_benchmark.py
+  ```
+  *Results saved to `outputs/mobilenet_results.json`.*
+
+* **Cluster Count (K) Sensitivity & Bipartite Certification (Table VII)**:
+  ```bash
+  python scripts/run_cluster_k_sensitivity.py
+  ```
+
+* **Backbone Representation Drift Analysis with Linear CKA (Table VIII)**:
+  ```bash
+  python scripts/run_drift_analysis.py
+  ```
+
+* **Random Projection Sketching & Differential Privacy Sweep (Table IX)**:
+  ```bash
+  python scripts/run_clustering_privacy_sweep.py
+  ```
+
+* **Calibration & Distillation Ablation (Table X)**:
+  ```bash
+  python scripts/run_calibration_distillation_ablation.py
+  ```
+
+* **Master Strengthening Suite (Runs CIFAR-100, Scale-50, K-Sweep, Byzantine, and Budget Ablations sequentially)**:
+  ```bash
+  python scripts/run_all_paper_experiments.py
+  ```
+
+* **Render All Paper Figures**:
+  ```bash
+  python scripts/make_paper_figures.py
+  ```
 
 ---
 

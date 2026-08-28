@@ -45,3 +45,23 @@ def test_dynamic_binomial_loss_weights():
     assert math.isclose(ar, 1.0, abs_tol=1e-5)
     assert math.isclose(ap, 0.0, abs_tol=1e-5)
     assert math.isclose(al, 0.0, abs_tol=1e-5)
+
+
+def test_updater_compute_label_stats_regression():
+    from src.core.updater import PyTorchLocalUpdater
+    from torch.utils.data import TensorDataset
+
+    updater = PyTorchLocalUpdater(device="cpu")
+    # Dataset with 2 classes (extreme skew)
+    x = torch.randn(10, 3, 32, 32)
+    y = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+    dataset = TensorDataset(x, y)
+    dataset.labels = y
+
+    r_skew, active_mask, class_counts = updater._compute_label_stats(dataset, num_classes=10)
+    assert math.isclose(r_skew, 1.0 / 9.0, abs_tol=1e-5)
+    assert active_mask.sum().item() == 2
+    assert active_mask[0].item() is True and active_mask[1].item() is True
+    assert class_counts[0].item() == 5.0 and class_counts[1].item() == 5.0
+
+

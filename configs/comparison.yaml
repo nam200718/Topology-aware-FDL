@@ -23,8 +23,7 @@ clients:
   ensemble_distillation: false
   distillation_lambda: 0.0
   # Budget 5 validated >= budget 10 on IID + moderate skew at ~2x less wall
-  # time (see docs/experiment_learnings_and_failed_attempts.md section 4d);
-  # keeps HEP local compute comparable to baselines (local_steps=3).
+  # time; keeps HEP local compute comparable to baselines (local_steps=3).
   total_local_steps: 5
   loss_weight_beta: 1.0
 

@@ -167,4 +167,14 @@ cython_debug/
 scratch/
 outputs/
 
-.venv312/
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.out
+*.log
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
