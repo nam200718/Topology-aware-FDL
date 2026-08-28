@@ -21,13 +21,13 @@ import numpy as np
 import pandas as pd
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FIG_DIR = os.path.join(PROJECT_ROOT, "paper", "figures")
+FIG_DIR = os.path.join(PROJECT_ROOT, "report", "figures")
 
 METHOD_STYLE = {
-    "FedAvg": dict(color="#7f7f7f", linestyle="--"),
-    "Ditto": dict(color="#1f77b4", linestyle="-."),
-    "FedRep": dict(color="#2ca02c", linestyle=":"),
-    "HEP": dict(color="#d62728", linestyle="-", linewidth=2.2),
+    "FedAvg": dict(color="#616161", linestyle="--", linewidth=2.0),
+    "Ditto": dict(color="#1976D2", linestyle="-.", linewidth=2.0),
+    "FedRep": dict(color="#388E3C", linestyle=":", linewidth=2.0),
+    "HEP": dict(color="#D32F2F", linestyle="-", linewidth=2.5),
 }
 
 
@@ -48,7 +48,6 @@ def fig_convergence():
     """Fig 2: per-round personalized accuracy, panels IID + extreme skew."""
     root = _latest("comparison_study_*")
     if root is None or "conv" not in root.lower() and "paper_suite" not in root.lower():
-        # fall back to any suite dir containing conv_* experiment names
         candidates = sorted(glob.glob(os.path.join(PROJECT_ROOT, "outputs", "comparison_study_*")), key=os.path.getmtime)
         root = None
         for cand in reversed(candidates):
@@ -60,13 +59,14 @@ def fig_convergence():
         return
 
     methods = [("Conv Star (FedAvg)", "FedAvg"), ("Conv Star (Ditto)", "Ditto"), ("Conv HEP", "HEP")]
-    panels = [("iid", "IID"), ("non_iid_alpha_0.05", "Extreme Non-IID ($\\alpha=0.05$)")]
+    panels = [("iid", "Uniform IID Distribution"), ("non_iid_alpha_0.05", r"Extreme Non-IID Skew ($\alpha=0.05$)")]
 
     def sanitize(label):
         import re
         return re.sub(r"[^a-z0-9]+", "_", label.lower()).strip("_")
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3.8))
+    plt.style.use("seaborn-v0_8-whitegrid" if "seaborn-v0_8-whitegrid" in plt.style.available else "default")
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.4), dpi=300)
     plotted = False
     for ax, (scen, title) in zip(axes, panels):
         for label, nice in methods:
@@ -78,17 +78,18 @@ def fig_convergence():
             if not accs:
                 continue
             style = METHOD_STYLE.get(nice, {})
-            ax.plot(rounds, accs, marker="o", markersize=3, label=nice, **style)
+            ax.plot(rounds, accs, marker="o", markersize=5, label=nice, **style)
             plotted = True
-        ax.set_title(title, fontsize=11)
-        ax.set_xlabel("Communication Round")
-        ax.set_ylabel("Personalized Accuracy (%)")
-        ax.grid(alpha=0.3)
-        ax.legend(fontsize=9)
+        ax.set_title(title, fontsize=13, fontweight="bold", pad=8)
+        ax.set_xlabel("Communication Round", fontsize=11.5, fontweight="bold")
+        ax.set_ylabel("Personalized Accuracy (%)", fontsize=11.5, fontweight="bold")
+        ax.tick_params(axis="both", labelsize=10.5)
+        ax.grid(True, linestyle="--", alpha=0.5)
+        ax.legend(fontsize=10.5, loc="lower right", framealpha=0.92)
     if plotted:
         fig.tight_layout()
         out = os.path.join(FIG_DIR, "convergence_combined.png")
-        fig.savefig(out, dpi=200)
+        fig.savefig(out, dpi=300, bbox_inches="tight")
         print(f"[ok] {out}")
     else:
         print("[skip] convergence: no accuracy rows")
@@ -100,7 +101,6 @@ def fig_byzantine():
     candidates = []
     for path in glob.glob(os.path.join(PROJECT_ROOT, "outputs", "byzantine_matrix_*", "matrix_results.csv")):
         df = pd.read_csv(path)
-        # identify label-flip grids: five rate points incl 0.1/0.2/0.3
         rates = set(df["Byzantine Rate"].round(2))
         if {0.0, 0.1, 0.2, 0.3, 0.4}.issubset(rates):
             candidates.append((os.path.getmtime(path), df))
@@ -110,20 +110,22 @@ def fig_byzantine():
     df = max(candidates, key=lambda t: t[0])[1]
     df["Method"] = df["Topology"].str.replace(r"Star \((.*)\)|HEP.*", lambda m: m.group(1) if m.group(1) else "HEP", regex=True)
 
-    fig, ax = plt.subplots(figsize=(5.6, 3.8))
+    plt.style.use("seaborn-v0_8-whitegrid" if "seaborn-v0_8-whitegrid" in plt.style.available else "default")
+    fig, ax = plt.subplots(figsize=(6.4, 4.2), dpi=300)
     for method, grp in df.groupby("Method"):
         grp = grp.sort_values("Byzantine Rate")
         style = METHOD_STYLE.get(method, {})
         ax.plot(grp["Byzantine Rate"] * 100, grp["Last5 Avg Accuracy"],
-                marker="s", markersize=4, label=method, **style)
-    ax.set_xlabel("Attacker Fraction (%)")
-    ax.set_ylabel("Personalized Accuracy (%, last-5 avg)")
-    ax.set_title("Label-Flipping Robustness ($\\alpha=0.5$, 15 rounds)", fontsize=11)
-    ax.grid(alpha=0.3)
-    ax.legend(fontsize=9)
+                marker="s", markersize=6, label=method, **style)
+    ax.set_xlabel("Attacker Fraction (%)", fontsize=11.5, fontweight="bold")
+    ax.set_ylabel("Personalized Accuracy (%, last-5 avg)", fontsize=11.5, fontweight="bold")
+    ax.set_title(r"Label-Flipping Robustness ($\alpha=0.5$, 15 rounds)", fontsize=13, fontweight="bold", pad=8)
+    ax.tick_params(axis="both", labelsize=10.5)
+    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.legend(fontsize=10.5, loc="lower left", framealpha=0.92)
     fig.tight_layout()
     out = os.path.join(FIG_DIR, "byzantine_label_flip.png")
-    fig.savefig(out, dpi=200)
+    fig.savefig(out, dpi=300, bbox_inches="tight")
     print(f"[ok] {out}")
     plt.close(fig)
 

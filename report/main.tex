@@ -365,23 +365,13 @@ In contrast, HEP trains with a single model graph across five local epochs per r
 
 Table \ref{tab:main_benchmark} presents the personalization benchmark results across five heterogeneity regimes on CIFAR-10 evaluated under the standardized single-seed protocol (seed 42), with 3-seed validation sweeps across independent random seeds and Dirichlet partitions (seeds 42, 123, 7) reported in Appendix~\ref{app:multiseed_validation}. In the deterministic single-seed benchmark, HEP achieves 77.97\% under moderate skew (+7.30\,pp over FedRep, +3.34\,pp over Ditto); across the 3-seed validation sweeps (Table~\ref{tab:multiseed_benchmark}), HEP maintains statistically significant Top-1 personalization gains over FedRep across all evaluated regimes (e.g.\ +2.40\,pp Top-1 gain and +8.61\,pp bottom-10\% fairness gain under moderate skew, $p < 0.001$). Under moderate skew, HEP is slightly below Ditto in the 3-seed Top-1 mean ($-2.24$\,pp, $p < 0.05$), while operating strictly within a single-backbone envelope with 47.8\% lower peak client memory and 50.2\% lower per-batch latency. On IID data, the unmasked global Root head matches or slightly exceeds FedAvg in the deterministic benchmark (72.73\% vs.\ 71.80\%); closed-set personalized accuracy can be lower across independent partitions (67.35\% 3-seed mean in Appendix~\ref{app:multiseed_validation}). Learning curves are visualized in Fig. \ref{fig:convergence}:
 
-\begin{figure}[t]
+\begin{figure*}[t]
     \centering
-    \begin{subfigure}[b]{0.235\textwidth}
-        \includegraphics[width=\textwidth]{figures/convergence_iid.png}
-        \caption{IID ($\alpha=\infty$)}
-        \label{fig:conv_iid}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.235\textwidth}
-        \includegraphics[width=\textwidth]{figures/convergence_non_iid_alpha_0.05.png}
-        \caption{Extreme ($\alpha=0.05$)}
-        \label{fig:conv_non_iid}
-    \end{subfigure}
+    \includegraphics[width=0.98\textwidth]{figures/convergence_combined.png}
     \vspace{1.5mm}
-    \caption{\textbf{Communication Round Convergence Trajectory on CIFAR-10 ResNet9.} \textbf{Panel A}: Under uniform IID data, Shannon entropy calibration shifts inference trust to the Root head, maintaining 71.03\% personalized accuracy (72.73\% global root consensus). \textbf{Panel B}: Under extreme Non-IID skew ($\alpha=0.05$), HEP rapidly ascends to 88.80\% personalized accuracy, surpassing Ditto (87.87\%), FedRep (87.07\%), and FedAvg (57.53\%).}
+    \caption{\textbf{Communication Round Convergence Trajectory on CIFAR-10 ResNet9.} \textbf{Left Panel}: Under uniform IID data ($\alpha=\infty$), Shannon entropy calibration shifts loss and inference trust to the Root head, maintaining 71.03\% personalized accuracy (72.73\% global root consensus) and matching FedAvg (71.80\%) while outperforming Ditto (67.10\%). \textbf{Right Panel}: Under extreme Non-IID skew ($\alpha=0.05$), HEP rapidly ascends to 88.80\% personalized accuracy, surpassing Ditto (87.87\%), FedRep (87.07\%), and FedAvg (57.53\%).}
     \label{fig:convergence}
-\end{figure}
+\end{figure*}
 
 Key observations across PFL paradigms include:
 \begin{itemize}
@@ -484,7 +474,7 @@ As shown in Table \ref{tab:cifar100_and_scale}:
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.48\textwidth]{figures/byzantine_label_flip.png}
+    \includegraphics[width=\columnwidth]{figures/byzantine_label_flip.png}
     \vspace{2mm}
     \caption{\textbf{Byzantine Label-Flip Robustness on CIFAR-10 ResNet-9.} Accuracy across attacker fractions ($f \in \{0\%, 10\%, 20\%, 30\%, 40\%\}$). FedAvg degrades rapidly under label flips, while HEP maintains resilience up to moderate attack fractions ($f \le 20\%$) before shared-backbone corruption degrades performance at $f \ge 30\%$.}
     \label{fig:byzantine}
