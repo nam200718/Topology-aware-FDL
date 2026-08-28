@@ -151,7 +151,8 @@ cython_debug/
 
 # Project Specific
 /data/
-/outputs/
+/outputs/*
+!/outputs/REPORT/
 .gemini/
 .antigravity/
 .vscode/
@@ -163,9 +164,7 @@ cython_debug/
 .venv*/
 
 # Project-local: virtualenv, scratch diagnostics, suite runtime logs
-.venv312/
 scratch/
-outputs/
 
 # LaTeX build artifacts
 *.aux
@@ -177,4 +176,3 @@ outputs/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
-
