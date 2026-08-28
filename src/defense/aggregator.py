@@ -119,9 +119,18 @@ class SoftRejectionAggregator(Aggregator):
         if self.config.hard_rejection_enabled:
             similarities = self._apply_hard_rejection(similarities)
 
+        # [NEW] Apply Adaptive Temperature
+        if getattr(self.config, "adaptive_temperature", True):
+            self.adapt_temperature(similarities)
+
+        # Safeguard: if all similarities are -inf (all rejected), fallback to uniform
+        if all(s == float('-inf') for s in similarities):
+            self._last_trust_scores = {states[i].client_id: 1.0 / n for i in range(n)}
+            return self._fallback_aggregator.aggregate(states)
+
         # Temperature scaling → trust scores
         # trust_i = softmax(similarity_i / temperature)
-        sim_tensor = torch.tensor(similarities)
+        sim_tensor = torch.tensor(similarities, device=states[0].weights.device, dtype=torch.float32)
         trust_scores = F.softmax(sim_tensor / self.current_temperature, dim=0)
 
         # Save trust scores (for TrustTracker)
@@ -176,8 +185,6 @@ class SoftRejectionAggregator(Aggregator):
 
         return aggregated
 
-        return aggregated
-
     def _apply_norm_bounding(self, deltas: List[torch.Tensor]) -> List[torch.Tensor]:
         """Clip delta norm vượt median × multiplier."""
         norms = torch.tensor([d.norm().item() for d in deltas])
@@ -187,6 +194,31 @@ class SoftRejectionAggregator(Aggregator):
     def _apply_hard_rejection(self, similarities: List[float]) -> List[float]:
         """Cosine sim < threshold → -inf → softmax → weight = 0."""
         return [float('-inf') if s < self.config.hard_rejection_threshold else s for s in similarities]
+
+    def adapt_temperature(self, similarities: List[float]):
+        """Điều chỉnh temperature dựa trên variance của similarity scores."""
+        if not getattr(self.config, "adaptive_temperature", True) or len(similarities) < 2:
+            return
+        valid_sims = [s for s in similarities if s != float('-inf')]
+        if len(valid_sims) < 2:
+            return
+        sim_var = torch.var(torch.tensor(valid_sims, dtype=torch.float32)).item()
+        var_thresh = getattr(self.config, "adaptive_variance_threshold", 0.05)
+        tighten = getattr(self.config, "temperature_tighten_rate", 0.9)
+        relax = getattr(self.config, "temperature_relax_rate", 1.05)
+
+        if sim_var > var_thresh:
+            # High variance -> likely outliers / attackers -> tighten temperature
+            self.current_temperature = max(
+                self.config.temperature_min,
+                self.current_temperature * tighten
+            )
+        else:
+            # Low variance -> consensus among honest clients -> relax temperature
+            self.current_temperature = min(
+                self.config.temperature,
+                self.current_temperature * relax
+            )
 
     def get_last_trust_scores(self) -> Dict[int, float]:
         """Return trust scores from the last aggregate."""
@@ -198,3 +230,4 @@ class SoftRejectionAggregator(Aggregator):
             self.config.temperature_min,
             self.current_temperature * self.config.temperature_decay,
         )
+

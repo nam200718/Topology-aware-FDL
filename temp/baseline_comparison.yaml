@@ -1,0 +1,73 @@
+experiment_type: comparison
+num_rounds: 50
+
+env:
+  seed: 42
+  dataset: cifar10
+  train_subset: null     # full 50k
+  test_subset: null      # full 10k
+  output_dir: ./outputs/baseline_comparison
+
+clients:
+  model_name: resnet9
+  num_clients: 30
+  local_lr: 0.01         # Alsaluli specs
+  local_steps: 2
+  batch_size: 32
+  # Ensemble settings for HE
+  compute_optimization_mode: shared_backbone
+  ensemble_weighting_mode: dynamic_confidence
+  ensemble_distillation: true
+  distillation_lambda: 0.5
+  total_local_steps: 5
+  loss_weight_beta: 1.0
+
+non_iid:
+  enabled: true
+  alpha: 0.1             # Alsaluli: strongly Non-IID
+
+robustness:
+  byzantine_type: none
+
+topologies:
+  # === CENTRALIZED ===
+  - type: star
+    label: "Star (FedAvg)"
+    params:
+      personalization_method: none
+  - type: star
+    label: "Star (Ditto λ=1.0)"
+    params:
+      personalization_method: ditto
+      ditto_lambda: 1.0
+  - type: star
+    label: "Star (APFL)"
+    params:
+      personalization_method: apfl
+      apfl_alpha: 0.5
+  # === DECENTRALIZED ===
+  - type: ring
+    label: "Ring (Decentralized)"
+    params:
+      personalization_method: none
+  - type: gossip
+    label: "Gossip P2P (k=3)"
+    params:
+      degree_k: 3
+      personalization_method: none
+  # === HIERARCHICAL ===
+  - type: hier_agg
+    label: "HE Aggregation-Only"
+    params:
+      num_clusters: 5
+      cluster_by_label_dist: true
+      use_ensemble: false
+      hierarchical_ensemble: false
+      compute_optimization_mode: "none"
+      personalization_method: none
+  - type: hier_ens
+    label: "HE Ensemble (3-Tier)"
+    params:
+      num_clusters: 5
+      cluster_by_label_dist: true
+      personalization_method: none

@@ -1,0 +1,69 @@
+byzantine_rates:
+- 0.0
+- 0.1
+- 0.2
+- 0.3
+byzantine_types:
+- label_flip
+- sign_flip
+clients:
+  local_batch_size: 128
+  compute_optimization_mode: shared_backbone
+  distillation_lambda: 0.5
+  ensemble_distillation: true
+  ensemble_weighting_mode: dynamic_confidence
+  local_lr: 0.01
+  local_steps: 2
+  loss_weight_beta: 1.0
+  model_name: resnet9
+  num_clients: 30
+  total_local_steps: 5
+env:
+  dataset: cifar10
+  output_dir: ./outputs/exp4_defense_random
+  seed: 42
+non_iid:
+  alpha: 0.1
+  enabled: true
+num_rounds: 50
+topologies:
+- label: Star (No Defense)
+  params:
+    defense_mode: none
+  type: star
+- label: Star (Ditto, No Defense)
+  params:
+    defense_mode: none
+    personalization_method: ditto
+    ditto_lambda: 1.0
+  type: star
+- label: Ring (No Defense)
+  params:
+    defense_mode: none
+  type: ring
+- label: HE (No Defense)
+  params:
+    cluster_method: update_similarity
+    defense_mode: none
+    num_clusters: 5
+    warmup_max_rounds: 10
+    warmup_min_rounds: 2
+  type: hierarchical_ensemble
+- label: Star (Full Defense)
+  params:
+    defense_mode: soft_cosine
+  type: star
+- label: Ring (Full Defense)
+  params:
+    defense_mode: soft_cosine
+  type: ring
+- label: HE (Full Defense)
+  params:
+    cluster_method: update_similarity
+    defense_mode: soft_cosine
+    defense_scope: both
+    num_clusters: 5
+    warmup_max_rounds: 10
+    warmup_min_rounds: 2
+  type: hierarchical_ensemble
+use_hierarchical_partition: false
