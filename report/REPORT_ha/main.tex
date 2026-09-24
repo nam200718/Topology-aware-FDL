@@ -174,13 +174,12 @@ All source code, configuration files, and evaluation scripts are publicly availa
     \item Byzantine defense pipeline implementations and YAML configurations in directory \texttt{src/defense/}.
     \item Multi-topology experiment execution drivers, bilevel data partitioning utilities, and visualization scripts located in directory \texttt{temp/}.
     \item Standardized Jupyter execution notebooks in directory \texttt{notebook\_training/} for reproducing all baseline convergence trajectories and Byzantine attack sweeps.
-    \item Report source code, LaTeX templates, and visual artifacts located in directory \texttt{outputs/REPORT/}.
 \end{itemize}
 
 \section{Results \& Discussion}
 
 \subsection{Characterization of Bilevel Data Partitioning}
-Figure \ref{fig:partitioning} illustrates class allocations across various parameter combinations. The setting $(\alpha_{\text{intra}}=1.0, \alpha_{\text{inter}}=0.1)$ creates clear cluster-level semantic focus while retaining intra-cluster sample diversity. Lower values ($\alpha_{\text{intra}}=0.1$) lead to extreme class sparsity per client, whereas higher values ($\alpha_{\text{intra}}=50.0$) homogenize internal distributions, reducing cluster distinction.
+Figure \ref{fig:partitioning} illustrates class allocations across various parameter combinations. Compared to the conventional single-parameter Dirichlet partition ($\alpha=0.1$), the bilevel formulation introduces an additional degree of freedom that decouples inter-cluster specialization from intra-cluster heterogeneity. This formulation permits simulation of institutional federation scenarios---e.g., regional hospitals specializing in different diseases (low $\alpha_{\text{inter}}$) while individual departments within each hospital maintain moderate data overlap (moderate $\alpha_{\text{intra}}$). The setting $(\alpha_{\text{intra}}=1.0, \alpha_{\text{inter}}=0.1)$ produces cluster-level semantic focus---each cluster predominantly holds 2--3 classes---while retaining intra-cluster sample diversity among the 6 clients per cluster. Lower values ($\alpha_{\text{intra}}=0.1$) lead to class sparsity per client, whereas higher values ($\alpha_{\text{intra}}=50.0$) homogenize internal distributions, reducing cluster distinction.
 
 \subsection{Convergence Dynamics on Standard Non-IID Partition}
 \begin{figure}[H]
@@ -207,7 +206,7 @@ Figure \ref{fig:partitioning} illustrates class allocations across various param
     \caption{Final Accuracy (Round 50) — Random Partition ($\alpha=0.1$)}
 \end{table}
 
-Personalized architectures (Ditto and HE Ensemble) achieve superior accuracy ($\sim$91\%) compared to global parameter averaging ($\sim$73\%) under non-IID conditions. Decentralized baselines without central coordination (Ring, Gossip) exhibit substantially slower convergence rates.
+Personalized architectures (Ditto and HE Ensemble) attain $\sim$91\% accuracy, compared to $\sim$73\% for global parameter averaging under non-IID conditions. This gap is attributable to client drift: global averaging conflates heterogeneous local optima, whereas Ditto's proximal regularization and HE's per-cluster heads retain client-specific knowledge. Ring attains only 18.18\%, reflecting the limited information propagation radius of nearest-neighbor communication, where each client exchanges parameters with only 2 neighbors per round. Gossip ($k=3$) partially mitigates this limitation by increasing the neighborhood size, but remains below centralized topologies.
 
 \subsection{Convergence Dynamics on Bilevel Hierarchical Partition}
 \begin{figure}[H]
@@ -234,7 +233,7 @@ Personalized architectures (Ditto and HE Ensemble) achieve superior accuracy ($\
     \caption{Final Accuracy (Round 50) — Bilevel Hierarchical Partition}
 \end{table}
 
-Under the bilevel hierarchical partition, all models experience lower test accuracy due to extreme inter-cluster skew. Notably, HE Global (66.50\%) exceeds HE Ensemble (44.86\%), inverting the performance relationship observed in the standard non-IID setting. When clusters specialize heavily in disjoint subsets of classes, localized personalized heads overfit to cluster-specific distributions, whereas global models benefit from integrating representations across disparate clusters.
+Under the bilevel hierarchical partition, all models yield lower test accuracy due to inter-cluster skew. HE Global (66.50\%) exceeds HE Ensemble (44.86\%), inverting the ranking observed in the standard non-IID setting. Under this partition, each cluster predominantly contains 2--3 classes (due to $\alpha_{\text{inter}}=0.1$). Personalized heads trained on cluster-local data therefore lack exposure to the full label space, learning partial classifiers that perform well on in-cluster classes but degrade on out-of-distribution test samples. Global models mitigate this by pooling representations from all clusters, recovering complete label coverage at the cost of reduced personalization.
 
 \subsection{Byzantine Robustness on Standard Non-IID Partition}
 \begin{figure}[H]
@@ -263,7 +262,11 @@ Under the bilevel hierarchical partition, all models experience lower test accur
     \caption{Final Accuracy (\%) across Attack Fractions ($q$) — Random Partition}
 \end{table}
 
-In the absence of defense mechanisms, the HE topology exhibits severe vulnerability once the adversary fraction reaches $q=0.3$, where accuracy declines from 90.29\% ($q=0.2$) to 9.95\%. However, integrating Soft Cosine Full Defense prevents this degradation, preserving an accuracy of 89.50\% at $q=0.3$ ($\Delta = -1.48\%$). Ditto exhibits inherent resilience to label flipping via its local proximal loss without explicit filtering, though it incurs additional memory overhead for maintaining dual models.
+Without defense, the HE topology undergoes a sharp accuracy decline at $q=0.3$, dropping from 90.29\% ($q=0.2$) to 9.95\%. This behavior is consistent with a tipping-point effect in two-tier aggregation: with 30 clients across 5 clusters (6 per cluster) and 30\% adversaries, clusters receiving 2 or more adversarial clients produce unreliable intermediate models. When a majority of cluster-level aggregates are corrupted, the global aggregation inherits poisoned representations, propagating failure across the hierarchy.
+
+Integrating Soft Cosine Full Defense prevents this degradation, preserving 89.50\% accuracy at $q=0.3$ ($\Delta = -1.48\%$). Separately, activating the defense on Star (FedAvg) incurs a clean-accuracy cost of approximately 3.5 percentage points at $q=0.0$ (73.61\% vs.\ 70.07\%). This overhead reflects information loss in trust-weighted aggregation, where the softmax temperature distribution assigns non-uniform weights even among benign clients, reducing the sample efficiency of standard averaging.
+
+Ditto maintains $\sim$91\% accuracy across all adversary fractions via its local proximal loss, without explicit filtering. This resilience, however, requires maintaining dual model parameters per client---a $2\times$ memory overhead that may be prohibitive for resource-constrained edge devices. Additionally, Ditto's robustness is specific to its proximal regularization mechanism and does not extend to more sophisticated attacks (e.g., model poisoning). The Soft Cosine Rejection aggregator, by contrast, provides a topology-agnostic defense layer applicable to any aggregation-based FL system without modifying the client-side training procedure.
 
 \subsection{Byzantine Robustness on Bilevel Hierarchical Partition}
 \begin{figure}[H]
@@ -292,7 +295,9 @@ In the absence of defense mechanisms, the HE topology exhibits severe vulnerabil
     \caption{Final Accuracy (\%) across Attack Fractions ($q$) — Bilevel Hierarchical Partition}
 \end{table}
 
-Under the hierarchical partition, undefended HE exhibits smaller absolute variation under attack ($\Delta = -3.83\%$), as clustered aggregation partially localizes adversarial updates. However, Star (FedAvg) with Full Defense maintains the highest absolute test accuracy (49.75\% at $q=0.3$).
+Under the hierarchical partition, undefended HE exhibits smaller absolute variation under attack ($\Delta = -3.83\%$), as clustered aggregation partially localizes adversarial updates. HE with Full Defense, however, exhibits a larger accuracy drop ($\Delta = -8.73\%$) than undefended HE ($\Delta = -3.83\%$). This result indicates that under extreme inter-cluster skew, the cosine-based trust scoring mechanism misidentifies legitimate but heterogeneous updates as adversarial. When cluster-level data distributions are near-disjoint, the directional centroid is poorly representative of any individual cluster, causing the defense to penalize benign clients whose update directions diverge from the global centroid. This constitutes a limitation of direction-based defenses in hierarchical settings: they assume that honest updates share directional coherence, an assumption that does not hold under structured data heterogeneity.
+
+Star (FedAvg) with Full Defense maintains the highest absolute test accuracy (49.75\% at $q=0.3$), as the flat star topology avoids cluster-level intermediate aggregation where inter-cluster directional disparity would trigger false rejections.
 
 \subsection{Cross-Experiment Synthesis}
 \begin{table}[H]
@@ -310,15 +315,21 @@ Under the hierarchical partition, undefended HE exhibits smaller absolute variat
     \caption{Summary of best-performing configurations across evaluated scenarios.}
 \end{table}
 
-The empirical evaluation demonstrates that the efficacy of Byzantine defenses is tightly coupled with network topology and data partition geometry. Multi-tier filtering in HE provides strong protection under standard non-IID conditions. Conversely, under pronounced hierarchical clustering, cosine disparity arising from benign data heterogeneity can overlap with adversarial perturbations, reducing the relative separation margin of trust scoring.
+The results indicate that the efficacy of Byzantine defenses is coupled with network topology and data partition geometry. Multi-tier filtering in HE provides effective protection under standard non-IID conditions. Under pronounced hierarchical clustering, however, cosine disparity arising from benign data heterogeneity overlaps with adversarial perturbations, reducing the separation margin of trust scoring.
+
+Three deployment observations follow from the data: (1) For moderately heterogeneous federations (single Dirichlet), HE with Full Defense provides a favorable robustness--accuracy trade-off among defended configurations; (2) For structured institutional federations (bilevel partition), the Soft Cosine defense may be applied selectively at the global tier only, as cluster-level filtering risks rejecting legitimate specialized updates; (3) Under standard non-IID conditions where memory overhead is acceptable, Ditto's proximal regularization provides resilience without requiring an explicit defense mechanism.
 
 \FloatBarrier
 
 \section{Conclusion}
-This study evaluated the interplay between network topologies, data partitioning strategies, and Byzantine defense mechanisms in federated learning. Results indicate that the Hierarchical Ensemble topology combined with Soft Cosine Rejection provides robust defense against label-flipping attacks on standard non-IID partitions. However, extreme inter-cluster data heterogeneity poses distinct challenges to distance- and angle-based aggregators. Future research will investigate defense-aware clustering techniques and evaluate performance on larger-scale datasets such as CIFAR-100.
+This study evaluated the interplay between network topologies, data partitioning strategies, and Byzantine defense mechanisms in federated learning. The Hierarchical Ensemble topology combined with Soft Cosine Rejection maintains 89.50\% accuracy under 30\% label-flipping adversaries on standard non-IID partitions. Under structured inter-cluster heterogeneity, however, direction-based aggregators exhibit reduced effectiveness, as the defense misclassifies legitimate heterogeneous updates as adversarial.
+
+This study has several limitations. First, all experiments are conducted on CIFAR-10 with ResNet-9, and the generalizability to larger models and datasets remains to be validated. Second, the evaluation considers only label-flipping attacks; more sophisticated attacks such as model replacement or backdoor injection are not evaluated. Third, the defense incurs a clean-accuracy cost when no adversaries are present, and the cosine-based trust scoring exhibits reduced effectiveness under extreme data heterogeneity. Finally, with only 50 communication rounds, the long-term convergence behavior is not fully characterized.
+
+Future research will investigate defense-aware clustering techniques that adapt cosine thresholds based on measured inter-cluster divergence, and evaluate performance on larger-scale datasets such as CIFAR-100 and FEMNIST.
 
 \section{Acknowledgements}
-I would like to thank Dr. Leandro Soriano Marcolino for his valuable guidance and mentorship throughout this project. Special thanks to my research peers for designing the underlying HE model architecture. Computational experiments were conducted using Kaggle GPU resources.
+I would like to thank Dr. Leandro Soriano Marcolino for his valuable guidance and mentorship throughout this project. Special thanks to my research peers for designing the underlying HE model architecture. Computational experiments were conducted using Kaggle GPU resources. Additionally, generative AI tools were utilized for code refactoring and Latex document preparation.
 
 \begin{thebibliography}{9}
 
