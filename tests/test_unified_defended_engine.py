@@ -18,7 +18,7 @@ def test_unified_defended_engine_init():
         num_rounds=2,
         topology=TopologyConfig(type="hierarchical_ensemble", params={"num_clusters": 2}),
         clients=ClientConfig(num_clients=4, model_name="simple_cnn"),
-        env=EnvironmentConfig(seed=42)
+        env=EnvironmentConfig(seed=42, dataset="synthetic")
     )
     topo = HierarchicalTopology(num_clusters=2)
     topo.build(num_clients=4, seed=42)
@@ -48,7 +48,7 @@ def test_unified_defended_engine_byzantine_mitigation():
         num_rounds=2,
         topology=TopologyConfig(type="hierarchical_ensemble", params={"num_clusters": 2}),
         clients=ClientConfig(num_clients=4, model_name="simple_cnn", compute_optimization_mode="shared_backbone", hierarchical_ensemble=True),
-        env=EnvironmentConfig(seed=42)
+        env=EnvironmentConfig(seed=42, dataset="synthetic")
     )
     topo = HierarchicalTopology(num_clusters=2)
     topo.build(num_clients=4, seed=42)
@@ -82,7 +82,7 @@ def test_unified_defended_engine_sentinel_nan_guard():
         num_rounds=2,
         topology=TopologyConfig(type="hierarchical_ensemble", params={"num_clusters": 2}),
         clients=ClientConfig(num_clients=4, model_name="simple_cnn", compute_optimization_mode="shared_backbone", hierarchical_ensemble=True),
-        env=EnvironmentConfig(seed=42)
+        env=EnvironmentConfig(seed=42, dataset="synthetic")
     )
     topo = HierarchicalTopology(num_clusters=2)
     topo.build(num_clients=4, seed=42)

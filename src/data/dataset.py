@@ -147,6 +147,26 @@ def get_fast_dataloader(dataset, batch_size: int = 32, shuffle: bool = True):
         return FastTensorDataLoader(dataset.images, dataset.labels, batch_size=batch_size, shuffle=shuffle)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
+def _acquire_download_lock(data_dir: str, name: str):
+    import os, fcntl
+    os.makedirs(data_dir, exist_ok=True)
+    lock_file = open(os.path.join(data_dir, f".{name}.lock"), "w")
+    try:
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+    except Exception:
+        pass
+    return lock_file
+
+
+def _release_download_lock(lock_file):
+    import fcntl
+    try:
+        fcntl.flock(lock_file, fcntl.LOCK_UN)
+        lock_file.close()
+    except Exception:
+        pass
+
+
 def get_mnist(data_dir="./data", train_subset=None, test_subset=None, seed=42):
     """Downloads and returns the MNIST train and test sets, optionally subsetted."""
     import os, shutil
@@ -155,16 +175,20 @@ def get_mnist(data_dir="./data", train_subset=None, test_subset=None, seed=42):
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     
+    lock = _acquire_download_lock(data_dir, "mnist")
     try:
-        train_dataset = datasets.MNIST(data_dir, train=True, download=True, transform=transform)
-        test_dataset = datasets.MNIST(data_dir, train=False, download=True, transform=transform)
-    except (EOFError, RuntimeError, OSError, ValueError):
-        # Auto-heal: delete corrupted partial download and retry
-        mnist_dir = os.path.join(data_dir, "MNIST")
-        if os.path.exists(mnist_dir):
-            shutil.rmtree(mnist_dir, ignore_errors=True)
-        train_dataset = datasets.MNIST(data_dir, train=True, download=True, transform=transform)
-        test_dataset = datasets.MNIST(data_dir, train=False, download=True, transform=transform)
+        try:
+            train_dataset = datasets.MNIST(data_dir, train=True, download=True, transform=transform)
+            test_dataset = datasets.MNIST(data_dir, train=False, download=True, transform=transform)
+        except (EOFError, RuntimeError, OSError, ValueError):
+            # Auto-heal: delete corrupted partial download and retry
+            mnist_dir = os.path.join(data_dir, "MNIST")
+            if os.path.exists(mnist_dir):
+                shutil.rmtree(mnist_dir, ignore_errors=True)
+            train_dataset = datasets.MNIST(data_dir, train=True, download=True, transform=transform)
+            test_dataset = datasets.MNIST(data_dir, train=False, download=True, transform=transform)
+    finally:
+        _release_download_lock(lock)
     
     rng = np.random.RandomState(seed)
     if train_subset is not None and train_subset < len(train_dataset):
@@ -177,6 +201,7 @@ def get_mnist(data_dir="./data", train_subset=None, test_subset=None, seed=42):
 
     return train_dataset, test_dataset
 
+
 def get_cifar10(data_dir="./data", train_subset=None, test_subset=None, seed=42):
     """Downloads and returns the CIFAR-10 train and test sets, optionally subsetted."""
     import os, shutil
@@ -185,20 +210,24 @@ def get_cifar10(data_dir="./data", train_subset=None, test_subset=None, seed=42)
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
     ])
     
+    lock = _acquire_download_lock(data_dir, "cifar10")
     try:
-        train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
-        test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
-    except (EOFError, RuntimeError, OSError, ValueError):
-        # Auto-heal: delete corrupted partial download and retry
-        for item in ["cifar-10-batches-py", "cifar-10-python.tar.gz"]:
-            p = os.path.join(data_dir, item)
-            if os.path.isdir(p):
-                shutil.rmtree(p, ignore_errors=True)
-            elif os.path.isfile(p):
-                try: os.remove(p)
-                except Exception: pass
-        train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
-        test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
+        try:
+            train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
+            test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
+        except (EOFError, RuntimeError, OSError, ValueError):
+            # Auto-heal: delete corrupted partial download and retry
+            for item in ["cifar-10-batches-py", "cifar-10-python.tar.gz"]:
+                p = os.path.join(data_dir, item)
+                if os.path.isdir(p):
+                    shutil.rmtree(p, ignore_errors=True)
+                elif os.path.isfile(p):
+                    try: os.remove(p)
+                    except Exception: pass
+            train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
+            test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
+    finally:
+        _release_download_lock(lock)
     
     rng = np.random.RandomState(seed)
     if train_subset is not None and train_subset < len(train_dataset):
@@ -220,20 +249,24 @@ def get_cifar100(data_dir="./data", train_subset=None, test_subset=None, seed=42
         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
     ])
     
+    lock = _acquire_download_lock(data_dir, "cifar100")
     try:
-        train_dataset = datasets.CIFAR100(data_dir, train=True, download=True, transform=transform)
-        test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=transform)
-    except (EOFError, RuntimeError, OSError, ValueError):
-        # Auto-heal: delete corrupted partial download and retry
-        for item in ["cifar-100-python", "cifar-100-python.tar.gz"]:
-            p = os.path.join(data_dir, item)
-            if os.path.isdir(p):
-                shutil.rmtree(p, ignore_errors=True)
-            elif os.path.isfile(p):
-                try: os.remove(p)
-                except Exception: pass
-        train_dataset = datasets.CIFAR100(data_dir, train=True, download=True, transform=transform)
-        test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=transform)
+        try:
+            train_dataset = datasets.CIFAR100(data_dir, train=True, download=True, transform=transform)
+            test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=transform)
+        except (EOFError, RuntimeError, OSError, ValueError):
+            # Auto-heal: delete corrupted partial download and retry
+            for item in ["cifar-100-python", "cifar-100-python.tar.gz"]:
+                p = os.path.join(data_dir, item)
+                if os.path.isdir(p):
+                    shutil.rmtree(p, ignore_errors=True)
+                elif os.path.isfile(p):
+                    try: os.remove(p)
+                    except Exception: pass
+            train_dataset = datasets.CIFAR100(data_dir, train=True, download=True, transform=transform)
+            test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=transform)
+    finally:
+        _release_download_lock(lock)
     
     rng = np.random.RandomState(seed)
     if train_subset is not None and train_subset < len(train_dataset):

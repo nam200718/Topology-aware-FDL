@@ -31,7 +31,16 @@ class BaseEngine(ABC):
         
         # Fetch datasets
         dataset_name = getattr(self.config.env, "dataset", "mnist").lower()
-        if dataset_name in ("cifar10", "cifar100"):
+        if dataset_name == "synthetic":
+            from torch.utils.data import TensorDataset
+            x_tr = torch.randn(40, 1, 28, 28)
+            y_tr = torch.randint(0, 10, (40,))
+            x_te = torch.randn(20, 1, 28, 28)
+            y_te = torch.randint(0, 10, (20,))
+            train_ds = TensorDataset(x_tr, y_tr)
+            test_ds = TensorDataset(x_te, y_te)
+            self.in_channels = 1
+        elif dataset_name in ("cifar10", "cifar100"):
             if dataset_name == "cifar100":
                 from src.data.dataset import get_cifar100
                 print("Downloading and dividing CIFAR-100 dataset...")

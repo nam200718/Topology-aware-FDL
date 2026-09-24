@@ -14,8 +14,8 @@ class EnvironmentConfig(BaseModel):
     # Optional subset sizes for faster experiments
     train_subset: Optional[int] = None
     test_subset: Optional[int] = None
-    # Dataset to use ("mnist", "cifar10" or "cifar100")
-    dataset: Literal["mnist", "cifar10", "cifar100"] = "mnist"
+    # Dataset to use ("mnist", "cifar10", "cifar100", or "synthetic")
+    dataset: Literal["mnist", "cifar10", "cifar100", "synthetic"] = "mnist"
 
 
 class TopologyConfig(BaseModel):
