@@ -87,9 +87,9 @@ def run_job_2(force: bool = False):
 
 
 def run_job_3(force: bool = False):
-    """Job 3: CIFAR-100 High-Cardinality (C=100) & N=50 Client Population Scaling."""
+    """Job 3: 50-Client Population Scaling with Partial Participation & S-AFR."""
     print("\n" + "=" * 80)
-    print("JOB 3: SCALE BENCHMARK (CIFAR-100 C=100 & N=50 Client Population)")
+    print("JOB 3: 50-CLIENT POPULATION SCALING & RAWLSIAN WELFARE BENCHMARK")
     print("=" * 80)
     t0 = time.time()
     manifest = load_manifest()
@@ -97,13 +97,9 @@ def run_job_3(force: bool = False):
         print(">>> Job 3 already recorded as completed in manifest. Skipping.")
         return
 
-    from scripts.run_cifar100_benchmark import run_cifar100_experiment
     from scripts.run_scale_50clients import run_50clients_scaling
 
-    print(">>> Subtask 3A: Running CIFAR-100 Benchmark...")
-    run_cifar100_experiment(num_clients=15, num_rounds=20, batch_size=64)
-
-    print(">>> Subtask 3B: Running N=50 Client Scaling Benchmark...")
+    print(">>> Running N=50 Client Scaling Benchmark (N=50, K=5, Cp=0.20)...")
     run_50clients_scaling(num_clients=50, clients_per_round=10, num_rounds=20, batch_size=64)
 
     dur = time.time() - t0

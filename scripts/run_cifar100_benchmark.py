@@ -405,6 +405,10 @@ def run_cifar100_multiregime_experiment(num_clients: int = 15, num_rounds: int =
     return all_results
 
 
+# Backwards compatibility alias
+run_cifar100_experiment = run_cifar100_multiregime_experiment
+
+
 def run_cifar100_byzantine_suite(num_clients: int = 15, num_rounds: int = 15, batch_size: int = 64):
     """
     Byzantine Fault Tolerance Benchmark directly on CIFAR-100 (C = 100).
