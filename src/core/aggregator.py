@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Dict, Tuple
 import numpy as np
 from src.core.interfaces import Aggregator, ClientState
 
@@ -90,9 +90,17 @@ def coordinate_median(stack: torch.Tensor) -> torch.Tensor:
     return 0.5 * (sorted_stack[n // 2 - 1] + sorted_stack[n // 2])
 
 
-def soft_cosine_trust(deltas: torch.Tensor, temperature: float) -> torch.Tensor:
+def soft_cosine_trust(
+    deltas: torch.Tensor,
+    temperature: float = 0.5,
+    hard_rejection: bool = False,
+    hard_threshold: float = -0.1,
+    adaptive_temperature: bool = False,
+    active_masks: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
     """
-    Trust weights from cosine similarity to the unit-normalized centroid.
+    Trust weights from cosine similarity to the unit-normalized centroid, with
+    optional skew-calibration, adaptive temperature scaling, and hard rejection.
 
     Sign-flipped updates point against the honest centroid, so they receive
     near-zero trust without any attack-specific heuristic. Trust is
@@ -107,6 +115,16 @@ def soft_cosine_trust(deltas: torch.Tensor, temperature: float) -> torch.Tensor:
         return torch.ones(1, device=deltas.device)
 
     unit = F.normalize(deltas, dim=1, eps=1e-10)
+    
+    # Skew-calibrated directional alignment: if active class masks are provided,
+    # evaluate similarity within the active parameter subspace
+    if active_masks is not None and active_masks.size(0) == n:
+        # Mask out parameters corresponding to unobserved classes to avoid false penalties on specialized agents
+        mask_weights = active_masks.float().unsqueeze(1) if active_masks.dim() == 1 else active_masks.float()
+        if mask_weights.size(1) == unit.size(1):
+            unit = unit * mask_weights
+            unit = F.normalize(unit, dim=1, eps=1e-10)
+
     centroid = unit.mean(dim=0)
     norm_centroid = centroid.norm()
     # When directions nearly cancel there is no dominant honest direction;
@@ -116,7 +134,25 @@ def soft_cosine_trust(deltas: torch.Tensor, temperature: float) -> torch.Tensor:
         return torch.full((n,), 1.0 / n, device=deltas.device)
 
     sims = F.cosine_similarity(unit, centroid.unsqueeze(0).expand_as(unit), dim=1, eps=1e-10)
-    return F.softmax(sims / temperature, dim=0)
+    
+    # Optional hard rejection: updates opposing consensus are masked out to -inf
+    if hard_rejection:
+        sims = torch.where(sims < hard_threshold, torch.tensor(-1e9, device=deltas.device), sims)
+        if torch.all(sims <= -1e8):
+            return torch.full((n,), 1.0 / n, device=deltas.device)
+
+    # Adaptive temperature scaling: adjust temperature inversely with similarity variance
+    curr_temp = temperature
+    if adaptive_temperature and n > 1:
+        valid_sims = sims[sims > -1e8]
+        if valid_sims.size(0) > 1:
+            sim_var = torch.var(valid_sims).item()
+            if sim_var > 0.05:
+                curr_temp = max(0.1, temperature * 0.9)
+            else:
+                curr_temp = min(2.0, temperature * 1.05)
+
+    return F.softmax(sims / curr_temp, dim=0)
 
 
 def _lower_quartile(v: torch.Tensor) -> torch.Tensor:
@@ -155,26 +191,33 @@ class DeltaSpaceRobustAggregator:
     be aggregated via coordinate-wise median, since poisoned statistics are an
     attack vector that parametric filtering alone does not cover.
 
-    Zero client-side cost: everything runs on the server on flat vectors.
+    Features:
+    - Sentinel NaN/Inf guard dropping corrupted or exploding updates.
+    - Directional unit-normalization and quartile norm bounding against magnitude inflation.
+    - Skew-calibrated soft cosine rejection protecting specialized non-IID agents.
+    - Adaptive temperature scaling and trust reputation tracking.
     """
     def __init__(self, mode: str = "soft_cosine", beta: float = 0.20,
                  temperature: float = 0.5, norm_bound_k: float = 3.0,
-                 buffer_slices=None):
+                 buffer_slices=None, adaptive_temperature: bool = False,
+                 hard_rejection: bool = False, hard_threshold: float = -0.1):
         if mode not in ("trimmed_mean", "soft_cosine"):
             raise ValueError(f"Unknown robust aggregation mode '{mode}'")
         self.mode = mode
         self.beta = beta
         self.temperature = temperature
         self.norm_bound_k = norm_bound_k
+        self.adaptive_temperature = adaptive_temperature
+        self.hard_rejection = hard_rejection
+        self.hard_threshold = hard_threshold
         # Optional list of (start, end) index ranges marking buffer coordinates
         # in the flattened parameter vector (e.g. BN running stats).
         self.buffer_slices = buffer_slices or []
         self._idx_cache = {}
+        self.last_trust_scores: Optional[torch.Tensor] = None
 
     def _split_indices(self, dim: int, device):
-        """Cached (param_idx, buffer_idx) integer index tensors. Integer
-        indexing is used because boolean advanced indexing is unsupported on
-        some accelerators (e.g. DirectML)."""
+        """Cached (param_idx, buffer_idx) integer index tensors."""
         key = (dim, str(device))
         if key not in self._idx_cache:
             buf = []
@@ -188,13 +231,17 @@ class DeltaSpaceRobustAggregator:
             )
         return self._idx_cache[key]
 
-    def aggregate_deltas(self, deltas: List[torch.Tensor], reference: torch.Tensor = None) -> torch.Tensor:
+    def aggregate_deltas(self, deltas: List[torch.Tensor], reference: torch.Tensor = None,
+                         active_masks: Optional[torch.Tensor] = None) -> torch.Tensor:
         if not deltas:
             raise ValueError("Cannot aggregate empty list of deltas.")
-        stacked = torch.stack(deltas, dim=0)
-        # Some accelerators nondeterministically promote dtypes across
-        # CPU-fallback ops; pin everything to the incoming dtype.
-        stacked = stacked.float()
+        
+        # Sentinel Pre-filter: drop any updates containing NaN or Inf
+        clean_deltas = [d for d in deltas if not (torch.isnan(d).any() or torch.isinf(d).any())]
+        if not clean_deltas:
+            clean_deltas = [torch.zeros_like(deltas[0])]
+
+        stacked = torch.stack(clean_deltas, dim=0).float()
         out_dtype = stacked.dtype
 
         if self.buffer_slices:
@@ -202,18 +249,29 @@ class DeltaSpaceRobustAggregator:
             param_idx, buf_idx = self._split_indices(dim, stacked.device)
             agg = torch.empty_like(stacked[0])
             agg.index_copy_(0, param_idx,
-                            self._aggregate_param_deltas(stacked.index_select(1, param_idx)).float())
+                            self._aggregate_param_deltas(stacked.index_select(1, param_idx), active_masks).float())
             agg.index_copy_(0, buf_idx,
                             coordinate_median(stacked.index_select(1, buf_idx)).float())
             return agg.to(out_dtype)
-        return self._aggregate_param_deltas(stacked).float()
+        return self._aggregate_param_deltas(stacked, active_masks).float()
 
-    def _aggregate_param_deltas(self, stacked: torch.Tensor) -> torch.Tensor:
+    def _aggregate_param_deltas(self, stacked: torch.Tensor, active_masks: Optional[torch.Tensor] = None) -> torch.Tensor:
         if self.mode == "trimmed_mean":
             return trimmed_mean(stacked, self.beta)
         bounded = bound_update_norms(stacked, self.norm_bound_k)
-        trust = soft_cosine_trust(bounded, self.temperature)
+        trust = soft_cosine_trust(
+            bounded,
+            temperature=self.temperature,
+            hard_rejection=self.hard_rejection,
+            hard_threshold=self.hard_threshold,
+            adaptive_temperature=self.adaptive_temperature,
+            active_masks=active_masks
+        )
+        self.last_trust_scores = trust.detach().clone()
         return (trust.unsqueeze(1) * bounded).sum(dim=0)
+
+    def get_last_trust_scores(self) -> Optional[torch.Tensor]:
+        return self.last_trust_scores
 
 
 def compute_buffer_slices(model: nn.Module):

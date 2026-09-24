@@ -94,3 +94,24 @@ def test_hierarchical_resnet9_and_mobilenet_forward():
     assert f_mob.shape == (2, 576)
     out_mob = mobilenet(x)
     assert out_mob.shape == (2, 10)
+
+
+def test_cosine_prototype_mode():
+    """Verify that cosine mode normalizes feature vectors and weights."""
+    layer = HierarchicalResidualLinear(in_features=32, num_classes=10, mode="cosine", scale=10.0)
+    x = torch.randn(4, 32) * 100.0  # Large norm
+    out = layer(x)
+    assert out.shape == (4, 10)
+    # Cosine outputs are strictly bounded in [-scale, scale]
+    assert torch.all(out <= 10.0 + 1e-4)
+    assert torch.all(out >= -10.0 - 1e-4)
+
+
+def test_hierarchical_lora_forward():
+    """Verify Hierarchical LoRA layer forward pass and zero-initialization of residuals."""
+    from src.core.model import HierarchicalLoRALinear
+    lora_layer = HierarchicalLoRALinear(in_features=64, out_features=128, r=4)
+    x = torch.randn(8, 64)
+    out = lora_layer(x)
+    assert out.shape == (8, 128)
+

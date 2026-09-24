@@ -293,11 +293,13 @@ class HierarchicalResidualLinear(nn.Module):
         Delta_W_cluster = 0
         Delta_W_local = 0
     """
-    def __init__(self, in_features: int, num_classes: int, bias: bool = True):
+    def __init__(self, in_features: int, num_classes: int, bias: bool = True, mode: str = "linear", scale: float = 16.0):
         super(HierarchicalResidualLinear, self).__init__()
         self.in_features = in_features
         self.num_classes = num_classes
         self.use_bias = bias
+        self.mode = mode
+        self.scale = scale
 
         # Tier 1: Global Consensus
         self.weight_global = nn.Parameter(torch.empty(num_classes, in_features))
@@ -336,7 +338,51 @@ class HierarchicalResidualLinear(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         w_eff, b_eff = self.get_effective_weights()
+        if self.mode == "cosine":
+            x_norm = F.normalize(x, p=2, dim=-1)
+            w_norm = F.normalize(w_eff, p=2, dim=-1)
+            return self.scale * F.linear(x_norm, w_norm)
         return F.linear(x, w_eff, b_eff)
+
+
+class HierarchicalLoRALinear(nn.Module):
+    """
+    Hierarchical Low-Rank Adaptation (H-LoRA) Linear Layer for Foundation Models.
+    W_eff = W_frozen + (alpha / r) * (B_global @ A_global + B_cluster @ A_cluster + B_local @ A_local)
+    """
+    def __init__(self, in_features: int, out_features: int, r: int = 4, lora_alpha: float = 8.0):
+        super(HierarchicalLoRALinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.r = r
+        self.scaling = lora_alpha / r
+
+        # Frozen base weights
+        self.weight_frozen = nn.Parameter(torch.empty(out_features, in_features), requires_grad=False)
+        nn.init.kaiming_uniform_(self.weight_frozen, a=5**0.5)
+
+        # Tier 1: Global LoRA
+        self.lora_A_global = nn.Parameter(torch.zeros(r, in_features))
+        self.lora_B_global = nn.Parameter(torch.zeros(out_features, r))
+        nn.init.kaiming_uniform_(self.lora_A_global, a=5**0.5)
+
+        # Tier 2: Cluster LoRA (Zero-initialized)
+        self.lora_A_cluster = nn.Parameter(torch.zeros(r, in_features))
+        self.lora_B_cluster = nn.Parameter(torch.zeros(out_features, r))
+
+        # Tier 3: Local LoRA (Zero-initialized)
+        self.lora_A_local = nn.Parameter(torch.zeros(r, in_features))
+        self.lora_B_local = nn.Parameter(torch.zeros(out_features, r))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = F.linear(x, self.weight_frozen)
+        delta = (
+            self.lora_B_global @ self.lora_A_global
+            + self.lora_B_cluster @ self.lora_A_cluster
+            + self.lora_B_local @ self.lora_A_local
+        )
+        return out + self.scaling * F.linear(x, delta)
+
 
 
 class HierarchicalResidualResNet9(nn.Module):
