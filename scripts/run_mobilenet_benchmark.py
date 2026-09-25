@@ -134,13 +134,15 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
             client_states = []
             for cid in range(num_clients):
                 c_train = ClientDataset(train_fast, train_splits[cid])
-                loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
+                loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True, drop_last=(len(c_train) > batch_size))
                 local_m = MobileNetV3Small(in_channels=3, num_classes=10).to(device)
                 local_m.load_state_dict(global_m.state_dict())
                 opt = torch.optim.SGD(local_m.parameters(), lr=0.02, momentum=0.9, weight_decay=1e-4, foreach=False)
                 local_m.train()
                 for _ in range(2):
                     for x, y in loader:
+                        if x.size(0) <= 1:
+                            continue
                         opt.zero_grad(set_to_none=True)
                         loss = crit(local_m(x), y)
                         loss.backward()
@@ -171,7 +173,7 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
             client_states = []
             for cid in range(num_clients):
                 c_train = ClientDataset(train_fast, train_splits[cid])
-                loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
+                loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True, drop_last=(len(c_train) > batch_size))
                 local_g = MobileNetV3Small(in_channels=3, num_classes=10).to(device)
                 local_g.load_state_dict(global_m_d.state_dict())
                 opt_g = torch.optim.SGD(local_g.parameters(), lr=0.02, momentum=0.9, weight_decay=1e-4, foreach=False)
@@ -179,6 +181,8 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
                 local_g.train()
                 for _ in range(2):
                     for x, y in loader:
+                        if x.size(0) <= 1:
+                            continue
                         opt_g.zero_grad(set_to_none=True); crit(local_g(x), y).backward(); opt_g.step()
                 client_states.append(local_g.state_dict())
 
@@ -189,6 +193,8 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
                 p_mod.train()
                 for _ in range(2):
                     for x, y in loader:
+                        if x.size(0) <= 1:
+                            continue
                         opt_p.zero_grad(set_to_none=True)
                         w_p_vec = torch.nn.utils.parameters_to_vector(p_mod.parameters())
                         loss = crit(p_mod(x), y) + 0.5 * 0.1 * torch.sum((w_p_vec - w_g_vec) ** 2)
@@ -225,7 +231,7 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
             client_states = []
             for cid in range(num_clients):
                 c_train = ClientDataset(train_fast, train_splits[cid])
-                loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
+                loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True, drop_last=(len(c_train) > batch_size))
                 k_idx = client_clusters[cid]
 
                 l_m = MultiHeadMobileNetV3Small(in_channels=3, num_classes=10).to(device)
@@ -235,6 +241,8 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
                 l_m.train()
                 for ep in range(1, 4):
                     for x, y in loader:
+                        if x.size(0) <= 1:
+                            continue
                         opt.zero_grad(set_to_none=True)
                         feats = l_m.extract_features(x)
                         loss = crit(l_m.classifier_root(feats), y)

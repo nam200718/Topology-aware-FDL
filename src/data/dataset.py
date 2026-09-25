@@ -117,11 +117,12 @@ class FastTensorDataLoader:
     Lightweight, zero-overhead iterator for PyTorch tensors preloaded on GPU.
     Avoids Python PyTorch DataLoader queueing and individual sample fetching.
     """
-    def __init__(self, images: torch.Tensor, labels: torch.Tensor, batch_size: int = 32, shuffle: bool = True):
+    def __init__(self, images: torch.Tensor, labels: torch.Tensor, batch_size: int = 32, shuffle: bool = True, drop_last: bool = False):
         self.images = images
         self.labels = labels
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.drop_last = drop_last
         self.num_samples = len(labels)
 
     def __iter__(self):
@@ -131,21 +132,30 @@ class FastTensorDataLoader:
             indices = torch.randperm(self.num_samples, device=self.images.device)
             for i in range(0, self.num_samples, self.batch_size):
                 batch_idx = indices[i:i + self.batch_size]
+                if self.drop_last and len(batch_idx) < self.batch_size:
+                    continue
                 yield self.images[batch_idx], self.labels[batch_idx]
         else:
             for i in range(0, self.num_samples, self.batch_size):
-                yield self.images[i:i + self.batch_size], self.labels[i:i + self.batch_size]
+                batch = self.images[i:i + self.batch_size]
+                if self.drop_last and len(batch) < self.batch_size:
+                    continue
+                yield batch, self.labels[i:i + self.batch_size]
 
     def __len__(self):
-        return (self.num_samples + self.batch_size - 1) // self.batch_size if self.num_samples > 0 else 0
+        if self.num_samples == 0:
+            return 0
+        if self.drop_last:
+            return self.num_samples // self.batch_size
+        return (self.num_samples + self.batch_size - 1) // self.batch_size
 
-def get_fast_dataloader(dataset, batch_size: int = 32, shuffle: bool = True):
+def get_fast_dataloader(dataset, batch_size: int = 32, shuffle: bool = True, drop_last: bool = False):
     """
     Returns FastTensorDataLoader if dataset has GPU tensors, else standard DataLoader.
     """
     if hasattr(dataset, 'images') and hasattr(dataset, 'labels') and isinstance(dataset.images, torch.Tensor) and isinstance(dataset.labels, torch.Tensor):
-        return FastTensorDataLoader(dataset.images, dataset.labels, batch_size=batch_size, shuffle=shuffle)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+        return FastTensorDataLoader(dataset.images, dataset.labels, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last)
 
 def _acquire_download_lock(data_dir: str, name: str):
     import os, fcntl
