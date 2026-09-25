@@ -182,6 +182,17 @@ for sp in search_paths:
                     print(f"⚡ [Fast Dataset] Copied Kaggle Input CIFAR-100 from {src_dir}!")
             found_fast_dataset = True
             break
+        elif {"train", "test", "meta"}.issubset(files):
+            src_dir = root
+            if not os.path.exists(target_cifar_dir):
+                try:
+                    os.symlink(src_dir, target_cifar_dir)
+                    print(f"⚡ [Fast Dataset] Symlinked Kaggle Input CIFAR-100 from {src_dir} (0.0s)!")
+                except Exception:
+                    shutil.copytree(src_dir, target_cifar_dir, dirs_exist_ok=True)
+                    print(f"⚡ [Fast Dataset] Copied Kaggle Input CIFAR-100 from {src_dir}!")
+            found_fast_dataset = True
+            break
         elif "cifar-100-python.tar.gz" in files:
             src_tar = os.path.join(root, "cifar-100-python.tar.gz")
             if not os.path.exists(target_cifar_dir):
@@ -659,6 +670,17 @@ for sp in search_paths:
     for root, dirs, files in os.walk(sp):
         if "cifar-100-python" in dirs:
             src_dir = os.path.join(root, "cifar-100-python")
+            if not os.path.exists(target_cifar_dir):
+                try:
+                    os.symlink(src_dir, target_cifar_dir)
+                    print(f"⚡ [Fast Dataset] Symlinked Kaggle Input CIFAR-100 from {src_dir} (0.0s)!")
+                except Exception:
+                    shutil.copytree(src_dir, target_cifar_dir, dirs_exist_ok=True)
+                    print(f"⚡ [Fast Dataset] Copied Kaggle Input CIFAR-100 from {src_dir}!")
+            found_fast_dataset = True
+            break
+        elif {"train", "test", "meta"}.issubset(files):
+            src_dir = root
             if not os.path.exists(target_cifar_dir):
                 try:
                     os.symlink(src_dir, target_cifar_dir)
