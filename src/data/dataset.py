@@ -148,10 +148,11 @@ def get_fast_dataloader(dataset, batch_size: int = 32, shuffle: bool = True):
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
 def _acquire_download_lock(data_dir: str, name: str):
-    import os, fcntl
+    import os
     os.makedirs(data_dir, exist_ok=True)
     lock_file = open(os.path.join(data_dir, f".{name}.lock"), "w")
     try:
+        import fcntl
         fcntl.flock(lock_file, fcntl.LOCK_EX)
     except Exception:
         pass
@@ -159,12 +160,15 @@ def _acquire_download_lock(data_dir: str, name: str):
 
 
 def _release_download_lock(lock_file):
-    import fcntl
     try:
+        import fcntl
         fcntl.flock(lock_file, fcntl.LOCK_UN)
         lock_file.close()
     except Exception:
-        pass
+        try:
+            lock_file.close()
+        except Exception:
+            pass
 
 
 def get_mnist(data_dir="./data", train_subset=None, test_subset=None, seed=42):
@@ -202,6 +206,57 @@ def get_mnist(data_dir="./data", train_subset=None, test_subset=None, seed=42):
     return train_dataset, test_dataset
 
 
+def _auto_link_dataset(data_dir: str, dataset_name: str) -> bool:
+    """Auto-detect pre-existing dataset in /kaggle/input or common cloud mount directories.
+    Links or extracts into data_dir to eliminate download times and network timeouts on Kaggle.
+    """
+    import os, shutil, tarfile
+
+    if dataset_name == "cifar100":
+        folder_name = "cifar-100-python"
+        tar_name = "cifar-100-python.tar.gz"
+    elif dataset_name == "cifar10":
+        folder_name = "cifar-10-batches-py"
+        tar_name = "cifar-10-python.tar.gz"
+    else:
+        return False
+
+    target_dir = os.path.join(data_dir, folder_name)
+    if os.path.exists(target_dir) and (len(os.listdir(target_dir)) > 0):
+        return True
+
+    search_roots = ["/kaggle/input", "/content", os.path.expanduser("~/.cache")]
+    for candidate_root in search_roots:
+        if not os.path.exists(candidate_root):
+            continue
+        for root, dirs, files in os.walk(candidate_root):
+            if folder_name in dirs:
+                src_path = os.path.join(root, folder_name)
+                os.makedirs(data_dir, exist_ok=True)
+                try:
+                    os.symlink(src_path, target_dir)
+                    print(f"⚡ [Kaggle Input] Symlinked {dataset_name} from {src_path} -> {target_dir} (0.0s)")
+                    return True
+                except Exception:
+                    try:
+                        shutil.copytree(src_path, target_dir, dirs_exist_ok=True)
+                        print(f"⚡ [Kaggle Input] Copied {dataset_name} from {src_path} -> {target_dir}")
+                        return True
+                    except Exception:
+                        pass
+            elif tar_name in files:
+                src_tar = os.path.join(root, tar_name)
+                os.makedirs(data_dir, exist_ok=True)
+                try:
+                    with tarfile.open(src_tar, "r:gz") as tar:
+                        tar.extractall(data_dir)
+                    print(f"⚡ [Kaggle Input] Extracted archive {src_tar} -> {data_dir}")
+                    return True
+                except Exception:
+                    pass
+    return False
+
+
 def get_cifar10(data_dir="./data", train_subset=None, test_subset=None, seed=42):
     """Downloads and returns the CIFAR-10 train and test sets, optionally subsetted."""
     import os, shutil
@@ -210,6 +265,7 @@ def get_cifar10(data_dir="./data", train_subset=None, test_subset=None, seed=42)
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
     ])
     
+    _auto_link_dataset(data_dir, "cifar10")
     lock = _acquire_download_lock(data_dir, "cifar10")
     try:
         try:
@@ -249,6 +305,7 @@ def get_cifar100(data_dir="./data", train_subset=None, test_subset=None, seed=42
         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
     ])
     
+    _auto_link_dataset(data_dir, "cifar100")
     lock = _acquire_download_lock(data_dir, "cifar100")
     try:
         try:
