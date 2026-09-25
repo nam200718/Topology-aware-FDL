@@ -184,6 +184,15 @@ class MobileNetV3Small(nn.Module):
         self.classifier = base_mobilenet.classifier
 
     def extract_features(self, x):
+        was_training = self.training
+        if was_training and x.size(0) == 1:
+            self.eval()
+            try:
+                x = self.features(x)
+                x = self.avgpool(x)
+                return torch.flatten(x, 1)
+            finally:
+                self.train(was_training)
         x = self.features(x)
         x = self.avgpool(x)
         return torch.flatten(x, 1)
@@ -227,6 +236,15 @@ class MultiHeadMobileNetV3Small(nn.Module):
         )
 
     def extract_features(self, x):
+        was_training = self.training
+        if was_training and x.size(0) == 1:
+            self.eval()
+            try:
+                x = self.features(x)
+                x = self.avgpool(x)
+                return torch.flatten(x, 1)
+            finally:
+                self.train(was_training)
         x = self.features(x)
         x = self.avgpool(x)
         return torch.flatten(x, 1)
