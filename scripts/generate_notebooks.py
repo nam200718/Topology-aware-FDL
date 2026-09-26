@@ -289,7 +289,8 @@ else:
 
     md_cell("""## 5. Smoke Test: Verify All 6 Methods in 30 Seconds"""),
 
-    code_cell("""from src.baselines.factory import build_baseline_engine
+    code_cell("""import torch
+from src.baselines.factory import build_baseline_engine
 from src.baselines.config import BaselineSimulationConfig, BaselineClientConfig
 from src.config import TopologyConfig, EnvironmentConfig
 
@@ -329,7 +330,7 @@ print("All 6 algorithms verified ready for CIFAR-100!")"""),
 Runs: 6 Methods × 5 Regimes × 3 Seeds ($N=30$ items total).  
 Checkpoints automatically save after every item, so no progress is ever lost."""),
 
-    code_cell("""import json, time, os, gc
+    code_cell("""import json, time, os, gc, torch
 import pandas as pd
 from src.baselines.experiment_configs import (
     PERSONALIZATION_METHODS,
@@ -785,7 +786,7 @@ else:
 Evaluates: 7 Methods × 4 Attack Types × 5 Byzantine Rates at Moderate Heterogeneity ($\\alpha=0.5$).  
 Multi-Seed ($N=3$ seeds). Checkpoints automatically save after every item."""),
 
-    code_cell("""import json, time, os, gc
+    code_cell("""import json, time, os, gc, torch
 import pandas as pd
 from src.baselines.experiment_configs import (
     BYZANTINE_METHODS,

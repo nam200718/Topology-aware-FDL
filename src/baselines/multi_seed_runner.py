@@ -2,7 +2,9 @@
 """
 from typing import List, Dict, Any, Optional
 import time
+import gc
 import numpy as np
+import torch
 
 from src.config import SimulationConfig
 from src.utils.random import set_seed
@@ -52,7 +54,6 @@ class MultiSeedRunner:
             del engine, topology, aggregator
             if str(self.device).startswith("cuda") and torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            import gc
             gc.collect()
 
         total_elapsed = time.time() - start_time
