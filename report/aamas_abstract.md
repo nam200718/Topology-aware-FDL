@@ -1,54 +1,58 @@
 # AAMAS 2027 Submission Metadata & Abstract
 
 **Target Conference**: The 26th International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2027)  
-**Abstract Submission Deadline**: October 1, 2026  
-**Full Paper Deadline**: October 8, 2026  
+**Track**: *Distributed and Collaborative Machine Learning / Robust Distributed Systems*  
+**Abstract Submission Deadline**: October 1, 2026 (23:59 AoE)  
+**Full Paper Deadline**: October 8, 2026 (23:59 AoE)  
 **Submission Portal**: AAMAS 2027 CMT / EasyChair  
 
 ---
 
 ## Metadata
 
-- **Title**: *Defended H-ResFL: Efficient, Fair, and Byzantine-Resilient Multi-Agent Coordination via Multi-Scale Residual Personalization*
+- **Title**: *H-ResFL: Efficient, Multi-Scale Residual Personalization and Byzantine Resilience in Heterogeneous Federated Learning*
+- **Alternative Acronym**: *HEP-FL (Hierarchical Ensemble Personalization)*
 - **Authors**:
   - **Nghiem Duc Khanh Nam**\* (College of Engineering & Computer Science, VinUniversity, Vietnam) — `nam.ndk@vinuni.edu.vn`
   - **Hung Anh Nguyen**\* (College of Engineering & Computer Science, VinUniversity, Vietnam) — `anh.nh@vinuni.edu.vn`
   - **Leandro Soriano Marcolino** (School of Computing & Communications, Lancaster University, UK) — `l.marcolino@lancaster.ac.uk`  
   *\* Equal contribution.*
-- **Primary Track**: *Cooperative Multi-Agent Learning / Distributed Multi-Agent Systems*
-- **Secondary Track**: *Multi-Agent Safety, Robustness, and Trustworthiness / Economic and Game-Theoretic MAS (Coalition Formation & Fairness)*
-- **Keywords**: Multi-Agent Reinforcement and Federated Learning, Byzantine Fault Tolerance, Multi-Tier Coalition Formation, Personalized Federated Learning, Egalitarian Social Welfare, Edge Computing.
+- **Primary Area**: *Distributed Machine Learning / Cooperative Learning in Multi-Node Systems*
+- **Secondary Area**: *Fault Tolerance, Safety, and Trustworthiness in Distributed Systems*
+- **Keywords**: Federated Learning, Multi-Scale Personalization, Byzantine Fault Tolerance, Statistical Heterogeneity, Tail Fairness, Edge Computing.
 
 ---
 
-## Official Abstract (Plain Text for Portal Submission)
+## Official Abstract (Pure Federated Learning — Number-Resilient Version)
 
-In decentralized multi-agent systems (MAS) operating across distributed edge networks, autonomous agents must collaborate to acquire global domain knowledge while adapting to idiosyncratic local environments and private utilities. However, cooperative edge learning faces a fundamental trilemma: (1) severe statistical heterogeneity causes monolithic models to collapse across divergent agent tasks; (2) adversarial Byzantine agents exploit decentralized coordination via model poisoning, sign-flipping, and label corruption; and (3) standard cosine-similarity defenses catastrophically penalize honest, highly specialized agents whose updates naturally diverge from the global centroid.
+In distributed edge networks, heterogeneous clients must collaborate to acquire global domain representations while adapting to non-identical (non-IID) local data distributions. However, practical edge federated learning faces a fundamental trilemma: (1) severe statistical heterogeneity causes monolithic consensus models (e.g., FedAvg) to collapse due to client drift; (2) state-of-the-art personalized baselines (e.g., Ditto) duplicate entire neural networks on device, imposing prohibitive memory and compute penalties on resource-constrained hardware; and (3) standard Byzantine-robust aggregators (e.g., Krum, geometric median, uncalibrated cosine filters) confound legitimate statistical specialization with adversarial poison, catastrophically penalizing honest domain specialists.
 
-To resolve these tensions, we introduce **Defended H-ResFL** (*Hierarchical Residual Federated Learning with Multi-Tier Coalition Defense*), a principled multi-agent coordination framework uniting multi-scale residual parameterization with reputation-aware defense. In Defended H-ResFL, agents dynamically organize into cooperative coalitions via 256-dimensional privacy-preserving feature sketches. Agent policies are factorized additively into global foundational, coalition-specialized, and private residual components ($W_{\text{eff}} = W_0 + \Delta W_c + \Delta W_l$). To neutralize malicious actors without sacrificing specialized honest peers, we formulate a **Skew-Calibrated Subspace Cosine Defense** that restricts directional alignment evaluation to each agent's active class subspace, coupled with a variance-gated cumulative reputation model. 
+To resolve these tensions, we introduce **H-ResFL** (*Hierarchical Residual Federated Learning*), a lightweight, multi-scale personalization framework with subspace-calibrated Byzantine defense. H-ResFL factorizes model parameters additively into global foundational, cluster-shared, and private residual components ($W_{\text{eff}, i} = W_0 + \Delta W_{c(i)} + \Delta W_{l, i}$) on a single shared backbone, avoiding the memory duplication of dual-model approaches. To neutralize malicious actors without discarding specialized honest clients, we formulate a **Skew-Calibrated Subspace Defense** that restricts directional alignment evaluation strictly to each client's active decision subspace, coupled with temporal trust tracking.
 
-Extensive empirical evaluations across five non-IID skew regimes on high-cardinality CIFAR-100 ($C=100$) demonstrate that Defended H-ResFL outperforms state-of-the-art personalized federated baselines by up to +11.65% mean accuracy under extreme skew (65.06% vs. Ditto's 53.41% and FedAvg's 19.83%), while matching global models on uniform IID data. Under extreme Byzantine attacks ($q = 0.3$), Defended H-ResFL maintains 88.92% test accuracy while undefended baselines collapse to 9.95%, successfully defending specialized agents where prior cosine filters fail (37.58%). Furthermore, our approach improves Rawlsian egalitarian welfare (lifting worst-off tail agents from 0.00% to 61.40%), slashes edge communication latency by 78.3%, and demonstrates zero-shot architectural generalization from deep vision to continuous edge sensor regression ($R^2 = 99.95\%$).
+Extensive empirical evaluations across multiple non-IID Dirichlet skew regimes on high-cardinality CIFAR-100 demonstrate that H-ResFL consistently outperforms canonical global and personalized baselines as data heterogeneity intensifies. Under severe Byzantine attacks, our framework maintains high task accuracy where undefended baselines and conventional distance-based filters suffer catastrophic collapse. Furthermore, H-ResFL significantly elevates tail-client fairness, cuts on-device memory and latency by approximately half, and demonstrates zero-shot architectural transfer to continuous multi-sensor regression.
 
 ---
 
 ## Structured Scientific Summary for Reviewers
 
-### 1. Motivation & Multi-Agent Problem Formulation
-In real-world multi-agent deployments (e.g., connected autonomous vehicles, smart medical sensor arrays, robotics swarms), agents are self-interested, resource-constrained, and subject to heterogeneous local objectives. Traditional federated aggregation (FedAvg) enforces consensus on a single global model, creating a zero-sum tension between common utility and local agent performance. Conversely, naive clustering or local personalization fragments the multi-agent collective and leaves communication channels open to adversarial manipulation. Defended H-ResFL treats federated learning as a multi-tier coalition game with autonomous reputation tracking.
+### 1. Problem Formulation: The Federated Trilemma
+Real-world federated deployments (e.g., connected autonomous edge devices, distributed sensors, mobile clients) must balance three conflicting requirements:
+1. **Representational Expressiveness**: Capturing universal foundational features without succumbing to local client drift under non-IID Dirichlet skew.
+2. **On-Device Hardware Feasibility**: Operating within strict on-device RAM/VRAM constraints without doubling parameters like dual-model architectures.
+3. **Byzantine Fault Tolerance under Heterogeneity**: Filtering adversarial model poisoning, sign-flipping, and label corruption without falsely rejecting honest specialized nodes.
 
-### 2. Core Innovations
-1. **Multi-Scale Additive Residual Architecture**:
-   Factorizes model weights into $W_{\text{eff}, i} = W_0 + \Delta W_{c(i)} + \Delta W_{l, i}$. This provides clean gradient routing: global foundation handles universal representations, coalition heads capture domain affinities, and private residuals overfit safe local nuances without parameter pollution.
-2. **Skew-Calibrated Subspace Cosine Defense**:
-   Solves the open problem of "heterogeneity vs. defense." Standard robust aggregators (Krum, Bulyan, soft cosine) confound non-IID statistical specialization with malicious poison. By projecting directional similarity into active class support masks ($\mathcal{Y}_i$), our defense detects adversarial attacks even when agents hold disjoint label distributions ($\alpha_{\text{inter}} = 0.1$).
-3. **Cumulative MAS Reputation Model with Variance-Gated Temperature**:
-   Maintains dynamic agent trust scores $R_i^{(t)} = \beta R_i^{(t-1)} + (1-\beta)\tau_i^{(t)}$. When adversarial variance $\operatorname{Var}(\{\hat{s}_j\})$ exceeds threshold bounds, the temperature $\tau^{(t)}$ automatically sharpens, expediting the permanent exclusion of persistent Byzantine saboteurs.
-4. **Fairness via Rawlsian Egalitarian Social Welfare**:
-   Specifically optimizes the welfare of the most vulnerable agent ($\max \min_i \mathcal{U}_i$), raising the bottom-10% client performance and eliminating the "starvation" of tail agents common in standard FL.
+### 2. Core Methodological Contributions
+1. **Multi-Scale Additive Residual Decomposition**:
+   Decomposes parameters into $W_{\text{eff}, i} = W_0 + \Delta W_{c(i)} + \Delta W_{l, i}$. The global base $W_0$ preserves common features, cluster residuals $\Delta W_c$ capture domain affinities, and private local residuals $\Delta W_l$ adapt locally on-device.
+2. **Skew-Calibrated Subspace Directional Defense**:
+   Solves the "heterogeneity vs. robustness" trap by projecting directional similarity into each client's active label support mask ($\mathcal{Y}_i$).
+3. **Temporal Trust Tracking with Adaptive Temperature**:
+   Maintains dynamic client trust scores $T_i^{(t)} = \beta T_i^{(t-1)} + (1-\beta)\tau_i^{(t)}$, isolating malicious actors whose update trajectories consistently diverge from valid subspaces.
+4. **Tail-Client Fairness**:
+   Improves worst-performing client deciles (bottom 10%) through sample-adaptive local optimization, ensuring data-sparse nodes are not starved of utility.
 
 ### 3. Empirical Highlights
-- **Statistical Benchmarks**: Evaluated on high-cardinality CIFAR-100 ($C=100$) across 5 distinct partition regimes (Uniform IID, Mild $\alpha=1.0$, Moderate $\alpha=0.5$, Severe $\alpha=0.1$, Extreme $\alpha=0.05$).
-- **Baselines**: Compared against canonical paradigms including FedAvg (global consensus), FedRep (split-head), and Ditto (dual-model regularization).
-- **Byzantine Robustness**: Evaluated against Label-Flipping ($y \mapsto 99 - y$) and Sign-Flipping attacks ($q \in [0.0, 0.4]$).
-- **Physical Edge Efficiency**: 78.3% parameter transfer reduction; tested on MobileNetV3 and ResNet-9 with edge latency/memory profiling.
-- **Cross-Domain Generalization**: Zero-shot architectural transfer to continuous multi-sensor time-series regression ($R^2 = 99.95\%$).
+- **High-Class-Cardinality Classification**: Evaluated on CIFAR-100 ($C=100$) across 5 Dirichlet concentration regimes ($\alpha \in [\infty, 1.0, 0.5, 0.1, 0.05]$).
+- **Byzantine Attacks**: Robustness verified under Label-Flipping and Sign-Flipping vectors at corruption ratios up to $q = 0.3$.
+- **Edge Efficiency**: Profiled on MobileNetV3-Small depthwise-separable convolutional networks, verifying $\approx 50\%$ VRAM and latency savings over Ditto.
+- **Cross-Domain Generalization**: Zero-shot transfer to continuous multi-sensor regression ($R^2 = 99.95\%$).

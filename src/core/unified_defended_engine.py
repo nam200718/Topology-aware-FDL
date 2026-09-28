@@ -1,13 +1,13 @@
 """
-Unified Multi-Tier Defended Engine for Heterogeneous Multi-Agent Federated Learning.
-Unites Hierarchical Ensemble Personalization (Nam) and Multi-Tier Byzantine Defense (Hung Anh).
+Unified Multi-Tier Defended Engine for Heterogeneous Federated Learning.
+Unites Hierarchical Residual Personalization and Multi-Tier Byzantine Defense.
 
 Features:
-1. Multi-Scale Parameter Coordination (Global, Coalition Residuals, On-Device Specialization).
-2. Skew-Calibrated Soft Cosine Rejection: Eliminates false-positive penalties on specialized agents.
+1. Multi-Scale Parameter Coordination (Global, Cluster Residuals, On-Device Specialization).
+2. Skew-Calibrated Soft Cosine Rejection: Eliminates false-positive penalties on specialized clients.
 3. Sentinel Pre-Filter: Disqualifies NaN / Inf gradient explosions immediately.
-4. Multi-Agent Computational Reputation Model: Tracks dynamic agent trust evolution across rounds.
-5. Egalitarian Social Welfare: Computes Rawlsian min-agent utility and tail fairness metrics.
+4. Temporal Client Trust Tracking: Tracks dynamic client trust evolution across rounds.
+5. Tail Fairness Evaluation: Computes worst-client min utility and bottom-10% fairness metrics.
 """
 
 from typing import Dict, List, Optional
@@ -157,7 +157,7 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                 )
                 self.cluster_heads_state[hid].weights = ref + agg_delta
 
-                # Update Trust Tracker & Agent Reputations for coalition members
+                # Update Trust Tracker & Client Trust Scores for cluster members
                 last_trust = self.cluster_defense_aggregator.get_last_trust_scores()
                 if last_trust is not None:
                     trust_dict = {
@@ -174,7 +174,7 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                         )
                         if self.agent_reputations[cid] < self.malicious_reputation_threshold:
                             self.clients_state[cid].is_confirmed_malicious = True
-                            print(f"[Round {round_num}] ⚠️ REPUTATION ISOLATION: Agent {cid} reputation decayed to {self.agent_reputations[cid]:.3f} < {self.malicious_reputation_threshold} → permanently isolated.")
+                            print(f"[Round {round_num}] ⚠️ TRUST ISOLATION: Client {cid} trust score decayed to {self.agent_reputations[cid]:.3f} < {self.malicious_reputation_threshold} → permanently isolated.")
             else:
                 self.cluster_heads_state[hid].weights = self.aggregator.aggregate(clean_states)
 
@@ -196,7 +196,7 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                 )
                 self.server_weights = root_reference + agg_delta
 
-                # Log global trust scores & update cumulative reputations
+                # Log global trust scores & update cumulative trust scores
                 last_trust_global = self.global_defense_aggregator.get_last_trust_scores()
                 if last_trust_global is not None:
                     global_dict = {
@@ -213,11 +213,11 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                         )
                         if self.agent_reputations[cid] < self.malicious_reputation_threshold:
                             self.clients_state[cid].is_confirmed_malicious = True
-                            print(f"[Round {round_num}] ⚠️ GLOBAL REPUTATION ISOLATION: Agent {cid} reputation decayed to {self.agent_reputations[cid]:.3f} < {self.malicious_reputation_threshold} → permanently isolated.")
+                            print(f"[Round {round_num}] ⚠️ GLOBAL TRUST ISOLATION: Client {cid} trust score decayed to {self.agent_reputations[cid]:.3f} < {self.malicious_reputation_threshold} → permanently isolated.")
             else:
                 self.server_weights = self.aggregator.aggregate(all_root_contributions)
 
-        # 5. Metrics & Social Welfare Tracking
+        # 5. Metrics & Tail Fairness Tracking
         if not self.should_evaluate(round_num):
             self.metrics.log_round({
                 "round": round_num,
@@ -240,11 +240,12 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
             round_data["ensemble_test_accuracy"] = ens_acc
             round_data["ensemble_test_loss"] = ens_loss
 
-            # Social Welfare / Rawlsian Min-Agent Welfare
+            # Tail Fairness & Worst-Client Utility
             if self._last_per_client_accuracy:
                 accs = sorted(self._last_per_client_accuracy.values())
                 k = max(1, int(np.ceil(0.1 * len(accs))))
                 round_data["bottom10_fairness"] = float(np.mean(accs[:k]))
+                round_data["worst_client_min_accuracy"] = float(accs[0])
                 round_data["rawlsian_min_accuracy"] = float(accs[0])
                 round_data["accuracy_variance"] = float(np.var(accs))
 

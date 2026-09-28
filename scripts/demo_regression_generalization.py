@@ -23,9 +23,9 @@ if _project_root not in sys.path:
 from src.core.model import HierarchicalResidualLinear
 
 
-def generate_synthetic_sensor_data(num_agents=10, samples_per_agent=200, input_dim=8, noise_std=0.05, seed=42):
+def generate_synthetic_sensor_data(num_clients=10, samples_per_client=200, input_dim=8, noise_std=0.05, seed=42):
     """
-    Generates synthetic multi-agent continuous sensor data with:
+    Generates synthetic distributed continuous sensor data across heterogeneous clients with:
     - Global underlying physical law (W_true)
     - Fleet / cluster environmental shifts (e.g. 2 clusters: urban vs rural)
     - Private individual sensor calibration drift
@@ -36,21 +36,21 @@ def generate_synthetic_sensor_data(num_agents=10, samples_per_agent=200, input_d
     # 1. Global physical relationship
     w_global = torch.randn(input_dim, 1)
 
-    # 2. Cluster environmental shifts (2 clusters of 5 agents each)
+    # 2. Cluster environmental shifts (2 clusters of 5 clients each)
     cluster_shifts = [torch.randn(input_dim, 1) * 0.5 for _ in range(2)]
 
     agent_data = {}
-    for i in range(num_agents):
+    for i in range(num_clients):
         cluster_id = i % 2
         # Private sensor calibration drift
         w_agent_private = torch.randn(input_dim, 1) * 0.2
         w_agent_total = w_global + cluster_shifts[cluster_id] + w_agent_private
 
-        x = torch.randn(samples_per_agent, input_dim)
-        y = x @ w_agent_total + torch.randn(samples_per_agent, 1) * noise_std
+        x = torch.randn(samples_per_client, input_dim)
+        y = x @ w_agent_total + torch.randn(samples_per_client, 1) * noise_std
 
         # 80/20 train/test split
-        split = int(0.8 * samples_per_agent)
+        split = int(0.8 * samples_per_client)
         agent_data[i] = {
             "train_x": x[:split],
             "train_y": y[:split],
@@ -63,32 +63,32 @@ def generate_synthetic_sensor_data(num_agents=10, samples_per_agent=200, input_d
 
 def run_regression_experiment():
     print("=" * 75)
-    print("MULTI-AGENT CONTINUOUS SENSOR REGRESSION BENCHMARK (TASK GENERALIZATION)")
+    print("DISTRIBUTED CONTINUOUS SENSOR REGRESSION BENCHMARK (TASK GENERALIZATION)")
     print("=" * 75)
 
-    num_agents = 10
-    agent_data, input_dim = generate_synthetic_sensor_data(num_agents=num_agents)
+    num_clients = 10
+    agent_data, input_dim = generate_synthetic_sensor_data(num_clients=num_clients)
 
     # Initialize Global Model with HierarchicalResidualLinear (num_classes=1 for regression)
     global_model = HierarchicalResidualLinear(in_features=input_dim, num_classes=1, bias=False)
 
-    # Storage for cluster residuals (2 clusters) and local residuals (10 agents)
+    # Storage for cluster residuals (2 clusters) and local residuals (10 clients)
     cluster_residuals = [torch.zeros(1, input_dim) for _ in range(2)]
-    local_residuals = [torch.zeros(1, input_dim) for _ in range(num_agents)]
+    local_residuals = [torch.zeros(1, input_dim) for _ in range(num_clients)]
 
     num_rounds = 15
     lr = 0.05
     mu_local = 1e-3
     mu_cluster = 1e-4
 
-    print(f"Federated Setup: {num_agents} Agents, 2 Clusters, {num_rounds} Communication Rounds")
+    print(f"Federated Setup: {num_clients} Clients, 2 Clusters, {num_rounds} Communication Rounds")
     print("Running Federated Training with Hierarchical Residual Parameterization...\n")
 
     for r in range(1, num_rounds + 1):
         deltas_global = []
         deltas_cluster = {0: [], 1: []}
 
-        for i in range(num_agents):
+        for i in range(num_clients):
             cluster_id = agent_data[i]["cluster_id"]
             x_train = agent_data[i]["train_x"]
             y_train = agent_data[i]["train_y"]
@@ -129,17 +129,17 @@ def run_regression_experiment():
         avg_delta_g = torch.stack(deltas_global).mean(dim=0)
         global_model.weight_global.data.add_(avg_delta_g)
 
-        # 2. Cluster Aggregation: Cluster heads aggregate coalition residuals
+        # 2. Cluster Aggregation: Cluster heads aggregate cluster residuals
         for c_id in range(2):
             if deltas_cluster[c_id]:
                 avg_delta_c = torch.stack(deltas_cluster[c_id]).mean(dim=0)
                 cluster_residuals[c_id].add_(avg_delta_c)
 
-    # --- Evaluation across All 10 Agents ---
+    # --- Evaluation across All 10 Clients ---
     r2_scores = []
     mse_scores = []
 
-    for i in range(num_agents):
+    for i in range(num_clients):
         cluster_id = agent_data[i]["cluster_id"]
         x_test = agent_data[i]["test_x"]
         y_test = agent_data[i]["test_y"]
@@ -164,9 +164,9 @@ def run_regression_experiment():
     mean_mse = float(np.mean(mse_scores))
 
     print("-" * 75)
-    print(f"Results across {num_agents} Heterogeneous Sensor Agents:")
-    print(f"  * Mean R^2 Score:         {mean_r2 * 100:.2f}% (Average Agent Prediction Quality)")
-    print(f"  * Worst-Case (Min) R^2:   {min_r2 * 100:.2f}% (Rawlsian Egalitarian Welfare)")
+    print(f"Results across {num_clients} Heterogeneous Sensor Clients:")
+    print(f"  * Mean R^2 Score:         {mean_r2 * 100:.2f}% (Average Client Prediction Quality)")
+    print(f"  * Worst-Client (Min) R^2: {min_r2 * 100:.2f}% (Tail Fairness)")
     print(f"  * Mean Test MSE:          {mean_mse:.5f}")
     results = {"mean_r2": round(mean_r2 * 100, 2), "min_r2": round(min_r2 * 100, 2), "mean_mse": round(mean_mse, 5)}
     out_path = os.path.join(_project_root, "outputs", "regression_results.json")

@@ -238,7 +238,7 @@ def generate_table6_regression():
     lines.append(r"\textbf{Metric} & \textbf{Value} \\")
     lines.append(r"\midrule")
     lines.append(f"Mean Prediction $R^2$ Score & \\textbf{{{m_r2}}} \\\\")
-    lines.append(f"Worst-Agent (Min) $R^2$ Score (Rawlsian Welfare) & \\textbf{{{w_r2}}} \\\\")
+    lines.append(f"Worst-Client (Min) $R^2$ Score (Tail Fairness) & \\textbf{{{w_r2}}} \\\\")
     lines.append(f"Mean Test Mean Squared Error (MSE) & {mse} \\\\")
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
