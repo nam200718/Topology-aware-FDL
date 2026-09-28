@@ -67,12 +67,21 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
             buffer_slices=compute_buffer_slices(self.updater.multihead_model),
         )
 
-        # Cumulative Multi-Agent Reputation Store: {client_id: cumulative_reputation}
-        self.agent_reputations: Dict[int, float] = {
+        # Cumulative Client Trust Store: {client_id: cumulative_trust}
+        self.client_trust_scores: Dict[int, float] = {
             cid: 1.0 for cid in range(self.config.clients.num_clients)
         }
         self.reputation_momentum = 0.85
         self.malicious_reputation_threshold = getattr(self.defense_config, "malicious_reputation_threshold", 0.25)
+
+    @property
+    def agent_reputations(self) -> Dict[int, float]:
+        """Backward-compatible alias for client_trust_scores."""
+        return self.client_trust_scores
+
+    @agent_reputations.setter
+    def agent_reputations(self, val: Dict[int, float]):
+        self.client_trust_scores = val
 
     def run_round(self, round_num: int):
         num_total = self.config.clients.num_clients
@@ -85,7 +94,7 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
             for hid in self.cluster_heads_state.keys()
         }
 
-        # 1. Distribute Models to Agents
+        # 1. Distribute Models to Clients
         cluster_updates_parent = {hid: [] for hid in self.cluster_heads_state.keys()}
         cluster_updates_root = {hid: [] for hid in self.cluster_heads_state.keys()}
         client_active_masks = {}
@@ -97,7 +106,7 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                 self.cluster_heads_state[head_id].weights.clone()
             )
 
-        # 2. Local Agent Updates
+        # 2. Local Client Updates
         current_lr = self.get_current_lr(round_num)
         current_deltas = {}
         for client_id in all_clients:
@@ -134,7 +143,7 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
             delta = current_deltas[client_id]
             if torch.isnan(delta).any() or torch.isinf(delta).any():
                 state.is_confirmed_malicious = True
-                print(f"[Round {round_num}] ⚠️ SENTINEL GUARD: Agent {client_id} gradient explosion → zeroed out.")
+                print(f"[Round {round_num}] ⚠️ SENTINEL GUARD: Client {client_id} gradient explosion → zeroed out.")
 
         # 3. Tier 1: Intra-Coalition / Cluster Defense
         defense_scope = self.defense_config.defense_scope
@@ -168,13 +177,13 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                     n_members = len(clean_states)
                     for cid, t_score in trust_dict.items():
                         norm_t = min(1.0, t_score * n_members)
-                        self.agent_reputations[cid] = (
-                            self.reputation_momentum * self.agent_reputations[cid]
+                        self.client_trust_scores[cid] = (
+                            self.reputation_momentum * self.client_trust_scores[cid]
                             + (1.0 - self.reputation_momentum) * norm_t
                         )
-                        if self.agent_reputations[cid] < self.malicious_reputation_threshold:
+                        if self.client_trust_scores[cid] < self.malicious_reputation_threshold:
                             self.clients_state[cid].is_confirmed_malicious = True
-                            print(f"[Round {round_num}] ⚠️ TRUST ISOLATION: Client {cid} trust score decayed to {self.agent_reputations[cid]:.3f} < {self.malicious_reputation_threshold} → permanently isolated.")
+                            print(f"[Round {round_num}] ⚠️ TRUST ISOLATION: Client {cid} trust score decayed to {self.client_trust_scores[cid]:.3f} < {self.malicious_reputation_threshold} → permanently isolated.")
             else:
                 self.cluster_heads_state[hid].weights = self.aggregator.aggregate(clean_states)
 
@@ -207,13 +216,13 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                     n_global = len(all_root_contributions)
                     for cid, t_score in global_dict.items():
                         norm_t = min(1.0, t_score * n_global)
-                        self.agent_reputations[cid] = (
-                            self.reputation_momentum * self.agent_reputations[cid]
+                        self.client_trust_scores[cid] = (
+                            self.reputation_momentum * self.client_trust_scores[cid]
                             + (1.0 - self.reputation_momentum) * norm_t
                         )
-                        if self.agent_reputations[cid] < self.malicious_reputation_threshold:
+                        if self.client_trust_scores[cid] < self.malicious_reputation_threshold:
                             self.clients_state[cid].is_confirmed_malicious = True
-                            print(f"[Round {round_num}] ⚠️ GLOBAL TRUST ISOLATION: Client {cid} trust score decayed to {self.agent_reputations[cid]:.3f} < {self.malicious_reputation_threshold} → permanently isolated.")
+                            print(f"[Round {round_num}] ⚠️ GLOBAL TRUST ISOLATION: Client {cid} trust score decayed to {self.client_trust_scores[cid]:.3f} < {self.malicious_reputation_threshold} → permanently isolated.")
             else:
                 self.server_weights = self.aggregator.aggregate(all_root_contributions)
 

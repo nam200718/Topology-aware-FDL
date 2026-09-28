@@ -1,7 +1,7 @@
 """
 CIFAR-100 High-Class-Cardinality Multi-Regime Benchmark (C = 100).
 
-Evaluates FedAvg, FedRep, Ditto, and Defended H-ResFL on CIFAR-100 ResNet9 across
+Evaluates FedAvg, FedRep, Ditto, and Defended HEP-FL on CIFAR-100 ResNet9 across
 the full spectrum of 5 heterogeneity regimes:
   1. Uniform IID (alpha = inf)
   2. Mild Non-IID (alpha = 1.0)
@@ -258,9 +258,9 @@ def run_cifar100_multiregime_experiment(num_clients: int = 15, num_rounds: int =
         print(f"  Ditto Result: {scenario_res['Ditto']['mean']:.2f}% (B10: {scenario_res['Ditto']['bottom10']:.2f}%, Min: {scenario_res['Ditto']['min_acc']:.2f}%)")
 
         # -------------------------------------------------------------
-        # 4. Defended H-ResFL (Ours)
+        # 4. Defended HEP-FL (Ours)
         # -------------------------------------------------------------
-        print("\n[4/4] Training Defended H-ResFL (Ours)...")
+        print("\n[4/4] Training Defended HEP-FL (Ours)...")
         num_clusters = 3
         global_backbone = ResNet9(in_channels=3, num_classes=100).to(device)
         global_root_head = nn.Linear(256, 100).to(device)
@@ -388,12 +388,12 @@ def run_cifar100_multiregime_experiment(num_clients: int = 15, num_rounds: int =
                     c_total += y.size(0)
                 accs.append((c_corr / c_total * 100.0) if c_total > 0 else 0.0)
 
-        scenario_res["Defended H-ResFL (Ours)"] = {
+        scenario_res["Defended HEP-FL (Ours)"] = {
             "mean": round(float(np.mean(accs)), 2),
             "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(0.1 * num_clients))])), 2),
             "min_acc": round(float(np.min(accs)), 2)
         }
-        print(f"  Defended H-ResFL Result: {scenario_res['Defended H-ResFL (Ours)']['mean']:.2f}% (B10: {scenario_res['Defended H-ResFL (Ours)']['bottom10']:.2f}%, Min: {scenario_res['Defended H-ResFL (Ours)']['min_acc']:.2f}%)")
+        print(f"  Defended HEP-FL Result: {scenario_res['Defended HEP-FL (Ours)']['mean']:.2f}% (B10: {scenario_res['Defended HEP-FL (Ours)']['bottom10']:.2f}%, Min: {scenario_res['Defended HEP-FL (Ours)']['min_acc']:.2f}%)")
 
         all_results[sc_name] = scenario_res
 
@@ -412,7 +412,7 @@ run_cifar100_experiment = run_cifar100_multiregime_experiment
 def run_cifar100_byzantine_suite(num_clients: int = 15, num_rounds: int = 15, batch_size: int = 64):
     """
     Byzantine Fault Tolerance Benchmark directly on CIFAR-100 (C = 100).
-    Evaluates FedAvg, Ditto, FedRep, Undefended H-ResFL, and Defended H-ResFL (with Skew-Calibrated Defense).
+    Evaluates FedAvg, Ditto, FedRep, Undefended HEP-FL, and Defended HEP-FL (with Skew-Calibrated Defense).
     """
     device = detect_device()
     print(f"\n{'='*70}\nRunning Byzantine Multi-Attack Benchmark on CIFAR-100 (C = 100)\n{'='*70}")
@@ -493,7 +493,7 @@ def run_cifar100_byzantine_suite(num_clients: int = 15, num_rounds: int = 15, ba
                     accs_fedavg.append((c_corr / c_tot * 100.0) if c_tot > 0 else 0.0)
 
             # -------------------------------------------------------------
-            # 2. Defended H-ResFL (Skew-Calibrated Defense)
+            # 2. Defended HEP-FL (Skew-Calibrated Defense)
             # -------------------------------------------------------------
             num_clusters = 3
             global_bb = ResNet9(in_channels=3, num_classes=100).to(device)
@@ -625,10 +625,10 @@ def run_cifar100_byzantine_suite(num_clients: int = 15, num_rounds: int = 15, ba
 
             res_entry = {
                 "FedAvg": round(float(np.mean(accs_fedavg)), 2),
-                "Defended H-ResFL": round(float(np.mean(accs_hresfl)), 2)
+                "Defended HEP-FL": round(float(np.mean(accs_hresfl)), 2)
             }
             all_byz_results[atk][str(f_rate)] = res_entry
-            print(f"  Rate q={f_rate:.1f} | FedAvg: {res_entry['FedAvg']:.2f}% | Defended H-ResFL: {res_entry['Defended H-ResFL']:.2f}%")
+            print(f"  Rate q={f_rate:.1f} | FedAvg: {res_entry['FedAvg']:.2f}% | Defended HEP-FL: {res_entry['Defended HEP-FL']:.2f}%")
 
     out_path = os.path.join(_project_root, "outputs", "cifar100_byzantine_results.json")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)

@@ -119,7 +119,7 @@ def soft_cosine_trust(
     # Skew-calibrated directional alignment: if active class masks are provided,
     # evaluate similarity within the active parameter subspace
     if active_masks is not None and active_masks.size(0) == n:
-        # Mask out parameters corresponding to unobserved classes to avoid false penalties on specialized agents
+        # Mask out parameters corresponding to unobserved classes to avoid false penalties on specialized clients
         mask_weights = active_masks.float().unsqueeze(1) if active_masks.dim() == 1 else active_masks.float()
         if mask_weights.size(1) == unit.size(1):
             unit = unit * mask_weights
@@ -194,7 +194,7 @@ class DeltaSpaceRobustAggregator:
     Features:
     - Sentinel NaN/Inf guard dropping corrupted or exploding updates.
     - Directional unit-normalization and quartile norm bounding against magnitude inflation.
-    - Skew-calibrated soft cosine rejection protecting specialized non-IID agents.
+    - Skew-calibrated soft cosine rejection protecting specialized non-IID clients.
     - Adaptive temperature scaling and trust reputation tracking.
     """
     def __init__(self, mode: str = "soft_cosine", beta: float = 0.20,

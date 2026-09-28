@@ -8,10 +8,10 @@
 
 ---
 
-## Metadata
+## Submission Metadata
 
-- **Title**: *H-ResFL: Efficient, Multi-Scale Residual Personalization and Byzantine Resilience in Heterogeneous Federated Learning*
-- **Alternative Acronym**: *HEP-FL (Hierarchical Ensemble Personalization)*
+- **Title**: *HEP-FL: Efficient, Multi-Scale Residual Personalization and Byzantine Resilience in Heterogeneous Federated Learning*
+- **Framework Moniker**: **HEP-FL** (*Hierarchical Ensemble Personalization in Federated Learning*)
 - **Authors**:
   - **Nghiem Duc Khanh Nam**\* (College of Engineering & Computer Science, VinUniversity, Vietnam) — `nam.ndk@vinuni.edu.vn`
   - **Hung Anh Nguyen**\* (College of Engineering & Computer Science, VinUniversity, Vietnam) — `anh.nh@vinuni.edu.vn`
@@ -23,13 +23,26 @@
 
 ---
 
-## Official Abstract (Pure Federated Learning — Number-Resilient Version)
+## CMT / EasyChair Portal-Ready Plain Text Abstract
+*(Copy and paste directly into the submission portal text box)*
+
+```text
+In distributed edge networks, heterogeneous clients must collaborate to acquire global domain representations while adapting to non-identical (non-IID) local data distributions. However, practical edge federated learning faces a fundamental trilemma: (1) severe statistical heterogeneity causes monolithic consensus models (e.g., FedAvg) to collapse due to client drift; (2) state-of-the-art personalized baselines (e.g., Ditto) duplicate entire neural networks on device, imposing prohibitive memory and compute penalties on resource-constrained hardware; and (3) standard Byzantine-robust aggregators (e.g., Krum, geometric median, uncalibrated cosine filters) confound legitimate statistical specialization with adversarial poison, catastrophically penalizing honest domain specialists.
+
+To resolve these tensions, we introduce HEP-FL (Hierarchical Ensemble Personalization in Federated Learning), a lightweight, multi-scale personalization framework with subspace-calibrated Byzantine defense. HEP-FL factorizes model parameters additively into global foundational, cluster-shared, and private residual components on a single shared backbone, avoiding the memory duplication of dual-model approaches. To neutralize malicious actors without discarding specialized honest clients, we formulate a Skew-Calibrated Subspace Defense that restricts directional alignment evaluation strictly to each client's active decision subspace, coupled with temporal trust tracking.
+
+Extensive empirical evaluations across multiple non-IID Dirichlet skew regimes on high-cardinality CIFAR-100 demonstrate that HEP-FL consistently outperforms canonical global and personalized baselines as data heterogeneity intensifies. Under severe Byzantine attacks, our framework maintains high task accuracy where undefended baselines and conventional distance-based filters suffer catastrophic collapse. Furthermore, HEP-FL significantly elevates tail-client fairness, cuts on-device memory and latency by approximately half, and demonstrates zero-shot architectural transfer to continuous multi-sensor regression.
+```
+
+---
+
+## Official Formatted Abstract (Markdown / LaTeX)
 
 In distributed edge networks, heterogeneous clients must collaborate to acquire global domain representations while adapting to non-identical (non-IID) local data distributions. However, practical edge federated learning faces a fundamental trilemma: (1) severe statistical heterogeneity causes monolithic consensus models (e.g., FedAvg) to collapse due to client drift; (2) state-of-the-art personalized baselines (e.g., Ditto) duplicate entire neural networks on device, imposing prohibitive memory and compute penalties on resource-constrained hardware; and (3) standard Byzantine-robust aggregators (e.g., Krum, geometric median, uncalibrated cosine filters) confound legitimate statistical specialization with adversarial poison, catastrophically penalizing honest domain specialists.
 
-To resolve these tensions, we introduce **H-ResFL** (*Hierarchical Residual Federated Learning*), a lightweight, multi-scale personalization framework with subspace-calibrated Byzantine defense. H-ResFL factorizes model parameters additively into global foundational, cluster-shared, and private residual components ($W_{\text{eff}, i} = W_0 + \Delta W_{c(i)} + \Delta W_{l, i}$) on a single shared backbone, avoiding the memory duplication of dual-model approaches. To neutralize malicious actors without discarding specialized honest clients, we formulate a **Skew-Calibrated Subspace Defense** that restricts directional alignment evaluation strictly to each client's active decision subspace, coupled with temporal trust tracking.
+To resolve these tensions, we introduce **HEP-FL** (*Hierarchical Ensemble Personalization in Federated Learning*), a lightweight, multi-scale personalization framework with subspace-calibrated Byzantine defense. HEP-FL factorizes model parameters additively into global foundational, cluster-shared, and private residual components ($W_{\text{eff}, i} = W_0 + \Delta W_{c(i)} + \Delta W_{l, i}$) on a single shared backbone, avoiding the memory duplication of dual-model approaches. To neutralize malicious actors without discarding specialized honest clients, we formulate a **Skew-Calibrated Subspace Defense** that restricts directional alignment evaluation strictly to each client's active decision subspace, coupled with temporal trust tracking.
 
-Extensive empirical evaluations across multiple non-IID Dirichlet skew regimes on high-cardinality CIFAR-100 demonstrate that H-ResFL consistently outperforms canonical global and personalized baselines as data heterogeneity intensifies. Under severe Byzantine attacks, our framework maintains high task accuracy where undefended baselines and conventional distance-based filters suffer catastrophic collapse. Furthermore, H-ResFL significantly elevates tail-client fairness, cuts on-device memory and latency by approximately half, and demonstrates zero-shot architectural transfer to continuous multi-sensor regression.
+Extensive empirical evaluations across multiple non-IID Dirichlet skew regimes on high-cardinality CIFAR-100 demonstrate that HEP-FL consistently outperforms canonical global and personalized baselines as data heterogeneity intensifies. Under severe Byzantine attacks, our framework maintains high task accuracy where undefended baselines and conventional distance-based filters suffer catastrophic collapse. Furthermore, HEP-FL significantly elevates tail-client fairness, cuts on-device memory and latency by approximately half, and demonstrates zero-shot architectural transfer to continuous multi-sensor regression.
 
 ---
 

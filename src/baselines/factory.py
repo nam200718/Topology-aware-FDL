@@ -6,7 +6,7 @@ Supports:
 3. Multi-Krum
 4. SCAFFOLD
 5. Ditto
-6. Proposed Topo (HEP / Defended H-ResFL)
+6. Proposed Topo (HEP-FL / Defended HEP-FL)
 """
 from typing import Tuple, Optional, Any, Dict
 import torch

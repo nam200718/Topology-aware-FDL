@@ -1,10 +1,10 @@
 """
-Fast Multi-Agent Task Generalization Demo: Continuous Sensor Time-Series Regression.
-Demonstrates that the exact same Hierarchical Residual parameterization (H-ResFL)
+Fast Distributed Edge Task Generalization Demo: Continuous Sensor Time-Series Regression.
+Demonstrates that the exact same Hierarchical Residual parameterization (HEP-FL)
 operates seamlessly beyond classification on continuous physical systems.
 
 Scenario:
-10 autonomous UAV / drone sensor agents predicting continuous motor torque
+10 autonomous edge sensor clients predicting continuous motor torque
 under environmental domain drift (ambient temperature / aerodynamic drag).
 """
 
@@ -39,26 +39,26 @@ def generate_synthetic_sensor_data(num_clients=10, samples_per_client=200, input
     # 2. Cluster environmental shifts (2 clusters of 5 clients each)
     cluster_shifts = [torch.randn(input_dim, 1) * 0.5 for _ in range(2)]
 
-    agent_data = {}
+    client_data = {}
     for i in range(num_clients):
         cluster_id = i % 2
         # Private sensor calibration drift
-        w_agent_private = torch.randn(input_dim, 1) * 0.2
-        w_agent_total = w_global + cluster_shifts[cluster_id] + w_agent_private
+        w_client_private = torch.randn(input_dim, 1) * 0.2
+        w_client_total = w_global + cluster_shifts[cluster_id] + w_client_private
 
         x = torch.randn(samples_per_client, input_dim)
-        y = x @ w_agent_total + torch.randn(samples_per_client, 1) * noise_std
+        y = x @ w_client_total + torch.randn(samples_per_client, 1) * noise_std
 
         # 80/20 train/test split
         split = int(0.8 * samples_per_client)
-        agent_data[i] = {
+        client_data[i] = {
             "train_x": x[:split],
             "train_y": y[:split],
             "test_x": x[split:],
             "test_y": y[split:],
             "cluster_id": cluster_id,
         }
-    return agent_data, input_dim
+    return client_data, input_dim
 
 
 def run_regression_experiment():
@@ -67,7 +67,7 @@ def run_regression_experiment():
     print("=" * 75)
 
     num_clients = 10
-    agent_data, input_dim = generate_synthetic_sensor_data(num_clients=num_clients)
+    client_data, input_dim = generate_synthetic_sensor_data(num_clients=num_clients)
 
     # Initialize Global Model with HierarchicalResidualLinear (num_classes=1 for regression)
     global_model = HierarchicalResidualLinear(in_features=input_dim, num_classes=1, bias=False)
@@ -82,45 +82,45 @@ def run_regression_experiment():
     mu_cluster = 1e-4
 
     print(f"Federated Setup: {num_clients} Clients, 2 Clusters, {num_rounds} Communication Rounds")
-    print("Running Federated Training with Hierarchical Residual Parameterization...\n")
+    print("Running Federated Training with Hierarchical Residual Parameterization (HEP-FL)...\n")
 
     for r in range(1, num_rounds + 1):
         deltas_global = []
         deltas_cluster = {0: [], 1: []}
 
         for i in range(num_clients):
-            cluster_id = agent_data[i]["cluster_id"]
-            x_train = agent_data[i]["train_x"]
-            y_train = agent_data[i]["train_y"]
+            cluster_id = client_data[i]["cluster_id"]
+            x_train = client_data[i]["train_x"]
+            y_train = client_data[i]["train_y"]
 
             # Load model state with assigned cluster residual and private local residual
-            agent_model = HierarchicalResidualLinear(in_features=input_dim, num_classes=1, bias=False)
-            agent_model.load_state_dict(global_model.state_dict())
-            agent_model.weight_cluster.data.copy_(cluster_residuals[cluster_id])
-            agent_model.weight_local.data.copy_(local_residuals[i])
+            client_model = HierarchicalResidualLinear(in_features=input_dim, num_classes=1, bias=False)
+            client_model.load_state_dict(global_model.state_dict())
+            client_model.weight_cluster.data.copy_(cluster_residuals[cluster_id])
+            client_model.weight_local.data.copy_(local_residuals[i])
 
-            optimizer = torch.optim.SGD(agent_model.parameters(), lr=lr)
+            optimizer = torch.optim.SGD(client_model.parameters(), lr=lr)
 
             # Local training passes
             for _ in range(5):
                 optimizer.zero_grad()
-                pred = agent_model(x_train)
+                pred = client_model(x_train)
                 mse_loss = F.mse_loss(pred, y_train)
                 # Bayesian shrinkage on residuals
                 shrinkage = (
-                    0.5 * mu_local * torch.sum(agent_model.weight_local ** 2)
-                    + 0.5 * mu_cluster * torch.sum(agent_model.weight_cluster ** 2)
+                    0.5 * mu_local * torch.sum(client_model.weight_local ** 2)
+                    + 0.5 * mu_cluster * torch.sum(client_model.weight_cluster ** 2)
                 )
                 total_loss = mse_loss + shrinkage
                 total_loss.backward()
                 optimizer.step()
 
             # Save local residual strictly on device
-            local_residuals[i].copy_(agent_model.weight_local.data)
+            local_residuals[i].copy_(client_model.weight_local.data)
 
             # Record deltas for global and cluster aggregation
-            delta_g = agent_model.weight_global.data - global_model.weight_global.data
-            delta_c = agent_model.weight_cluster.data - cluster_residuals[cluster_id]
+            delta_g = client_model.weight_global.data - global_model.weight_global.data
+            delta_c = client_model.weight_cluster.data - cluster_residuals[cluster_id]
 
             deltas_global.append(delta_g)
             deltas_cluster[cluster_id].append(delta_c)
@@ -140,9 +140,9 @@ def run_regression_experiment():
     mse_scores = []
 
     for i in range(num_clients):
-        cluster_id = agent_data[i]["cluster_id"]
-        x_test = agent_data[i]["test_x"]
-        y_test = agent_data[i]["test_y"]
+        cluster_id = client_data[i]["cluster_id"]
+        x_test = client_data[i]["test_x"]
+        y_test = client_data[i]["test_y"]
 
         eval_model = HierarchicalResidualLinear(in_features=input_dim, num_classes=1, bias=False)
         eval_model.load_state_dict(global_model.state_dict())

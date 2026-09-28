@@ -6,7 +6,7 @@ Restricted to exactly the 5 target baselines + proposed Topo method:
 3. Multi-Krum
 4. SCAFFOLD
 5. Ditto
-6. Proposed Topo (HEP / Defended H-ResFL)
+6. Proposed Topo (HEP-FL / Defended HEP-FL)
 """
 from typing import Dict, Any, List, Optional
 from src.baselines.config import BaselineSimulationConfig, BaselineClientConfig
@@ -92,7 +92,7 @@ METHODS = [
     },
     {
         "id": "topo_defended",
-        "label": "Proposed Topo (Defended H-ResFL)",
+        "label": "Proposed Topo (Defended HEP-FL)",
         "topo": "hierarchical_ensemble",
         "pers": "none",
         "params": {"num_clusters": 3, "cluster_method": "update_similarity", "defense_mode": "soft_cosine"},

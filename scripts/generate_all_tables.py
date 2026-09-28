@@ -6,7 +6,7 @@ Reads generated benchmark JSON artifacts from outputs/ and builds:
   - Table III: CIFAR-100 Byzantine Multi-Attack Robustness Matrix
   - Table IV:  50-Client Scalability Benchmark with Partial Participation (Cp = 0.20)
   - Table V:   MobileNetV3 Edge Hardware Footprint Profiling
-  - Table VI:  Continuous Multi-Agent Sensor Regression Task Generalization
+  - Table VI:  Continuous Edge Sensor Regression Task Generalization
 
 Saves all tables into outputs/tables/ and prints them formatted for LaTeX.
 """
@@ -43,7 +43,7 @@ def generate_table2_cifar100():
         ("FedAvg", "110.20 MB / 8.40 ms"),
         ("FedRep", "110.20 MB / 14.10 ms"),
         ("Ditto", "220.40 MB / 16.95 ms"),
-        ("Defended H-ResFL (Ours)", "114.80 MB / 8.42 ms"),
+        ("Defended HEP-FL (Ours)", "114.80 MB / 8.42 ms"),
     ]
 
     lines = []
@@ -106,7 +106,7 @@ def generate_table3_byzantine():
 
     for atk in attacks:
         atk_label = "Label Flipping" if atk == "label_flipping" else "Sign Flipping"
-        for method in ["FedAvg", "Defended H-ResFL"]:
+        for method in ["FedAvg", "Defended HEP-FL"]:
             cells = [atk_label, f"\\textbf{{{method}}}"]
             q0, q3 = None, None
             for r in rates:
@@ -155,7 +155,7 @@ def generate_table4_scale50():
     lines.append(r"\resizebox{\columnwidth}{!}{")
     lines.append(r"\begin{tabular}{lcccc}")
     lines.append(r"\toprule")
-    lines.append(r"\textbf{Regime} & \textbf{FedAvg} & \textbf{FedRep} & \textbf{Ditto} & \textbf{Defended H-ResFL (Ours)} \\")
+    lines.append(r"\textbf{Regime} & \textbf{FedAvg} & \textbf{FedRep} & \textbf{Ditto} & \textbf{Defended HEP-FL (Ours)} \\")
     lines.append(r"\midrule")
 
     for sc in scenarios:
@@ -201,10 +201,10 @@ def generate_table5_hardware():
     lines.append(r"\textbf{Architecture} & \textbf{Method} & \textbf{Peak VRAM} & \textbf{Batch Latency} & \textbf{Payload / Round} \\")
     lines.append(r"\midrule")
     lines.append(r"ResNet-9 & Ditto & 220.40 MB & 16.95 ms & 13.18 MB \\")
-    lines.append(r"ResNet-9 & \textbf{Defended H-ResFL} & \textbf{114.80 MB} & \textbf{8.42 ms} & \textbf{6.60 MB} \\")
+    lines.append(r"ResNet-9 & \textbf{Defended HEP-FL} & \textbf{114.80 MB} & \textbf{8.42 ms} & \textbf{6.60 MB} \\")
     lines.append(r"\midrule")
     lines.append(r"MobileNetV3-Small & Ditto & 298.60 MB & 22.80 ms & 12.24 MB \\")
-    lines.append(r"MobileNetV3-Small & \textbf{Defended H-ResFL} & \textbf{158.80 MB} & \textbf{11.20 ms} & \textbf{6.13 MB} \\")
+    lines.append(r"MobileNetV3-Small & \textbf{Defended HEP-FL} & \textbf{158.80 MB} & \textbf{11.20 ms} & \textbf{6.13 MB} \\")
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
     lines.append(r"}")
@@ -221,7 +221,7 @@ def generate_table5_hardware():
 def generate_table6_regression():
     data = load_json("regression_results.json")
     print("\n" + "=" * 75)
-    print("TABLE VI: MULTI-AGENT CONTINUOUS SENSOR REGRESSION GENERALIZATION")
+    print("TABLE VI: DISTRIBUTED EDGE SENSOR REGRESSION GENERALIZATION")
     print("=" * 75)
 
     m_r2 = f"{data['mean_r2']:.2f}\\%" if data else "99.95\\%"
@@ -231,7 +231,7 @@ def generate_table6_regression():
     lines = []
     lines.append(r"\begin{table}[t]")
     lines.append(r"\centering")
-    lines.append(r"\caption{\textbf{Multi-Agent Task Generalization: Continuous UAV Motor Torque Regression.}}")
+    lines.append(r"\caption{\textbf{Distributed Edge Sensor Task Generalization: Continuous UAV Motor Torque Regression.}}")
     lines.append(r"\label{tab:sensor_regression}")
     lines.append(r"\begin{tabular}{lc}")
     lines.append(r"\toprule")
