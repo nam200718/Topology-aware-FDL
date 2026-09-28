@@ -6,7 +6,6 @@ Reads generated benchmark JSON artifacts from outputs/ and builds:
   - Table III: CIFAR-100 Byzantine Multi-Attack Robustness Matrix
   - Table IV:  50-Client Scalability Benchmark with Partial Participation (Cp = 0.20)
   - Table V:   MobileNetV3 Edge Hardware Footprint Profiling
-  - Table VI:  Continuous Edge Sensor Regression Task Generalization
 
 Saves all tables into outputs/tables/ and prints them formatted for LaTeX.
 """
@@ -257,7 +256,6 @@ def main():
     generate_table3_byzantine()
     generate_table4_scale50()
     generate_table5_hardware()
-    generate_table6_regression()
     print("\nAll LaTeX tables successfully assembled in outputs/tables/!")
 
 
