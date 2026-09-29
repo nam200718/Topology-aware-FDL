@@ -99,6 +99,7 @@ def test_scaffold_updater_and_engine():
     "multikrum",
     "scaffold",
     "ditto",
+    "fedrep",
     "topo",
     "topo_defended",
 ])

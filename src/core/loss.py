@@ -82,12 +82,15 @@ def compute_normalized_entropy_r_skew(probs: torch.Tensor, num_classes: int) -> 
 compute_hill_number_r_skew = compute_normalized_entropy_r_skew
 
 
-def compute_dynamic_binomial_loss_weights(r_skew: float, num_classes: int = 10, local_classes: int = 2, num_clusters: int = 3):
+def compute_dynamic_binomial_loss_weights(
+    r_skew: float, num_classes: int = 10, local_classes: int = 2,
+    num_clusters: int = 3, enable_parent_head: bool = True,
+):
     """
     Dynamic partition-of-unity head weighting with data-support anchor floor:
         a_i = max(1 / (2*K), |Y_i| / C)
         lambda_r = a_i + (1 - a_i) * R_skew^2
-        lambda_p = 2 * R_skew * (1 - R_skew)
+        lambda_p = 2 * R_skew * (1 - R_skew) if enable_parent_head else 0.0
         lambda_l = (1 - R_skew)^2
     Guarantees:
         - Exact continuous partition of unity: sum(alpha_k) == 1.0 for all clients
@@ -96,20 +99,22 @@ def compute_dynamic_binomial_loss_weights(r_skew: float, num_classes: int = 10, 
     """
     a_i = max(1.0 / (2.0 * max(1, num_clusters)), float(local_classes) / float(max(1, num_classes)))
     lr = a_i + (1.0 - a_i) * (r_skew ** 2)
-    lp = 2.0 * r_skew * (1.0 - r_skew)
+    lp = 2.0 * r_skew * (1.0 - r_skew) if enable_parent_head else 0.0
     ll = (1.0 - r_skew) ** 2
     total = lr + lp + ll
     alpha_r = lr / total
-    alpha_p = lp / total
+    alpha_p = lp / total if enable_parent_head else 0.0
     alpha_l = ll / total
     return lr, lp, ll, alpha_r, alpha_p, alpha_l
 
 
-def compute_binomial_loss_weights(r_skew: float, anchor_min: float = 0.15):
+def compute_binomial_loss_weights(
+    r_skew: float, anchor_min: float = 0.15, enable_parent_head: bool = True,
+):
     """
     Continuous differentiable binomial entropy loss weighting:
         lambda_r = anchor_min + (1 - anchor_min) * R_skew^2
-        lambda_p = 2 * R_skew * (1 - R_skew)
+        lambda_p = 2 * R_skew * (1 - R_skew) if enable_parent_head else 0.0
         lambda_l = (1 - R_skew)^2
     Guarantees:
         - When R_skew = 1.0 (IID): lambda_r = 1.0, lambda_p = 0.0, lambda_l = 0.0 (Pure FedAvg)
@@ -117,11 +122,11 @@ def compute_binomial_loss_weights(r_skew: float, anchor_min: float = 0.15):
         - When R_skew = 0.0 (Extreme): lambda_l = 1.0 (Personalized), lambda_r = anchor_min (Anchors backbone)
     """
     lr = anchor_min + (1.0 - anchor_min) * (r_skew ** 2)
-    lp = 2.0 * r_skew * (1.0 - r_skew)
+    lp = 2.0 * r_skew * (1.0 - r_skew) if enable_parent_head else 0.0
     ll = (1.0 - r_skew) ** 2
     total = lr + lp + ll
     alpha_r = lr / total
-    alpha_p = lp / total
+    alpha_p = lp / total if enable_parent_head else 0.0
     alpha_l = ll / total
     return lr, lp, ll, alpha_r, alpha_p, alpha_l
 

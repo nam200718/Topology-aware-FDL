@@ -639,15 +639,10 @@ def run_cifar100_byzantine_suite(num_clients: int = 15, num_rounds: int = 15, ba
 
 
 def main():
-    parser = argparse.ArgumentParser(description="CIFAR-100 Benchmark Runner")
-    parser.add_argument("--mode", type=str, default="multiregime", choices=["multiregime", "byzantine", "all"],
-                        help="Benchmark mode: multiregime, byzantine, or all")
-    args = parser.parse_args()
-
-    if args.mode in ["multiregime", "all"]:
-        run_cifar100_multiregime_experiment()
-    if args.mode in ["byzantine", "all"]:
-        run_cifar100_byzantine_suite()
+    print("[NOTICE] 'scripts/run_cifar100_benchmark.py' has been superseded by 'src.baselines'.")
+    print("[NOTICE] Delegating to primary benchmark suite: 'src.baselines.run_all_baselines'...")
+    from src.baselines.run_all_baselines import main as baselines_main
+    baselines_main()
 
 
 if __name__ == "__main__":

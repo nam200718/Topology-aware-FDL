@@ -24,48 +24,61 @@
 ---
 
 ## CMT / EasyChair Portal Plain Text Abstract
-*(Word Count: 182 words — strictly under 250 words)*
+*(Word Count: 228 words — strictly under the 250-word portal ceiling)*
 
 ```text
-Federated learning (FL) on edge devices faces three practical challenges: (1) statistical heterogeneity causes global models like FedAvg to suffer client drift; (2) personalized approaches like Ditto duplicate entire networks on-device, doubling memory and compute requirements; and (3) standard Byzantine-robust aggregators mistake legitimate statistical skew for adversarial poisoning, penalizing honest specialized clients.
+Federated learning (FL) on edge devices faces three practical challenges: (1) statistical heterogeneity causes global consensus models like FedAvg to suffer severe client drift; (2) dual-model personalization approaches like Ditto double on-device memory and latency, while naive split-head baselines suffer representation collapse under uniform data; and (3) standard Byzantine-robust aggregators mistake legitimate statistical skew for adversarial poisoning, penalizing honest specialized clients.
 
-We propose HEP-FL (Hierarchical Ensemble Personalization in Federated Learning), a multi-scale residual framework with subspace-calibrated Byzantine defense. HEP-FL decomposes model parameters additively into global base, cluster-shared, and private local residuals over a single shared backbone, avoiding the memory overhead of dual-model personalization. To filter malicious updates without discarding specialized honest clients, HEP-FL measures directional alignment strictly within each client's active class subspace and updates client trust scores over communication rounds.
+We propose HEP-FL (Hierarchical Ensemble Personalization in Federated Learning), a single-backbone architecture that coordinates three classification tiers: global consensus, cluster-level collaboration, and private on-device specialization. HEP-FL uses dynamic binomial loss weighting and active-class logit masking (ACLM) to prevent representation drag from unobserved classes without dual-model memory bloat. Clients privately organize into peer clusters via low-dimensional parameter sketches without sharing private data. To counter model poisoning without penalizing statistical skew, HEP-FL integrates a skew-calibrated defense that evaluates directional alignment strictly within observed class subspaces alongside temporal trust tracking.
 
-We evaluate HEP-FL across five Dirichlet non-IID regimes on CIFAR-100, coordinated Byzantine attacks (including sign-flipping and label corruption), a 50-client network with partial participation, and physical mobile edge profiling on MobileNetV3 and ResNet-9. HEP-FL preserves client specialization, defends against model poisoning, protects tail-client performance, and maintains low on-device memory and latency, providing an effective framework for heterogeneous federated edge systems.
+We evaluate HEP-FL against six baselines (FedAvg, FedProx, Multi-Krum, SCAFFOLD, Ditto, and FedRep) on CIFAR-100 across five Dirichlet non-IID regimes. Experiments encompass four Byzantine attack types, a 50-client network under partial participation, component ablations isolating logit masking and the cluster tier against an oracle clustering bound, and physical on-device profiling on MobileNetV3 and ResNet-9. HEP-FL preserves client specialization, maintains Byzantine resilience, improves worst-decile tail fairness, and minimizes edge resource overhead.
 ```
 
 ---
 
-## Formatted Abstract (Markdown / LaTeX)
-*(Word Count: 191 words)*
+## Formatted Abstract (LaTeX)
 
-Federated learning (FL) on edge devices faces three practical challenges: (1) statistical heterogeneity causes global models like FedAvg to suffer client drift; (2) personalized approaches like Ditto duplicate entire networks on-device, doubling memory and compute requirements; and (3) standard Byzantine-robust aggregators mistake legitimate statistical skew for adversarial poisoning, penalizing honest specialized clients.
+```latex
+\begin{abstract}
+Federated learning (FL) on edge devices faces three practical challenges: (1) statistical heterogeneity causes global consensus models like FedAvg to suffer severe client drift; (2) dual-model personalization approaches like Ditto double on-device memory and latency, while naive split-head baselines suffer representation collapse under uniform data; and (3) standard Byzantine-robust aggregators mistake legitimate statistical skew for adversarial poisoning, penalizing honest specialized clients.
 
-We propose **HEP-FL** (*Hierarchical Ensemble Personalization in Federated Learning*), a multi-scale residual framework with subspace-calibrated Byzantine defense. HEP-FL decomposes model parameters additively into global base, cluster-shared, and private local residuals ($W_{\text{eff}, i} = W_0 + \Delta W_{c(i)} + \Delta W_{l, i}$) over a single shared backbone, avoiding the memory overhead of dual-model personalization. To filter malicious updates without discarding specialized honest clients, HEP-FL measures directional alignment strictly within each client's active class subspace and updates client trust scores over communication rounds.
+We propose \textbf{HEP-FL} (\textit{Hierarchical Ensemble Personalization in Federated Learning}), a single-backbone architecture that coordinates three classification tiers: global consensus, cluster-level collaboration, and private on-device specialization. HEP-FL uses dynamic binomial loss weighting and active-class logit masking (ACLM) to prevent representation drag from unobserved classes without dual-model memory bloat. Clients privately organize into peer clusters via low-dimensional parameter sketches without sharing private data. To counter model poisoning without penalizing statistical skew, HEP-FL integrates a skew-calibrated defense that evaluates directional alignment strictly within observed class subspaces alongside temporal trust tracking.
 
-We evaluate HEP-FL across five Dirichlet non-IID regimes on CIFAR-100, coordinated Byzantine attacks (including sign-flipping and label corruption), a 50-client network with partial participation, and physical mobile edge profiling on MobileNetV3 and ResNet-9. HEP-FL preserves client specialization, defends against model poisoning, protects tail-client performance, and maintains low on-device memory and latency, providing an effective framework for heterogeneous federated edge systems.
+We evaluate HEP-FL against six established baselines (FedAvg, FedProx, Multi-Krum, SCAFFOLD, Ditto, and FedRep) on CIFAR-100 across five Dirichlet non-IID regimes ($\alpha \in [\infty, 1.0, 0.5, 0.1, 0.05]$). Experiments encompass four Byzantine attack types (label-flipping, sign-flipping, gradient ascent, and Gaussian noise), a 50-client network under partial participation ($C_p=0.20$), component ablations isolating logit masking and the cluster tier against an oracle clustering bound, and physical on-device profiling on MobileNetV3 and ResNet-9. HEP-FL preserves client specialization, maintains Byzantine resilience, improves worst-decile tail fairness, and minimizes edge resource overhead.
+\end{abstract}
+```
 
 ---
 
 ## Methodological Summary
 
-### 1. Three Practical Challenges
-1. **Client Drift**: Non-IID distributions degrade monolithic consensus models.
-2. **On-Device Memory Bloat**: Dual-model architectures double parameter storage and backpropagation memory.
-3. **Robustness vs. Heterogeneity Trap**: Standard robust filters penalize non-IID specialization as anomalies.
+### 1. Three Practical Challenges Addressed
+1. **Client Drift**: Extreme statistical non-IID distributions degrade monolithic consensus models.
+2. **On-Device Resource Bloat**: Dual-model architectures double parameter footprint and backpropagation VRAM.
+3. **Robustness vs. Heterogeneity Dilemma**: Euclidean and global-cosine robust aggregators penalize non-IID specialization as malicious anomalies.
 
-### 2. HEP-FL Core Mechanics
-1. **Multi-Scale Additive Residuals**:
-   $$W_{\text{eff}, i} = W_0 + \Delta W_{c(i)} + \Delta W_{l, i}$$
-   Single shared feature extractor backbone with branched global, cluster, and local projection residuals.
-2. **Subspace-Calibrated Directional Alignment**:
-   Calculates directional similarity strictly over each client's active label mask ($\mathcal{Y}_i$), decoupling domain specialization from malicious gradient deviation.
-3. **Temporal Trust Tracking**:
-   Tracks moving-average client trust scores $T_i^{(t)} = \beta T_i^{(t-1)} + (1-\beta)\tau_i^{(t)}$ to isolate persistent Byzantine actors.
+### 2. HEP-FL Core Architectural Mechanics
+1. **Single-Backbone 3-Tier Hierarchy**:
+   A single shared feature extractor backbone with branched Root (global server), Parent (cluster/peer level), and Local (client on-device) linear classification heads.
+2. **Local Label Skew Metric ($R_{skew}$)**:
+   Measures empirical local class entropy to smoothly parameterize edge specialization.
+3. **Anchored Dynamic Binomial Loss Weighting**:
+   Exact continuous partition-of-unity ($\alpha_r + \alpha_p + \alpha_l = 1.0$) with data-support floor $a_i = \max(1/(2K), |\mathcal{Y}_i|/C)$ preventing under-anchoring on sparse edge devices.
+4. **Active-Class Logit Masking (ACLM)**:
+   Restricts loss computation on Parent and Local heads strictly to observed active classes, eliminating negative gradient drag on the shared backbone.
+5. **Information-Reducing Parameter Sketch Clustering ($m=256$)**:
+   Projects client head update deltas into 256-dimensional random orthogonal sketches, bounding geometric distance distortion by the Johnson-Lindenstrauss lemma while keeping gradient reconstruction severely underdetermined.
+6. **Skew-Calibrated Subspace Defense**:
+   Evaluates cosine trust alignment strictly over each client's active class coordinates, combined with a sentinel NaN/Inf pre-filter and multi-round trust tracking.
 
-### 3. Evaluation Suite (outputs/suite_v2/)
-- **Track 1**: CIFAR-100 across 5 Dirichlet regimes ($\alpha \in [\infty, 1.0, 0.5, 0.1, 0.05]$).
-- **Track 2**: Byzantine matrix (Sign-Flipping, Label-Flipping, Gaussian Noise up to $q=0.3$).
-- **Track 3**: 50-client network scaling with partial participation ($C_p=0.20$) and tail decile evaluation.
-- **Track 4**: Component ablation study (backbone, cluster head, local head, temperature routing, trust momentum).
-- **Track 5**: Physical mobile edge profiling (MobileNetV3-Small vs. ResNet-9 peak VRAM and latency).
+### 3. Master Experimental Suite (src/baselines/)
+- **Job 1 (Personalization Benchmark)**:
+  CIFAR-100 (ResNet-9) across 5 Dirichlet regimes ($\alpha \in [\infty, 1.0, 0.5, 0.1, 0.05]$) against 6 baselines (**FedAvg, FedProx, Multi-Krum, SCAFFOLD, Ditto, FedRep**) across 3 seeds (`42, 123, 7`).
+- **Job 2 (Byzantine Robustness Matrix)**:
+  4 Byzantine attack vectors (**label-flipping, sign-flipping, gradient ascent, Gaussian noise**) across corruption rates $q \in [0.0, 0.4]$ on CIFAR-100.
+- **Job 3 (50-Client Scalability Benchmark)**:
+  Population scaling to $N=50$ clients under partial participation ($C_p=0.20$), evaluating mean accuracy and worst-decile (bottom 10%) tail fairness.
+- **Job 4 (Physical Edge Hardware Profiling)**:
+  On-device footprint comparison on **MobileNetV3-Small** vs. **ResNet-9** (batch latency, peak VRAM, communication payload per round).
+- **Job 5 (Ablation Study & Cluster Valuation)**:
+  Component isolation testing **w/o ACLM**, **w/o Parent Head (2-tier bipartite)**, single grand coalition ($K=1$), and the theoretical **$K=3$ Oracle Bound** via ground-truth label distribution clustering.

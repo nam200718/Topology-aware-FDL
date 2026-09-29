@@ -145,7 +145,7 @@ class PyTorchLocalUpdater:
             e_local = 1 + round(rem * 0.33)
         return e_root, e_parent, e_local
 
-    def _alloc_steps_binomial(self, r_skew: float, total_budget: int, anchor_min: float = None, num_classes: int = 10, local_classes: int = 2, num_clusters: int = 3):
+    def _alloc_steps_binomial(self, r_skew: float, total_budget: int, anchor_min: float = None, num_classes: int = 10, local_classes: int = 2, num_clusters: int = 3, enable_parent_head: bool = True):
         """Continuous dynamic binomial partition-of-unity loss weighting.
 
         lambda_r = a_i + (1-a_i)R^2, lambda_p = 2R(1-R), lambda_l = (1-R)^2,
@@ -154,10 +154,10 @@ class PyTorchLocalUpdater:
         """
         if anchor_min is not None and anchor_min > 0:
             _, _, _, alpha_r, alpha_p, alpha_l = compute_binomial_loss_weights(
-                r_skew, anchor_min=anchor_min)
+                r_skew, anchor_min=anchor_min, enable_parent_head=enable_parent_head)
         else:
             _, _, _, alpha_r, alpha_p, alpha_l = compute_dynamic_binomial_loss_weights(
-                r_skew, num_classes=num_classes, local_classes=local_classes, num_clusters=num_clusters)
+                r_skew, num_classes=num_classes, local_classes=local_classes, num_clusters=num_clusters, enable_parent_head=enable_parent_head)
         return alpha_r, alpha_p, alpha_l
 
     def _flip_labels(self, labels, num_classes: int):
@@ -737,23 +737,29 @@ class PyTorchLocalUpdater:
         # piecewise: integer budgets, active while epoch < budget (legacy).
         # binomial: continuous partition-of-unity weights, constant across epochs.
         total_budget = config.total_local_steps
+        enable_parent = getattr(config, "enable_parent_head", True)
         if config.head_training_schedule == "binomial":
             num_active = int(active_mask.sum().item()) if active_mask is not None else num_classes
             lw_r, lw_p, lw_l = self._alloc_steps_binomial(
                 r_skew, total_budget, config.binomial_anchor_min,
                 num_classes=num_classes, local_classes=num_active,
                 num_clusters=getattr(config, "num_clusters", 3),
+                enable_parent_head=enable_parent,
             )
             head_budgets = {"root": lw_r, "parent": lw_p, "local": lw_l}
             max_steps = max(1, total_budget)
         else:
             e_root, e_parent, e_local = self._alloc_steps_piecewise(r_skew, total_budget)
+            if not enable_parent:
+                e_parent = 0
             head_budgets = {"root": float(e_root), "parent": float(e_parent), "local": float(e_local)}
             max_steps = max(e_root, e_parent, e_local)
 
         state.head_steps = {k: int(round(v)) for k, v in head_budgets.items()}
 
         def _head_mult(key: str, epoch: int) -> float:
+            if not enable_parent and key == "parent":
+                return 0.0
             if config.head_training_schedule == "binomial":
                 return head_budgets[key]
             return 1.0 if epoch < int(head_budgets[key]) else 0.0
@@ -793,7 +799,7 @@ class PyTorchLocalUpdater:
 
                 if is_collab:
                     m_root = _head_mult("root", epoch)
-                    m_parent = _head_mult("parent", epoch)
+                    m_parent = _head_mult("parent", epoch) if enable_parent else 0.0
                     m_local = 0.0
                 else:
                     m_root = 0.0
@@ -801,7 +807,7 @@ class PyTorchLocalUpdater:
                     m_local = 1.0
             else:
                 m_root = _head_mult("root", epoch)
-                m_parent = _head_mult("parent", epoch)
+                m_parent = _head_mult("parent", epoch) if enable_parent else 0.0
                 m_local = _head_mult("local", epoch)
 
             for images, labels in loader:

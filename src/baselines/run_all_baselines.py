@@ -16,6 +16,7 @@ from src.baselines.experiment_configs import (
     METHODS,
     PERSONALIZATION_METHODS,
     BYZANTINE_METHODS,
+    ABLATION_METHODS,
     REGIMES,
     ATTACK_TYPES,
     BYZANTINE_RATES,
@@ -32,7 +33,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run AAMAS 2027 Baseline Experiments (CIFAR-100)")
     parser.add_argument(
         "--job",
-        choices=["personalization", "byzantine", "all"],
+        choices=["personalization", "byzantine", "ablation", "all"],
         default="personalization",
         help="Experiment suite to run.",
     )
@@ -225,6 +226,62 @@ def run_byzantine_suite(args, device, seeds, base_defaults):
     return df
 
 
+def run_ablation_suite(args, device, seeds, base_defaults):
+    print("\n" + "=" * 70)
+    print("STARTING JOB 5: CIFAR-100 ABLATION & CLUSTER VALUATION BENCHMARK")
+    print("=" * 70)
+
+    target_methods = [m.strip() for m in args.methods.split(",")] if args.methods else ABLATION_METHODS
+    target_regimes = [r.strip() for r in args.regimes.split(",")] if args.regimes else [r["id"] for r in REGIMES]
+
+    out_dir = os.path.join(args.output_dir, "ablation")
+    os.makedirs(out_dir, exist_ok=True)
+
+    results_table = []
+    checkpoint_file = os.path.join(out_dir, "results_ablation.json")
+
+    for m_id in target_methods:
+        for r_id in target_regimes:
+            print(f"\n>>> Running Ablation Method: {m_id.upper()} | Regime: {r_id.upper()} <<<")
+            config = create_personalization_config(
+                method_id=m_id,
+                regime_id=r_id,
+                base_defaults=base_defaults,
+                output_dir=out_dir,
+            )
+
+            runner = MultiSeedRunner(
+                base_config=config,
+                method_id=m_id,
+                seeds=seeds,
+                device=device,
+            )
+            res = runner.run()
+
+            entry = {
+                "method": m_id,
+                "regime": r_id,
+                "mean_acc": res["mean_accuracy"],
+                "std_acc": res["std_accuracy"],
+                "mean_loss": res["mean_loss"],
+                "mean_b10": res["mean_bottom10"],
+                "std_b10": res["std_bottom10"],
+                "per_seed_acc": res["per_seed_accuracies"],
+                "per_seed_b10": res["per_seed_bottom10"],
+                "elapsed_s": res["elapsed_seconds"],
+            }
+            results_table.append(entry)
+
+            with open(checkpoint_file, "w") as f:
+                json.dump(results_table, f, indent=2)
+
+    df = pd.DataFrame(results_table)
+    csv_file = os.path.join(out_dir, "results_ablation.csv")
+    df.to_csv(csv_file, index=False)
+    print(f"\nAblation suite completed! Results saved to:\n- {checkpoint_file}\n- {csv_file}")
+    return df
+
+
 def main():
     args = parse_args()
     device = args.device or detect_accelerator()
@@ -252,6 +309,9 @@ def main():
 
     if args.job in ("byzantine", "all"):
         run_byzantine_suite(args, device, seeds, base_defaults)
+
+    if args.job in ("ablation", "all"):
+        run_ablation_suite(args, device, seeds, base_defaults)
 
 
 if __name__ == "__main__":

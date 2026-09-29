@@ -6,7 +6,8 @@ Supports:
 3. Multi-Krum
 4. SCAFFOLD
 5. Ditto
-6. Proposed Topo (HEP-FL / Defended HEP-FL)
+6. FedRep
+7. Proposed Topo (HEP-FL / Defended HEP-FL)
 """
 from typing import Tuple, Optional, Any, Dict
 import torch
@@ -74,6 +75,8 @@ def build_baseline_engine(
             method_id = "scaffold"
         elif pers == "ditto":
             method_id = "ditto"
+        elif pers == "fedrep":
+            method_id = "fedrep"
         elif getattr(config.clients, "robust_aggregation_mode", "") == "multi_krum":
             method_id = "multikrum"
         else:
@@ -114,25 +117,30 @@ def build_baseline_engine(
         engine = CentralizedEngine(config, topology, aggregator, device=dev)
         check_star_invariant(topology, num_clients)
 
-    elif method_id in ("topo", "hep"):
-        clusters = config.topology.params.get("num_clusters", 3)
-        topology = HierarchicalTopology(num_clusters=clusters)
+    elif method_id == "fedrep":
+        topology = StarTopology()
         aggregator = FedAvgAggregator()
-        engine = HierarchicalEnsembleEngine(config, topology, aggregator, device=dev)
-        check_hierarchical_invariant(topology, num_clients)
+        config.clients.personalization_method = "fedrep"
+        engine = CentralizedEngine(config, topology, aggregator, device=dev)
+        check_star_invariant(topology, num_clients)
 
-    elif method_id in ("topo_defended", "hep_defense", "hep_defended"):
+    elif method_id.startswith("topo") or method_id.startswith("hep"):
         clusters = config.topology.params.get("num_clusters", 3)
         topology = HierarchicalTopology(num_clusters=clusters)
         aggregator = FedAvgAggregator()
-        from src.defense.engine import DefendedEnsembleEngine
-        engine = DefendedEnsembleEngine(config, topology, aggregator, device=dev)
+        def_mode = config.topology.params.get("defense_mode", "none")
+        is_defended = ("defended" in method_id or "defense" in method_id or def_mode != "none")
+        if is_defended:
+            from src.core.unified_defended_engine import UnifiedDefendedEngine
+            engine = UnifiedDefendedEngine(config, topology, aggregator, device=dev)
+        else:
+            engine = HierarchicalEnsembleEngine(config, topology, aggregator, device=dev)
         check_hierarchical_invariant(topology, num_clients)
 
     else:
         raise ValueError(
             f"Unsupported baseline method_id: '{method_id}'. "
-            "Supported: 'fedavg', 'fedprox', 'multikrum', 'scaffold', 'ditto', 'topo', 'topo_defended'"
+            "Supported: 'fedavg', 'fedprox', 'multikrum', 'scaffold', 'ditto', 'fedrep', 'topo*', 'hep*'"
         )
 
     return topology, aggregator, engine

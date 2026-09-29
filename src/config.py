@@ -130,6 +130,8 @@ class ClientConfig(BaseModel):
     active_class_inference_mask: bool = True
     # Mask unobserved classes on Local & Parent heads during training
     active_class_loss_mask: bool = True
+    # Enable intermediate cluster parent head (set False for 2-tier Root+Local ablation)
+    enable_parent_head: bool = True
     # Hard IID routing cutoff on R_skew at evaluation (legacy shortcut; kept for
     # ablation parity until binomial schedule fully supersedes it).
     iid_route_threshold: float = 0.85

@@ -217,11 +217,11 @@ def fig_budget_fairness():
     plt.close(fig)
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", nargs="*", default=None,
                         help="Subset: convergence byzantine pareto budget")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     os.makedirs(FIG_DIR, exist_ok=True)
 
     todo = {

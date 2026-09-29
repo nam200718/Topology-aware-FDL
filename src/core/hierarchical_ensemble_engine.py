@@ -495,6 +495,13 @@ class HierarchicalEnsembleEngine(BaseEngine):
                                 loss_beta, tau, static_weights)
                             blend_weights = self._apply_top2_routing(dynamic, client_id)
                         w_local, w_parent, w_root = blend_weights
+                        if not getattr(self.config.clients, "enable_parent_head", True):
+                            w_parent = 0.0
+                            tot_w = w_local + w_root
+                            if tot_w > 0:
+                                w_local, w_root = w_local / tot_w, w_root / tot_w
+                            else:
+                                w_local, w_root = 0.5, 0.5
                         # Dynamic Logit Dispersion Temperature Matching
                         if getattr(self.config.clients, "dynamic_temperature", True):
                             std_l = logits_local.std().item()
@@ -637,4 +644,11 @@ class HierarchicalEnsembleEngine(BaseEngine):
             w_local = clients_cfg.ensemble_alpha * fade
             w_parent = clients_cfg.ensemble_beta * fade
         w_root = max(0.0, 1.0 - w_local - w_parent)
+        if not getattr(clients_cfg, "enable_parent_head", True):
+            w_parent = 0.0
+            tot_w = w_local + w_root
+            if tot_w > 0:
+                w_local, w_root = w_local / tot_w, w_root / tot_w
+            else:
+                w_local, w_root = 0.5, 0.5
         return (w_local, w_parent, w_root)

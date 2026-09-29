@@ -83,6 +83,14 @@ METHODS = [
         "description": "Personalized FL via local model proximal anchor (Li et al., 2021)",
     },
     {
+        "id": "fedrep",
+        "label": "FedRep",
+        "topo": "star",
+        "pers": "fedrep",
+        "params": {"fedrep_head_epochs": 1},
+        "description": "Federated representation learning with persistent private classifier head (Collins et al., 2021)",
+    },
+    {
         "id": "topo",
         "label": "Proposed Topo (HEP)",
         "topo": "hierarchical_ensemble",
@@ -98,13 +106,63 @@ METHODS = [
         "params": {"num_clusters": 3, "cluster_method": "update_similarity", "defense_mode": "soft_cosine"},
         "description": "Topology-aware Hierarchical Ensemble with Byzantine Defense (Proposed)",
     },
+    {
+        "id": "topo_no_aclm",
+        "label": "HEP (w/o ACLM)",
+        "topo": "hierarchical_ensemble",
+        "pers": "none",
+        "params": {
+            "num_clusters": 3,
+            "cluster_method": "update_similarity",
+            "active_class_loss_mask": False,
+            "active_class_inference_mask": False,
+        },
+        "description": "Ablation: HEP-FL without Active-Class Logit Masking",
+    },
+    {
+        "id": "topo_no_parent",
+        "label": "HEP (w/o Parent Head)",
+        "topo": "hierarchical_ensemble",
+        "pers": "none",
+        "params": {
+            "num_clusters": 3,
+            "cluster_method": "update_similarity",
+            "enable_parent_head": False,
+        },
+        "description": "Ablation: 2-tier Bipartite HEP-FL (Root + Local, without Parent Head)",
+    },
+    {
+        "id": "topo_k1",
+        "label": "HEP (K=1 Grand Coalition)",
+        "topo": "hierarchical_ensemble",
+        "pers": "none",
+        "params": {
+            "num_clusters": 1,
+            "cluster_method": "update_similarity",
+        },
+        "description": "Cluster Valuation: Single grand coalition without peer sub-coalitions (K=1)",
+    },
+    {
+        "id": "topo_oracle_k3",
+        "label": "HEP (K=3 Oracle Bound)",
+        "topo": "hierarchical_ensemble",
+        "pers": "none",
+        "params": {
+            "num_clusters": 3,
+            "cluster_method": "label_aware",
+        },
+        "description": "Cluster Valuation: Theoretical Pareto upper bound via ground-truth label distribution clustering",
+    },
 ]
 
 # Personalization benchmark subset (excludes defense-only variant)
-PERSONALIZATION_METHODS = ["fedavg", "fedprox", "multikrum", "scaffold", "ditto", "topo"]
+PERSONALIZATION_METHODS = ["fedavg", "fedprox", "multikrum", "scaffold", "ditto", "fedrep", "topo"]
 
 # Byzantine benchmark methods
-BYZANTINE_METHODS = ["fedavg", "fedprox", "multikrum", "scaffold", "ditto", "topo", "topo_defended"]
+BYZANTINE_METHODS = ["fedavg", "fedprox", "multikrum", "scaffold", "ditto", "fedrep", "topo", "topo_defended"]
+
+# Targeted Ablation & Cluster Valuation subset
+ABLATION_METHODS = ["topo", "topo_no_aclm", "topo_no_parent", "topo_k1", "topo_oracle_k3"]
 
 # ============================================================
 # HETEROGENEITY REGIMES (5 Dirichlet concentration levels)
@@ -173,7 +231,7 @@ def create_personalization_config(
         "local_steps": defaults["local_steps"],
         "personalization_method": method["pers"],
     }
-    if method_id in ("topo", "topo_defended"):
+    if method_id.startswith("topo") or method_id.startswith("hep"):
         client_kwargs["use_ensemble"] = True
         client_kwargs["hierarchical_ensemble"] = True
         client_kwargs["compute_optimization_mode"] = "shared_backbone"
@@ -182,7 +240,11 @@ def create_personalization_config(
 
     if "params" in method:
         for k, v in method["params"].items():
-            if k in ("fedprox_mu", "ditto_lambda", "krum_num_selected", "krum_num_byzantine"):
+            if k in (
+                "fedprox_mu", "ditto_lambda", "krum_num_selected", "krum_num_byzantine",
+                "fedrep_head_epochs", "active_class_loss_mask", "active_class_inference_mask",
+                "enable_parent_head",
+            ):
                 client_kwargs[k] = v
 
     # Build topology config
@@ -246,7 +308,7 @@ def create_byzantine_config(
         "local_steps": defaults["local_steps"],
         "personalization_method": method["pers"],
     }
-    if method_id in ("topo", "topo_defended"):
+    if method_id.startswith("topo") or method_id.startswith("hep"):
         client_kwargs["use_ensemble"] = True
         client_kwargs["hierarchical_ensemble"] = True
         client_kwargs["compute_optimization_mode"] = "shared_backbone"
@@ -255,7 +317,11 @@ def create_byzantine_config(
 
     if "params" in method:
         for k, v in method["params"].items():
-            if k in ("fedprox_mu", "ditto_lambda", "krum_num_selected", "krum_num_byzantine"):
+            if k in (
+                "fedprox_mu", "ditto_lambda", "krum_num_selected", "krum_num_byzantine",
+                "fedrep_head_epochs", "active_class_loss_mask", "active_class_inference_mask",
+                "enable_parent_head",
+            ):
                 client_kwargs[k] = v
 
     topo_type = method["topo"]
