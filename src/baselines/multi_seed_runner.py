@@ -52,9 +52,9 @@ class MultiSeedRunner:
 
             # Explicit GPU memory cleanup between seeds to prevent VRAM fragmentation on Kaggle
             del engine, topology, aggregator
+            gc.collect()
             if str(self.device).startswith("cuda") and torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            gc.collect()
 
         total_elapsed = time.time() - start_time
         summary = self._aggregate_metrics(runs)

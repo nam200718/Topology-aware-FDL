@@ -120,6 +120,9 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                 rng=self.local_rng,
                 current_lr=current_lr
             )
+            updated_state.participation_count = (
+                getattr(self.clients_state[client_id], "participation_count", 0) + 1
+            )
             self.clients_state[client_id] = updated_state
             head_id = self.topology.get_neighbors(client_id)[0]
 
@@ -131,19 +134,29 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
             delta = (updated_state.weights - root_reference).detach()
             current_deltas[client_id] = delta
 
+            # === SENTINEL PRE-FILTER: Disqualify NaN / Inf gradient explosions ===
+            has_nan_inf = (
+                torch.isnan(delta).any()
+                or torch.isinf(delta).any()
+                or (
+                    updated_state.parent_weights is not None
+                    and (torch.isnan(updated_state.parent_weights).any() or torch.isinf(updated_state.parent_weights).any())
+                )
+            )
+            if has_nan_inf:
+                self.clients_state[client_id].is_confirmed_malicious = True
+                print(f"[Round {round_num}] ⚠️ SENTINEL GUARD: Client {client_id} gradient explosion → zeroed out.")
+                continue
+
+            if getattr(self.clients_state[client_id], "is_confirmed_malicious", False):
+                print(f"[Round {round_num}] ⚠️ ISOLATION: Confirmed malicious client {client_id} excluded from aggregation.")
+                continue
+
             s_parent = updated_state.copy()
             if updated_state.parent_weights is not None:
                 s_parent.weights = updated_state.parent_weights
             cluster_updates_parent[head_id].append(s_parent)
             cluster_updates_root[head_id].append(updated_state)
-
-        # === SENTINEL PRE-FILTER: Disqualify NaN / Inf gradient explosions ===
-        for client_id in all_clients:
-            state = self.clients_state[client_id]
-            delta = current_deltas[client_id]
-            if torch.isnan(delta).any() or torch.isinf(delta).any():
-                state.is_confirmed_malicious = True
-                print(f"[Round {round_num}] ⚠️ SENTINEL GUARD: Client {client_id} gradient explosion → zeroed out.")
 
         # 3. Tier 1: Intra-Coalition / Cluster Defense
         defense_scope = self.defense_config.defense_scope
@@ -169,9 +182,10 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                 # Update Trust Tracker & Client Trust Scores for cluster members
                 last_trust = self.cluster_defense_aggregator.get_last_trust_scores()
                 if last_trust is not None:
+                    valid_states = [s for s, d in zip(clean_states, p_deltas) if not (torch.isnan(d).any() or torch.isinf(d).any())]
                     trust_dict = {
-                        clean_states[i].client_id: float(last_trust[i].item())
-                        for i in range(len(clean_states))
+                        valid_states[i].client_id: float(last_trust[i].item())
+                        for i in range(min(len(valid_states), len(last_trust)))
                     }
                     self.trust_tracker.log(round_num, hid, trust_dict)
                     n_members = len(clean_states)
@@ -208,9 +222,10 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                 # Log global trust scores & update cumulative trust scores
                 last_trust_global = self.global_defense_aggregator.get_last_trust_scores()
                 if last_trust_global is not None:
+                    valid_global_states = [s for s, d in zip(all_root_contributions, r_deltas) if not (torch.isnan(d).any() or torch.isinf(d).any())]
                     global_dict = {
-                        all_root_contributions[i].client_id: float(last_trust_global[i].item())
-                        for i in range(len(all_root_contributions))
+                        valid_global_states[i].client_id: float(last_trust_global[i].item())
+                        for i in range(min(len(valid_global_states), len(last_trust_global)))
                     }
                     self.trust_tracker.log(round_num, -1, global_dict)
                     n_global = len(all_root_contributions)

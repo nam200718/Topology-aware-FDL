@@ -69,16 +69,27 @@ class PyTorchLocalUpdater:
         is_byz = getattr(state, "is_byzantine", False)
         if is_byz:
             byz_type = getattr(state, "byzantine_type", "label_flip")
-            full_weights = state.weights
-            if byz_type == "sign_flip":
-                delta = full_weights - initial_weights
-                full_weights = initial_weights - delta * 1.5
-            elif byz_type == "gradient_ascent":
-                delta = full_weights - initial_weights
-                full_weights = initial_weights - delta * 5.0
-            elif byz_type == "random_noise":
-                full_weights = initial_weights + torch.randn_like(initial_weights) * 2.0
-            state.weights = full_weights
+
+            def attack_tensor(w: torch.Tensor, init_w: torch.Tensor) -> torch.Tensor:
+                if init_w is None or len(w) != len(init_w):
+                    ref = w
+                else:
+                    ref = init_w
+                delta = w - ref
+                if byz_type == "sign_flip":
+                    return ref - delta * 1.5
+                elif byz_type == "gradient_ascent":
+                    return ref - delta * 5.0
+                elif byz_type == "random_noise":
+                    return ref + torch.randn_like(ref) * 2.0
+                return w
+
+            if byz_type in ("sign_flip", "gradient_ascent", "random_noise"):
+                state.weights = attack_tensor(state.weights, initial_weights)
+                if state.parent_weights is not None:
+                    state.parent_weights = attack_tensor(state.parent_weights, initial_weights)
+                if state.local_weights is not None:
+                    state.local_weights = attack_tensor(state.local_weights, initial_weights)
         return state
 
     def _make_loader(self, client_dataset, config: ClientConfig):

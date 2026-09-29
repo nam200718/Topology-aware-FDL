@@ -172,16 +172,17 @@ class HierarchicalEnsembleEngine(BaseEngine):
                 rng=self.local_rng,
                 current_lr=current_lr
             )
+            # Persist cumulative participation for S-AFR's dynamic tau_0
+            # Read and increment before updating self.clients_state[client_id]
+            updated_state.participation_count = (
+                getattr(self.clients_state[client_id], "participation_count", 0) + 1
+            )
             self.clients_state[client_id] = updated_state
 
             # Compute client model update vector (delta)
             delta = (updated_state.weights - weights_before[client_id]).detach()
             current_deltas[client_id] = delta
             self.last_sampled_round[client_id] = round_num
-            # Persist cumulative participation for S-AFR's dynamic tau_0
-            # (read from the persistent state: copy() does not carry it).
-            updated_state.participation_count = (
-                getattr(self.clients_state[client_id], "participation_count", 0) + 1)
 
         # Track directional cluster affinity for Top-2 head routing at eval time
         if self.cluster_method == "update_similarity":
@@ -479,7 +480,7 @@ class HierarchicalEnsembleEngine(BaseEngine):
                 if len(client_test_ds) == 0:
                     continue
 
-                blend_weights = self._safr_blend_weights(state, client_id, round_num, iid_threshold)
+                fixed_blend_weights = self._safr_blend_weights(state, client_id, round_num, iid_threshold)
 
                 c_correct, c_total = 0, 0
                 test_loader = get_fast_dataloader(client_test_ds, batch_size=min(len(client_test_ds), 1024), shuffle=False)
@@ -488,13 +489,14 @@ class HierarchicalEnsembleEngine(BaseEngine):
                         images, labels = images.to(self.device), labels.to(self.device)
                         logits_root, logits_parent, logits_local = multi_model(images, head="all")
 
-                        if blend_weights is None:
+                        b_weights = fixed_blend_weights
+                        if b_weights is None:
                             dynamic = compute_head_weights(
                                 weighting_mode, logits_root, logits_parent, logits_local,
                                 state.head_losses, getattr(state, "ensemble_alpha", None),
                                 loss_beta, tau, static_weights)
-                            blend_weights = self._apply_top2_routing(dynamic, client_id)
-                        w_local, w_parent, w_root = blend_weights
+                            b_weights = self._apply_top2_routing(dynamic, client_id)
+                        w_local, w_parent, w_root = b_weights
                         if not getattr(self.config.clients, "enable_parent_head", True):
                             w_parent = 0.0
                             tot_w = w_local + w_root
@@ -521,13 +523,13 @@ class HierarchicalEnsembleEngine(BaseEngine):
                             + w_parent * (logits_parent / t_p)
                             + w_root * (logits_root / t_r)
                         )
-                        if getattr(self.config.clients, "active_class_inference_mask", True) and getattr(state, "active_mask", None) is not None:
-                            mask = state.active_mask.to(self.device).unsqueeze(0)
-                            logits_ensemble = logits_ensemble.masked_fill(~mask, -1e9)
-
                         loss = criterion(logits_ensemble, labels)
                         total_loss += loss.item()
-                        predicted = logits_ensemble.argmax(dim=1)
+                        if getattr(self.config.clients, "active_class_inference_mask", True) and getattr(state, "active_mask", None) is not None:
+                            mask = state.active_mask.to(self.device).unsqueeze(0)
+                            predicted = logits_ensemble.masked_fill(~mask, -1e4).argmax(dim=1)
+                        else:
+                            predicted = logits_ensemble.argmax(dim=1)
                         total_samples += labels.size(0)
                         hits = (predicted == labels).sum().item()
                         total_correct += hits
@@ -585,7 +587,11 @@ class HierarchicalEnsembleEngine(BaseEngine):
                         logits_ensemble = w_local * logits_local + w_parent * logits_parent + w_root * logits_root
                         loss = criterion(logits_ensemble, labels)
                         total_loss += loss.item()
-                        predicted = logits_ensemble.argmax(dim=1)
+                        if getattr(self.config.clients, "active_class_inference_mask", True) and getattr(state, "active_mask", None) is not None:
+                            mask = state.active_mask.to(self.device).unsqueeze(0)
+                            predicted = logits_ensemble.masked_fill(~mask, -1e4).argmax(dim=1)
+                        else:
+                            predicted = logits_ensemble.argmax(dim=1)
                         total_samples += labels.size(0)
                         hits = (predicted == labels).sum().item()
                         total_correct += hits

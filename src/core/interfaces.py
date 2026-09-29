@@ -18,6 +18,11 @@ class ClientState:
         self.data_samples: int = 100 
         self.is_byzantine: bool = False
         self.byzantine_type: str = "label_flip"
+        self.is_confirmed_malicious: bool = False
+        self.participation_count: int = 0
+        self.control_variate: Optional[torch.Tensor] = None
+        self._scaffold_delta_c: Optional[torch.Tensor] = None
+        self.active_mask: Optional[torch.Tensor] = None
         
         # APFL and Ensemble metrics tracking
         self.apfl_alpha: float = 0.5
@@ -43,6 +48,14 @@ class ClientState:
         new_state.data_samples = self.data_samples
         new_state.is_byzantine = self.is_byzantine
         new_state.byzantine_type = self.byzantine_type
+        new_state.is_confirmed_malicious = getattr(self, "is_confirmed_malicious", False)
+        new_state.participation_count = getattr(self, "participation_count", 0)
+        cv = getattr(self, "control_variate", None)
+        new_state.control_variate = cv.clone() if cv is not None else None
+        sdc = getattr(self, "_scaffold_delta_c", None)
+        new_state._scaffold_delta_c = sdc.clone() if sdc is not None else None
+        am = getattr(self, "active_mask", None)
+        new_state.active_mask = am.clone() if am is not None else None
         new_state.apfl_alpha = self.apfl_alpha
         new_state.ensemble_alpha = list(self.ensemble_alpha)
         new_state.r_skew = self.r_skew

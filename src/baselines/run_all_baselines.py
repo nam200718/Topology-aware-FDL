@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 import sys
+import tempfile
 import time
 import pandas as pd
 
@@ -27,6 +28,17 @@ from src.baselines.experiment_configs import (
 )
 from src.baselines.multi_seed_runner import MultiSeedRunner
 from src.baselines.factory import detect_accelerator
+
+
+def _atomic_json_dump(data, file_path: str):
+    dir_name = os.path.dirname(file_path) or "."
+    os.makedirs(dir_name, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False, prefix=f".{os.path.basename(file_path)}.", suffix=".tmp") as f:
+        tmp_path = f.name
+        json.dump(data, f, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, file_path)
 
 
 def parse_args():
@@ -126,9 +138,27 @@ def run_personalization_suite(args, device, seeds, base_defaults):
 
     results_table = []
     checkpoint_file = os.path.join(out_dir, "results_personalization.json")
+    completed_keys = set()
+    if os.path.exists(checkpoint_file):
+        try:
+            with open(checkpoint_file, "r") as f:
+                loaded = json.load(f)
+                if isinstance(loaded, list):
+                    results_table = loaded
+                    for item in results_table:
+                        m = item.get("method")
+                        r = item.get("regime")
+                        if m and r:
+                            completed_keys.add((m, r))
+            print(f"Loaded {len(results_table)} completed results from checkpoint: {checkpoint_file}")
+        except Exception as e:
+            print(f"Warning: Failed to load existing checkpoint from {checkpoint_file}: {e}")
 
     for m_id in target_methods:
         for r_id in target_regimes:
+            if (m_id, r_id) in completed_keys:
+                print(f"\n>>> Skipping Method: {m_id.upper()} | Regime: {r_id.upper()} (Already Completed) <<<")
+                continue
             print(f"\n>>> Running Method: {m_id.upper()} | Regime: {r_id.upper()} <<<")
             config = create_personalization_config(
                 method_id=m_id,
@@ -158,10 +188,8 @@ def run_personalization_suite(args, device, seeds, base_defaults):
                 "elapsed_s": res["elapsed_seconds"],
             }
             results_table.append(entry)
-
-            # Checkpoint after each run
-            with open(checkpoint_file, "w") as f:
-                json.dump(results_table, f, indent=2)
+            completed_keys.add((m_id, r_id))
+            _atomic_json_dump(results_table, checkpoint_file)
 
     df = pd.DataFrame(results_table)
     csv_file = os.path.join(out_dir, "results_personalization.csv")
@@ -184,10 +212,29 @@ def run_byzantine_suite(args, device, seeds, base_defaults):
 
     results_table = []
     checkpoint_file = os.path.join(out_dir, "results_byzantine.json")
+    completed_keys = set()
+    if os.path.exists(checkpoint_file):
+        try:
+            with open(checkpoint_file, "r") as f:
+                loaded = json.load(f)
+                if isinstance(loaded, list):
+                    results_table = loaded
+                    for item in results_table:
+                        m = item.get("method")
+                        a = item.get("attack")
+                        r = item.get("byzantine_rate")
+                        if m is not None and a is not None and r is not None:
+                            completed_keys.add((m, a, round(float(r), 4)))
+            print(f"Loaded {len(results_table)} completed results from checkpoint: {checkpoint_file}")
+        except Exception as e:
+            print(f"Warning: Failed to load existing checkpoint from {checkpoint_file}: {e}")
 
     for atk in target_attacks:
         for rate in target_rates:
             for m_id in target_methods:
+                if (m_id, atk, round(float(rate), 4)) in completed_keys:
+                    print(f"\n>>> Skipping Method: {m_id.upper()} | Attack: {atk} | Byzantine Rate: {int(rate * 100)}% (Already Completed) <<<")
+                    continue
                 print(f"\n>>> Method: {m_id.upper()} | Attack: {atk} | Byzantine Rate: {int(rate * 100)}% <<<")
                 config = create_byzantine_config(
                     method_id=m_id,
@@ -215,9 +262,8 @@ def run_byzantine_suite(args, device, seeds, base_defaults):
                     "elapsed_s": res["elapsed_seconds"],
                 }
                 results_table.append(entry)
-
-                with open(checkpoint_file, "w") as f:
-                    json.dump(results_table, f, indent=2)
+                completed_keys.add((m_id, atk, round(float(rate), 4)))
+                _atomic_json_dump(results_table, checkpoint_file)
 
     df = pd.DataFrame(results_table)
     csv_file = os.path.join(out_dir, "results_byzantine.csv")
@@ -239,9 +285,27 @@ def run_ablation_suite(args, device, seeds, base_defaults):
 
     results_table = []
     checkpoint_file = os.path.join(out_dir, "results_ablation.json")
+    completed_keys = set()
+    if os.path.exists(checkpoint_file):
+        try:
+            with open(checkpoint_file, "r") as f:
+                loaded = json.load(f)
+                if isinstance(loaded, list):
+                    results_table = loaded
+                    for item in results_table:
+                        m = item.get("method")
+                        r = item.get("regime")
+                        if m and r:
+                            completed_keys.add((m, r))
+            print(f"Loaded {len(results_table)} completed results from checkpoint: {checkpoint_file}")
+        except Exception as e:
+            print(f"Warning: Failed to load existing checkpoint from {checkpoint_file}: {e}")
 
     for m_id in target_methods:
         for r_id in target_regimes:
+            if (m_id, r_id) in completed_keys:
+                print(f"\n>>> Skipping Ablation Method: {m_id.upper()} | Regime: {r_id.upper()} (Already Completed) <<<")
+                continue
             print(f"\n>>> Running Ablation Method: {m_id.upper()} | Regime: {r_id.upper()} <<<")
             config = create_personalization_config(
                 method_id=m_id,
@@ -271,9 +335,8 @@ def run_ablation_suite(args, device, seeds, base_defaults):
                 "elapsed_s": res["elapsed_seconds"],
             }
             results_table.append(entry)
-
-            with open(checkpoint_file, "w") as f:
-                json.dump(results_table, f, indent=2)
+            completed_keys.add((m_id, r_id))
+            _atomic_json_dump(results_table, checkpoint_file)
 
     df = pd.DataFrame(results_table)
     csv_file = os.path.join(out_dir, "results_ablation.csv")

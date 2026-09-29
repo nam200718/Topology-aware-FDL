@@ -425,6 +425,8 @@ def plot_hardware_efficiency_profile(
 
     plt.suptitle("Hardware Efficiency & Time-to-Accuracy Profile (CIFAR-10 ResNet9)", fontsize=13, fontweight="bold", y=1.01)
     plt.tight_layout()
+    if os.path.dirname(output_path):
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path, bbox_inches="tight")
     plt.close()
     print(f"Hardware efficiency figure saved to: {output_path}")

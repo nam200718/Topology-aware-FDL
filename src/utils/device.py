@@ -61,6 +61,10 @@ def resolve_device():
     forced = os.environ.get("HEP_FORCE_DEVICE", "").strip().lower()
     if forced == "cpu":
         return "cpu"
+    if forced.startswith("cuda"):
+        if torch.cuda.is_available() and _probe_op_suite(forced):
+            return forced
+        print(f"[device] Forced CUDA device '{forced}' failed op-suite verification; falling back.")
 
     try:
         import torch_directml  # type: ignore

@@ -158,9 +158,9 @@ def get_fast_dataloader(dataset, batch_size: int = 32, shuffle: bool = True, dro
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last)
 
 def _acquire_download_lock(data_dir: str, name: str):
-    import os
-    os.makedirs(data_dir, exist_ok=True)
-    lock_file = open(os.path.join(data_dir, f".{name}.lock"), "w")
+    import os, tempfile
+    lock_path = os.path.join(tempfile.gettempdir(), f".{name}.lock")
+    lock_file = open(lock_path, "w")
     try:
         import fcntl
         fcntl.flock(lock_file, fcntl.LOCK_EX)
@@ -232,10 +232,23 @@ def _auto_link_dataset(data_dir: str, dataset_name: str) -> bool:
         return False
 
     target_dir = os.path.join(data_dir, folder_name)
+    if os.path.islink(target_dir) and not os.path.exists(target_dir):
+        try:
+            os.unlink(target_dir)
+        except OSError:
+            pass
+
     if os.path.exists(target_dir) and (len(os.listdir(target_dir)) > 0):
         return True
 
-    search_roots = ["/kaggle/input", "/content", os.path.expanduser("~/.cache")]
+    search_roots = []
+    for env_var in ("HEP_DATA_DIR", "DATA_DIR"):
+        val = os.environ.get(env_var)
+        if val and val not in search_roots:
+            search_roots.append(val)
+    for p in ["/workspace/data", "/kaggle/input", "/content", os.path.expanduser("~/.cache")]:
+        if p not in search_roots:
+            search_roots.append(p)
     for candidate_root in search_roots:
         if not os.path.exists(candidate_root):
             continue
