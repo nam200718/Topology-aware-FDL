@@ -12,6 +12,7 @@ import os
 import sys
 import json
 import time
+import copy
 import numpy as np
 import torch
 import torch.nn as nn
@@ -78,7 +79,7 @@ def run_k_sensitivity(num_clients: int = 15, num_rounds: int = 20, batch_size: i
                 l_bb.load_state_dict(global_backbone.state_dict())
                 l_root = nn.Linear(256, 10).to(device)
                 l_root.load_state_dict(global_root_head.state_dict())
-                l_parent = cluster_heads[k_idx]
+                l_parent = copy.deepcopy(cluster_heads[k_idx])
                 l_local = local_heads[cid]
 
                 params = list(l_bb.parameters()) + list(l_root.parameters()) + list(l_parent.parameters()) + list(l_local.parameters())
@@ -156,10 +157,11 @@ def run_k_sensitivity(num_clients: int = 15, num_rounds: int = 20, batch_size: i
                     c_total += y.size(0)
                 accs.append((c_corr / c_total * 100.0) if c_total > 0 else 0.0)
 
+        k_b10 = max(1, int(np.ceil(0.1 * len(accs))))
         results[f"K={K}"] = {
             "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:2])), 2),
-            "top10": round(float(np.mean(sorted(accs)[-2:])), 2),
+            "bottom10": round(float(np.mean(sorted(accs)[:k_b10])), 2),
+            "top10": round(float(np.mean(sorted(accs)[-k_b10:])), 2),
             "std": round(float(np.std(accs)), 2)
         }
         print(f"  K={K} Result: Mean = {results[f'K={K}']['mean']:.2f}% | Bottom 10% = {results[f'K={K}']['bottom10']:.2f}% | Std = {results[f'K={K}']['std']:.2f}%")

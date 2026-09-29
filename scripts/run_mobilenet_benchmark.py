@@ -26,8 +26,11 @@ from src.data.dataset import get_cifar10, partition_data, ClientDataset, get_fas
 from src.experiments.builder import detect_device
 
 
-def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_size: int = 32):
-    device = detect_device()
+def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_size: int = 32, device=None, train_subset=None):
+    if device is None:
+        device = detect_device()
+    else:
+        device = torch.device(device) if isinstance(device, str) else device
     print(f"Target Hardware Device: {device}")
 
     # 1. Profile Memory and Latency on MobileNetV3-Small
@@ -104,7 +107,9 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
     print(f"  HEP:    Params={hep_params/1e6:.2f}M | Latency={lat_hep:.2f}ms | VRAM={vram_hep:.2f}MB (Savings: -46.8% VRAM, -48.7% Latency)")
 
     # 2. Benchmark Federated Performance on CIFAR-10 (alpha=0.5 and alpha=0.05)
-    train_raw, test_raw = get_cifar10(data_dir="./data", train_subset=10000, test_subset=2000, seed=42)
+    tr_sub = 10000 if train_subset is None else train_subset
+    te_sub = 2000 if train_subset is None else min(2000, train_subset)
+    train_raw, test_raw = get_cifar10(data_dir="./data", train_subset=tr_sub, test_subset=te_sub, seed=42)
     train_fast = FastDataset(train_raw, device=device)
     test_fast = FastDataset(test_raw, device=device)
 
@@ -269,10 +274,13 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
                     c_cor += (pred == y).sum().item(); c_tot += y.size(0)
                 accs_hep.append((c_cor / c_tot * 100.0) if c_tot > 0 else 0.0)
 
+        k_b10_fa = max(1, int(np.ceil(0.1 * len(accs_fedavg))))
+        k_b10_di = max(1, int(np.ceil(0.1 * len(accs_ditto))))
+        k_b10_he = max(1, int(np.ceil(0.1 * len(accs_hep))))
         res_sc = {
-            "FedAvg": {"mean": round(float(np.mean(accs_fedavg)), 2), "bottom10": round(float(np.mean(sorted(accs_fedavg)[:2])), 2)},
-            "Ditto": {"mean": round(float(np.mean(accs_ditto)), 2), "bottom10": round(float(np.mean(sorted(accs_ditto)[:2])), 2)},
-            "HEP": {"mean": round(float(np.mean(accs_hep)), 2), "bottom10": round(float(np.mean(sorted(accs_hep)[:2])), 2)},
+            "FedAvg": {"mean": round(float(np.mean(accs_fedavg)), 2), "bottom10": round(float(np.mean(sorted(accs_fedavg)[:k_b10_fa])), 2)},
+            "Ditto": {"mean": round(float(np.mean(accs_ditto)), 2), "bottom10": round(float(np.mean(sorted(accs_ditto)[:k_b10_di])), 2)},
+            "HEP": {"mean": round(float(np.mean(accs_hep)), 2), "bottom10": round(float(np.mean(sorted(accs_hep)[:k_b10_he])), 2)},
         }
         print(f"Results for {sc_name}:")
         print(f"  FedAvg: Mean = {res_sc['FedAvg']['mean']:.2f}% | Bottom 10% = {res_sc['FedAvg']['bottom10']:.2f}%")
@@ -289,4 +297,18 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
 
 
 if __name__ == "__main__":
-    run_mobilenet_benchmark()
+    import argparse
+    parser = argparse.ArgumentParser(description="MobileNetV3 Architecture Scaling Benchmark")
+    parser.add_argument("--rounds", type=int, default=15, help="Number of communication rounds")
+    parser.add_argument("--clients", type=int, default=15, help="Number of clients")
+    parser.add_argument("--batch-size", type=int, default=32, help="Batch size")
+    parser.add_argument("--device", type=str, default=None, help="Target device (cpu, cuda, directml)")
+    parser.add_argument("--train-subset", type=int, default=None, help="Train subset size")
+    args = parser.parse_args()
+    run_mobilenet_benchmark(
+        num_clients=args.clients,
+        num_rounds=args.rounds,
+        batch_size=args.batch_size,
+        device=args.device,
+        train_subset=args.train_subset,
+    )

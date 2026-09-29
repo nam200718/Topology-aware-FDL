@@ -19,7 +19,7 @@ import os
 import sys
 import json
 import time
-import argparse
+import copy
 import numpy as np
 import torch
 import torch.nn as nn
@@ -112,7 +112,7 @@ def run_cifar100_multiregime_experiment(num_clients: int = 15, num_rounds: int =
                 accs.append((c_corr / c_total * 100.0) if c_total > 0 else 0.0)
         scenario_res["FedAvg"] = {
             "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(0.1 * num_clients))])), 2),
+            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2),
             "min_acc": round(float(np.min(accs)), 2)
         }
         print(f"  FedAvg Result: {scenario_res['FedAvg']['mean']:.2f}% (B10: {scenario_res['FedAvg']['bottom10']:.2f}%, Min: {scenario_res['FedAvg']['min_acc']:.2f}%)")
@@ -184,7 +184,7 @@ def run_cifar100_multiregime_experiment(num_clients: int = 15, num_rounds: int =
                 accs.append((c_corr / c_total * 100.0) if c_total > 0 else 0.0)
         scenario_res["FedRep"] = {
             "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(0.1 * num_clients))])), 2),
+            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2),
             "min_acc": round(float(np.min(accs)), 2)
         }
         print(f"  FedRep Result: {scenario_res['FedRep']['mean']:.2f}% (B10: {scenario_res['FedRep']['bottom10']:.2f}%, Min: {scenario_res['FedRep']['min_acc']:.2f}%)")
@@ -252,7 +252,7 @@ def run_cifar100_multiregime_experiment(num_clients: int = 15, num_rounds: int =
                 accs.append((c_corr / c_total * 100.0) if c_total > 0 else 0.0)
         scenario_res["Ditto"] = {
             "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(0.1 * num_clients))])), 2),
+            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2),
             "min_acc": round(float(np.min(accs)), 2)
         }
         print(f"  Ditto Result: {scenario_res['Ditto']['mean']:.2f}% (B10: {scenario_res['Ditto']['bottom10']:.2f}%, Min: {scenario_res['Ditto']['min_acc']:.2f}%)")
@@ -299,7 +299,7 @@ def run_cifar100_multiregime_experiment(num_clients: int = 15, num_rounds: int =
                 l_bb.load_state_dict(global_backbone.state_dict())
                 l_root = nn.Linear(256, 100).to(device)
                 l_root.load_state_dict(global_root_head.state_dict())
-                l_parent = cluster_heads[k_idx]
+                l_parent = copy.deepcopy(cluster_heads[k_idx])
                 l_local = local_heads[cid]
 
                 params = list(l_bb.parameters()) + list(l_root.parameters()) + list(l_parent.parameters()) + list(l_local.parameters())
@@ -390,7 +390,7 @@ def run_cifar100_multiregime_experiment(num_clients: int = 15, num_rounds: int =
 
         scenario_res["Defended HEP-FL (Ours)"] = {
             "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(0.1 * num_clients))])), 2),
+            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2),
             "min_acc": round(float(np.min(accs)), 2)
         }
         print(f"  Defended HEP-FL Result: {scenario_res['Defended HEP-FL (Ours)']['mean']:.2f}% (B10: {scenario_res['Defended HEP-FL (Ours)']['bottom10']:.2f}%, Min: {scenario_res['Defended HEP-FL (Ours)']['min_acc']:.2f}%)")
@@ -521,7 +521,7 @@ def run_cifar100_byzantine_suite(num_clients: int = 15, num_rounds: int = 15, ba
                     l_bb.load_state_dict(global_bb.state_dict())
                     l_root = nn.Linear(256, 100).to(device)
                     l_root.load_state_dict(global_root.state_dict())
-                    l_parent = cluster_heads[k_idx]
+                    l_parent = copy.deepcopy(cluster_heads[k_idx])
                     l_local = local_heads[cid]
 
                     params = list(l_bb.parameters()) + list(l_root.parameters()) + list(l_parent.parameters()) + list(l_local.parameters())

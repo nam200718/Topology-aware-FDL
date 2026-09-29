@@ -13,6 +13,7 @@ import os
 import sys
 import json
 import time
+import copy
 import numpy as np
 import torch
 import torch.nn as nn
@@ -27,12 +28,18 @@ from src.data.dataset import get_cifar10, partition_data, ClientDataset, get_fas
 from src.experiments.builder import detect_device
 
 
-def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, num_rounds: int = 20, batch_size: int = 64):
-    device = detect_device()
+def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, num_rounds: int = 20, batch_size: int = 64, device=None, train_subset=None):
+    if device is None:
+        device = detect_device()
+    else:
+        device = torch.device(device) if isinstance(device, str) else device
+    clients_per_round = min(clients_per_round, num_clients)
     print(f"Target Hardware Device: {device}")
 
     # Load CIFAR-10 preloaded to GPU memory
-    train_raw, test_raw = get_cifar10(data_dir="./data", train_subset=15000, test_subset=3000, seed=42)
+    tr_sub = 15000 if train_subset is None else train_subset
+    te_sub = 3000 if train_subset is None else min(3000, train_subset)
+    train_raw, test_raw = get_cifar10(data_dir="./data", train_subset=tr_sub, test_subset=te_sub, seed=42)
     print("Preloading CIFAR-10 to GPU memory for 50-client scaling...")
     train_fast = FastDataset(train_raw, device=device)
     test_fast = FastDataset(test_raw, device=device)
@@ -99,7 +106,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
 
         scenario_res["FedAvg"] = {
             "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:5])), 2)
+            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2)
         }
         print(f"  FedAvg: Mean = {scenario_res['FedAvg']['mean']:.2f}% | Bottom 10% = {scenario_res['FedAvg']['bottom10']:.2f}%")
 
@@ -165,7 +172,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
 
         scenario_res["FedRep"] = {
             "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:5])), 2)
+            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2)
         }
         print(f"  FedRep: Mean = {scenario_res['FedRep']['mean']:.2f}% | Bottom 10% = {scenario_res['FedRep']['bottom10']:.2f}%")
 
@@ -230,15 +237,15 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
 
         scenario_res["Ditto"] = {
             "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:5])), 2)
+            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2)
         }
         print(f"  Ditto: Mean = {scenario_res['Ditto']['mean']:.2f}% | Bottom 10% = {scenario_res['Ditto']['bottom10']:.2f}%")
 
         # -------------------------------------------------------------
         # 4. HEP with Staleness-Aware Fallback Routing (S-AFR) & Cluster Momentum
         # -------------------------------------------------------------
-        print("\n[4/4] Training HEP w/ S-AFR & Cluster Momentum (N=50, K=5, Cp=0.2)...")
-        num_clusters = 5
+        print(f"\n[4/4] Training HEP w/ S-AFR & Cluster Momentum (N={num_clients}, K={min(5, num_clients)}, Cp={clients_per_round/num_clients:.1f})...")
+        num_clusters = min(5, num_clients)
         global_backbone = ResNet9(in_channels=3, num_classes=10).to(device)
         global_root_head = nn.Linear(256, 10).to(device)
         cluster_heads = [nn.Linear(256, 10).to(device) for _ in range(num_clusters)]
@@ -283,7 +290,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
                 l_bb.load_state_dict(global_backbone.state_dict())
                 l_root = nn.Linear(256, 10).to(device)
                 l_root.load_state_dict(global_root_head.state_dict())
-                l_parent = cluster_heads[k_idx]
+                l_parent = copy.deepcopy(cluster_heads[k_idx])
                 l_local = local_heads[cid]
 
                 params = list(l_bb.parameters()) + list(l_root.parameters()) + list(l_parent.parameters()) + list(l_local.parameters())
@@ -377,7 +384,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
 
         scenario_res["HEP (Ours)"] = {
             "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:5])), 2)
+            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2)
         }
         print(f"  HEP w/ S-AFR: Mean = {scenario_res['HEP (Ours)']['mean']:.2f}% | Bottom 10% = {scenario_res['HEP (Ours)']['bottom10']:.2f}%")
 
@@ -392,4 +399,20 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
 
 
 if __name__ == "__main__":
-    run_50clients_scaling()
+    import argparse
+    parser = argparse.ArgumentParser(description="50-Client Scalability Benchmark")
+    parser.add_argument("--rounds", type=int, default=20, help="Number of communication rounds")
+    parser.add_argument("--clients", type=int, default=50, help="Number of clients")
+    parser.add_argument("--clients-per-round", type=int, default=10, help="Active clients per round")
+    parser.add_argument("--batch-size", type=int, default=64, help="Batch size")
+    parser.add_argument("--device", type=str, default=None, help="Target device (cpu, cuda, directml)")
+    parser.add_argument("--train-subset", type=int, default=None, help="Train subset size")
+    args = parser.parse_args()
+    run_50clients_scaling(
+        num_clients=args.clients,
+        clients_per_round=args.clients_per_round,
+        num_rounds=args.rounds,
+        batch_size=args.batch_size,
+        device=args.device,
+        train_subset=args.train_subset,
+    )

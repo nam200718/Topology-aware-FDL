@@ -444,6 +444,18 @@ def run_drift_experiment(num_clients: int = 15, num_rounds: int = 20, batch_size
                 avg_state[k] = global_model.state_dict()[k]
         global_model.load_state_dict(avg_state)
 
+        # Intra-cluster aggregation for parent heads
+        for k_idx in range(5):
+            k_cids = [cid for cid in range(num_clients) if cid % 5 == k_idx]
+            if k_cids:
+                avg_p = {}
+                for key in cluster_heads[k_idx].state_dict().keys():
+                    avg_p[key] = torch.stack(
+                        [client_states[cid][f"fc2_parent.{key}"].float() for cid in k_cids],
+                        dim=0
+                    ).mean(dim=0)
+                cluster_heads[k_idx].load_state_dict(avg_p)
+
     results["HEP"] = {
         "final_cka": round(hep_cka_trajectory[-1], 4),
         "final_cos": round(hep_cos_trajectory[-1], 4),

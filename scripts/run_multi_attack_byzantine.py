@@ -16,6 +16,7 @@ import os
 import sys
 import json
 import time
+import copy
 import numpy as np
 import torch
 import torch.nn as nn
@@ -223,7 +224,7 @@ def run_multi_attack_byzantine_suite(num_clients: int = 15, num_rounds: int = 15
                     l_bb.load_state_dict(global_backbone.state_dict())
                     l_root = nn.Linear(256, 10).to(device)
                     l_root.load_state_dict(global_root_head.state_dict())
-                    l_parent = cluster_heads[k_idx]
+                    l_parent = copy.deepcopy(cluster_heads[k_idx])
                     l_local = local_heads[cid]
 
                     params = list(l_bb.parameters()) + list(l_root.parameters()) + list(l_parent.parameters()) + list(l_local.parameters())

@@ -8,7 +8,7 @@ from src.config import SimulationConfig
 from src.core.interfaces import Topology, Aggregator, ClientState, MetricsCollector
 
 from src.utils.random import get_random_state
-from src.data.dataset import get_mnist, partition_data_non_iid, ClientDataset
+from src.data.dataset import get_mnist, partition_data_non_iid, ClientDataset, get_fast_dataloader
 from src.core.model import SimpleCNN, model_to_vector, vector_to_model
 import torch
 import torch.nn.functional as F
@@ -209,31 +209,21 @@ class BaseEngine(ABC):
         total_samples = 0
         total_loss = 0.0
 
-        if hasattr(self.test_dataset, "images") and hasattr(self.test_dataset, "labels"):
-            images = self.test_dataset.images
-            labels = self.test_dataset.labels
-            with torch.no_grad():
+        ds_len = len(self.test_dataset) if hasattr(self.test_dataset, "__len__") else 1024
+        test_batch_size = min(max(ds_len, 1), 1024)
+        test_loader = get_fast_dataloader(self.test_dataset, batch_size=test_batch_size, shuffle=False)
+        with torch.no_grad():
+            for images, labels in test_loader:
+                images, labels = images.to(self.device), labels.to(self.device)
                 outputs = model(images)
                 loss = criterion(outputs, labels)
-                total_loss = loss.item()
+                total_loss += loss.item()
                 predicted = outputs.argmax(dim=1)
-                total_samples = labels.size(0)
-                total_correct = (predicted == labels).sum().item()
-        else:
-            from src.data.dataset import get_fast_dataloader
-            test_loader = get_fast_dataloader(self.test_dataset, batch_size=1024, shuffle=False)
-            with torch.no_grad():
-                for images, labels in test_loader:
-                    images, labels = images.to(self.device), labels.to(self.device)
-                    outputs = model(images)
-                    loss = criterion(outputs, labels)
-                    total_loss += loss.item()
-                    predicted = outputs.argmax(dim=1)
-                    total_samples += labels.size(0)
-                    total_correct += (predicted == labels).sum().item()
+                total_samples += labels.size(0)
+                total_correct += (predicted == labels).sum().item()
 
-        acc = 100 * total_correct / total_samples
-        avg_loss = total_loss / total_samples
+        acc = (100 * total_correct / total_samples) if total_samples > 0 else 0.0
+        avg_loss = (total_loss / total_samples) if total_samples > 0 else 0.0
         return acc, avg_loss
 
     def _fedbabu_deployment_heads(self):
@@ -307,7 +297,13 @@ class BaseEngine(ABC):
             images_all = self.test_dataset.images
             labels_all = self.test_dataset.labels
             with torch.no_grad():
-                logits_global_all = global_model(images_all)
+                if len(images_all) > 1024:
+                    logits_chunks = []
+                    for chunk_start in range(0, len(images_all), 1024):
+                        logits_chunks.append(global_model(images_all[chunk_start:chunk_start + 1024]))
+                    logits_global_all = torch.cat(logits_chunks, dim=0)
+                else:
+                    logits_global_all = global_model(images_all)
                 for client_id in range(self.config.clients.num_clients):
                     state = self.clients_state[client_id]
                     if getattr(state, "is_byzantine", False) or getattr(state, "local_weights", None) is None:

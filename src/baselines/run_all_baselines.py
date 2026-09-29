@@ -122,6 +122,11 @@ def parse_args():
         action="store_true",
         help="Run minimal 1-round smoke test to verify execution integrity",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force rerun even if results already exist in checkpoint",
+    )
     return parser.parse_args()
 
 
@@ -156,7 +161,7 @@ def run_personalization_suite(args, device, seeds, base_defaults):
 
     for m_id in target_methods:
         for r_id in target_regimes:
-            if (m_id, r_id) in completed_keys:
+            if (m_id, r_id) in completed_keys and not getattr(args, "force", False):
                 print(f"\n>>> Skipping Method: {m_id.upper()} | Regime: {r_id.upper()} (Already Completed) <<<")
                 continue
             print(f"\n>>> Running Method: {m_id.upper()} | Regime: {r_id.upper()} <<<")
@@ -187,6 +192,8 @@ def run_personalization_suite(args, device, seeds, base_defaults):
                 "per_seed_b10": res["per_seed_bottom10"],
                 "elapsed_s": res["elapsed_seconds"],
             }
+            if getattr(args, "force", False):
+                results_table = [item for item in results_table if not (item.get("method") == m_id and item.get("regime") == r_id)]
             results_table.append(entry)
             completed_keys.add((m_id, r_id))
             _atomic_json_dump(results_table, checkpoint_file)
@@ -232,7 +239,7 @@ def run_byzantine_suite(args, device, seeds, base_defaults):
     for atk in target_attacks:
         for rate in target_rates:
             for m_id in target_methods:
-                if (m_id, atk, round(float(rate), 4)) in completed_keys:
+                if (m_id, atk, round(float(rate), 4)) in completed_keys and not getattr(args, "force", False):
                     print(f"\n>>> Skipping Method: {m_id.upper()} | Attack: {atk} | Byzantine Rate: {int(rate * 100)}% (Already Completed) <<<")
                     continue
                 print(f"\n>>> Method: {m_id.upper()} | Attack: {atk} | Byzantine Rate: {int(rate * 100)}% <<<")
@@ -261,6 +268,10 @@ def run_byzantine_suite(args, device, seeds, base_defaults):
                     "per_seed_acc": res["per_seed_accuracies"],
                     "elapsed_s": res["elapsed_seconds"],
                 }
+                if getattr(args, "force", False):
+                    results_table = [item for item in results_table if not (
+                        item.get("method") == m_id and item.get("attack") == atk and round(float(item.get("byzantine_rate", -1)), 4) == round(float(rate), 4)
+                    )]
                 results_table.append(entry)
                 completed_keys.add((m_id, atk, round(float(rate), 4)))
                 _atomic_json_dump(results_table, checkpoint_file)
@@ -303,7 +314,7 @@ def run_ablation_suite(args, device, seeds, base_defaults):
 
     for m_id in target_methods:
         for r_id in target_regimes:
-            if (m_id, r_id) in completed_keys:
+            if (m_id, r_id) in completed_keys and not getattr(args, "force", False):
                 print(f"\n>>> Skipping Ablation Method: {m_id.upper()} | Regime: {r_id.upper()} (Already Completed) <<<")
                 continue
             print(f"\n>>> Running Ablation Method: {m_id.upper()} | Regime: {r_id.upper()} <<<")
@@ -334,6 +345,8 @@ def run_ablation_suite(args, device, seeds, base_defaults):
                 "per_seed_b10": res["per_seed_bottom10"],
                 "elapsed_s": res["elapsed_seconds"],
             }
+            if getattr(args, "force", False):
+                results_table = [item for item in results_table if not (item.get("method") == m_id and item.get("regime") == r_id)]
             results_table.append(entry)
             completed_keys.add((m_id, r_id))
             _atomic_json_dump(results_table, checkpoint_file)

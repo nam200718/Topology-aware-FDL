@@ -177,3 +177,4 @@ scratch/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+paper/

@@ -50,8 +50,14 @@ class ClassFrequencyBalancedMaskedLoss(nn.Module):
             if active_mask is not None:
                 mask_1d = active_mask[0] if active_mask.dim() == 2 else active_mask
                 weights = weights * mask_1d.float()
-            weights = weights / (weights[weights > 0].mean() + 1e-8)
-            return F.cross_entropy(logits, targets, weight=weights)
+            if (weights > 0).any():
+                weights = weights / (weights[weights > 0].mean() + 1e-8)
+            else:
+                weights = torch.ones_like(weights)
+            if weights[targets].sum() > 0:
+                return F.cross_entropy(logits, targets, weight=weights)
+            else:
+                return F.cross_entropy(logits, targets)
         else:
             return F.cross_entropy(logits, targets)
 

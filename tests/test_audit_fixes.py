@@ -2,6 +2,7 @@ import os
 import json
 import tempfile
 import pytest
+import numpy as np
 import torch
 from torch.utils.data import TensorDataset
 
@@ -267,4 +268,320 @@ def test_sentinel_catches_nan_in_parent_weights_and_preserves_trust_alignment():
     engine.run_round(2)
     assert engine.clients_state[1].is_confirmed_malicious is True
     assert not torch.isnan(engine.server_weights).any()
+
+
+def test_cluster_parent_head_synchronization():
+    from src.core.model import vector_to_model, model_to_vector
+    sim_cfg = SimulationConfig(
+        num_rounds=2,
+        topology=TopologyConfig(type="hierarchical_ensemble", params={"num_clusters": 2}),
+        clients=ClientConfig(num_clients=4, model_name="simple_cnn", compute_optimization_mode="shared_backbone", hierarchical_ensemble=True),
+        env=EnvironmentConfig(seed=42, dataset="synthetic")
+    )
+    topo = HierarchicalTopology(num_clusters=2)
+    topo.build(num_clients=4, seed=42)
+    agg = FedAvgAggregator()
+    engine = HierarchicalEnsembleEngine(sim_cfg, topo, agg, device="cpu")
+
+    x = torch.randn(40, 1, 28, 28)
+    y = torch.randint(0, 10, (40,))
+    td = TensorDataset(x, y)
+    fd = FastDataset(td, device="cpu")
+    engine.client_train_datasets = [ClientDataset(fd, list(range(i * 10, (i + 1) * 10))) for i in range(4)]
+    engine.client_test_datasets = [ClientDataset(fd, list(range(i * 10, (i + 1) * 10))) for i in range(4)]
+
+    # Mutate cluster head 0's fc2_parent weights
+    head_0_id = list(engine.cluster_heads_state.keys())[0]
+    head_0 = engine.cluster_heads_state[head_0_id]
+    temp_m = engine.updater.multihead_model
+    vector_to_model(head_0.weights, temp_m)
+    with torch.no_grad():
+        temp_m.fc2_parent.weight.fill_(7.77)
+    head_0.weights = model_to_vector(temp_m).detach()
+
+    engine.run_round(1)
+
+    # All clients in cluster 0 must have received the unpacked fc2_parent weights in parent_head_state
+    cids_head_0 = [cid for cid in range(4) if engine.topology.get_neighbors(cid)[0] == head_0_id]
+    for cid in cids_head_0:
+        assert engine.clients_state[cid].parent_head_state is not None
+        assert "weight" in engine.clients_state[cid].parent_head_state
+        assert torch.allclose(engine.clients_state[cid].parent_head_state["weight"], torch.tensor(7.77), atol=1e-1)
+
+
+def test_bound_update_norms_zero_division():
+    from src.core.aggregator import bound_update_norms
+    zero_stack = torch.zeros(3, 10)
+    bounded = bound_update_norms(zero_stack, k=3.0)
+    assert not torch.isnan(bounded).any()
+    assert not torch.isinf(bounded).any()
+    assert torch.equal(bounded, zero_stack)
+
+    # Mixed zero and non-zero
+    mixed_stack = torch.stack([torch.zeros(10), torch.ones(10) * 5.0, torch.ones(10) * 10.0])
+    bounded_mixed = bound_update_norms(mixed_stack, k=3.0)
+    assert not torch.isnan(bounded_mixed).any()
+    assert not torch.isinf(bounded_mixed).any()
+
+
+def test_aggregate_deltas_all_nans_clean_fallback():
+    from src.core.aggregator import DeltaSpaceRobustAggregator
+    agg = DeltaSpaceRobustAggregator(mode="soft_cosine", temperature=0.5)
+    nan_deltas = [
+        torch.tensor([float("nan"), 1.0, 2.0]),
+        torch.tensor([float("inf"), float("-inf"), 0.0])
+    ]
+    res = agg.aggregate_deltas(nan_deltas)
+    assert not torch.isnan(res).any()
+    assert not torch.isinf(res).any()
+    assert torch.equal(res, torch.zeros(3))
+
+
+def test_base_engine_evaluate_model_zero_division_guard():
+    sim_cfg = SimulationConfig(
+        num_rounds=1,
+        topology=TopologyConfig(type="hierarchical_ensemble", params={"num_clusters": 2}),
+        clients=ClientConfig(num_clients=2, model_name="simple_cnn"),
+        env=EnvironmentConfig(seed=42, dataset="synthetic")
+    )
+    topo = HierarchicalTopology(num_clusters=2)
+    topo.build(num_clients=2, seed=42)
+    agg = FedAvgAggregator()
+    engine = HierarchicalEnsembleEngine(sim_cfg, topo, agg, device="cpu")
+
+    # Empty test dataset
+    x = torch.empty(0, 1, 28, 28)
+    y = torch.empty(0, dtype=torch.long)
+    engine.test_dataset = FastDataset(TensorDataset(x, y), device="cpu")
+    acc, loss = engine.evaluate_model(engine.server_weights)
+    assert acc == 0.0
+    assert loss == 0.0
+
+
+def test_skew_calibrated_cosine_similarity_head_slicing():
+    from src.core.aggregator import soft_cosine_trust
+    # 3 clients, 10 classes, feature_dim=4 -> head length 40
+    num_classes = 10
+    feature_dim = 4
+    deltas = torch.randn(3, 100)
+    active_masks = torch.zeros(3, num_classes, dtype=torch.bool)
+    active_masks[0, :5] = True
+    active_masks[1, 5:] = True
+    active_masks[2, :] = True
+
+    trust = soft_cosine_trust(
+        deltas,
+        active_masks=active_masks,
+        classifier_slice=(20, 60),
+        temperature=0.5
+    )
+    assert not torch.isnan(trust).any()
+    assert not torch.isinf(trust).any()
+    assert torch.allclose(trust.sum(), torch.tensor(1.0), atol=1e-5)
+
+
+def test_fedala_small_dataset_guard():
+    sim_cfg = SimulationConfig(
+        num_rounds=1,
+        topology=TopologyConfig(type="hierarchical_ensemble", params={"num_clusters": 2}),
+        clients=ClientConfig(num_clients=2, model_name="simple_cnn", ala_rand_percent=80),
+        env=EnvironmentConfig(seed=42, dataset="synthetic")
+    )
+    updater = PyTorchLocalUpdater(device="cpu", in_channels=1, model_name="simple_cnn", num_classes=10)
+    cs = ClientState(client_id=0, initial_weights=torch.randn(10))
+    # Dataset with only 1 sample
+    x = torch.randn(1, 1, 28, 28)
+    y = torch.tensor([1])
+    td = TensorDataset(x, y)
+    fd = FastDataset(td, device="cpu")
+    c_ds = ClientDataset(fd, [0])
+
+    # Should not raise exception
+    updater._ala_adaptive_local_aggregation(
+        state=cs,
+        global_model=updater.global_model,
+        local_model=updater.global_model,
+        client_dataset=c_ds,
+        config=sim_cfg.clients,
+    )
+
+
+def test_defense_engine_sentinel_filtering_and_fallback():
+    from src.defense.engine import DefendedEnsembleEngine
+    sim_cfg = SimulationConfig(
+        num_rounds=1,
+        topology=TopologyConfig(type="hierarchical_ensemble", params={"num_clusters": 1}),
+        clients=ClientConfig(num_clients=2, model_name="simple_cnn", compute_optimization_mode="shared_backbone", hierarchical_ensemble=True),
+        env=EnvironmentConfig(seed=42, dataset="synthetic")
+    )
+    topo = HierarchicalTopology(num_clusters=1)
+    topo.build(num_clients=2, seed=42)
+    agg = FedAvgAggregator()
+    engine = DefendedEnsembleEngine(sim_cfg, topo, agg, device="cpu")
+
+    x = torch.randn(20, 1, 28, 28)
+    y = torch.randint(0, 10, (20,))
+    td = TensorDataset(x, y)
+    fd = FastDataset(td, device="cpu")
+    engine.client_train_datasets = [ClientDataset(fd, list(range(i * 10, (i + 1) * 10))) for i in range(2)]
+    engine.client_test_datasets = [ClientDataset(fd, list(range(i * 10, (i + 1) * 10))) for i in range(2)]
+
+    # Make all clients produce NaNs
+    orig_update = engine.updater.update
+    def mock_update(state, *args, **kwargs):
+        res = orig_update(state, *args, **kwargs)
+        res.weights.fill_(float("nan"))
+        return res
+    engine.updater.update = mock_update
+
+    engine.run_round(1)
+    # Both clients must be flagged as malicious
+    assert engine.clients_state[0].is_confirmed_malicious is True
+    assert engine.clients_state[1].is_confirmed_malicious is True
+    # Server weights must remain finite (fallback to reference)
+    assert not torch.isnan(engine.server_weights).any()
+    assert not torch.isinf(engine.server_weights).any()
+
+
+def test_class_frequency_balanced_loss_zero_guard():
+    from src.core.loss import ClassFrequencyBalancedMaskedLoss
+    loss_fn = ClassFrequencyBalancedMaskedLoss()
+    logits = torch.randn(4, 10)
+    targets = torch.tensor([0, 1, 2, 3])
+    active_mask = torch.zeros(10, dtype=torch.bool)  # all False
+    class_counts = torch.zeros(10)
+    loss = loss_fn(logits, targets, active_mask=active_mask, class_counts=class_counts)
+    assert not torch.isnan(loss)
+    assert not torch.isinf(loss)
+
+
+def test_scaffold_zero_step_size_guard():
+    from src.baselines.scaffold_updater import ScaffoldUpdater
+    updater = ScaffoldUpdater(model_name="simple_cnn", in_channels=1, num_classes=10, device="cpu")
+    num_params = sum(p.numel() for p in updater.global_model.parameters())
+    cs = ClientState(client_id=0, initial_weights=torch.zeros(num_params))
+    x = torch.randn(10, 1, 28, 28)
+    y = torch.randint(0, 10, (10,))
+    td = TensorDataset(x, y)
+    fd = FastDataset(td, device="cpu")
+    c_ds = ClientDataset(fd, list(range(10)))
+
+    sim_cfg = SimulationConfig(
+        num_rounds=1,
+        topology=TopologyConfig(type="hierarchical_ensemble"),
+        clients=ClientConfig(num_clients=1, model_name="simple_cnn"),
+        env=EnvironmentConfig(seed=42, dataset="synthetic")
+    )
+    rng = np.random.RandomState(42)
+    res = updater.update(cs, c_ds, sim_cfg.clients, rng=rng, current_lr=0.0)
+    assert not torch.isnan(res.weights).any()
+
+
+def test_compute_dp_budget_zero_sigma():
+    from scripts.compute_dp_budget import per_release_epsilon, rdp_composition
+    assert per_release_epsilon(sigma=0.0, c_g=1.0, delta=1e-5) == float("inf")
+    rdp_res = rdp_composition(sigma=0.0, c_g=1.0, delta=1e-5, rounds=10)
+    assert rdp_res["epsilon"] == float("inf")
+
+
+def test_bottom_10_percent_standardization():
+    import numpy as np
+    for n in [1, 5, 9, 10, 15, 50, 100]:
+        accs = list(range(n))
+        k = max(1, int(np.ceil(0.1 * len(accs))))
+        bottom = accs[:k]
+        assert len(bottom) == k
+        assert k >= 1
+
+
+def test_aggregator_buffer_slice_param_index_alignment():
+    from src.core.model import MultiHeadResNet9, model_to_vector
+    from src.core.aggregator import compute_classifier_slices, compute_buffer_slices, DeltaSpaceRobustAggregator
+
+    m = MultiHeadResNet9(num_classes=10)
+    buf_slices = compute_buffer_slices(m)
+    cls_slice = compute_classifier_slices(m)
+    assert len(buf_slices) > 0
+    assert cls_slice is not None
+
+    agg = DeltaSpaceRobustAggregator(buffer_slices=buf_slices, classifier_slice=cls_slice)
+    assert agg._param_classifier_slice is not None
+    s_start, s_end = cls_slice
+    shift = sum(e - s for s, e in buf_slices if e <= s_start)
+    assert agg._param_classifier_slice == (s_start - shift, s_end - shift)
+
+    # Aggregate dummy deltas with active_masks
+    v = model_to_vector(m)
+    deltas = [torch.randn(len(v)) for _ in range(3)]
+    active_masks = torch.ones(3, 10, dtype=torch.bool)
+    res = agg.aggregate_deltas(deltas, reference=v, active_masks=active_masks)
+    assert res.shape == v.shape
+    assert not torch.isnan(res).any()
+
+
+def test_class_frequency_balanced_loss_unobserved_batch_targets():
+    from src.core.loss import ClassFrequencyBalancedMaskedLoss
+    loss_fn = ClassFrequencyBalancedMaskedLoss()
+    logits = torch.randn(4, 10)
+    # Targets are 0, 1, 2, 3
+    targets = torch.tensor([0, 1, 2, 3])
+    # Active mask only includes class 8 and 9
+    active_mask = torch.zeros(10, dtype=torch.bool)
+    active_mask[8:] = True
+    class_counts = torch.tensor([0.0] * 8 + [50.0, 50.0])
+    loss = loss_fn(logits, targets, active_mask=active_mask, class_counts=class_counts)
+    assert not torch.isnan(loss)
+    assert not torch.isinf(loss)
+
+
+def test_defended_ensemble_engine_shared_backbone_parent_sync():
+    from src.defense.engine import DefendedEnsembleEngine
+    from src.core.model import vector_to_model, model_to_vector
+    sim_cfg = SimulationConfig(
+        num_rounds=1,
+        topology=TopologyConfig(type="hierarchical_ensemble", params={"num_clusters": 1}),
+        clients=ClientConfig(num_clients=2, model_name="simple_cnn", compute_optimization_mode="shared_backbone", hierarchical_ensemble=True),
+        env=EnvironmentConfig(seed=42, dataset="synthetic")
+    )
+    topo = HierarchicalTopology(num_clusters=1)
+    topo.build(num_clients=2, seed=42)
+    agg = FedAvgAggregator()
+    engine = DefendedEnsembleEngine(sim_cfg, topo, agg, device="cpu")
+
+    x = torch.randn(20, 1, 28, 28)
+    y = torch.randint(0, 10, (20,))
+    td = TensorDataset(x, y)
+    fd = FastDataset(td, device="cpu")
+    engine.client_train_datasets = [ClientDataset(fd, list(range(i * 10, (i + 1) * 10))) for i in range(2)]
+    engine.client_test_datasets = [ClientDataset(fd, list(range(i * 10, (i + 1) * 10))) for i in range(2)]
+
+    # Mutate cluster head 0's fc2_parent weights
+    head_0_id = list(engine.cluster_heads_state.keys())[0]
+    head_0 = engine.cluster_heads_state[head_0_id]
+    temp_m = engine.updater.multihead_model
+    vector_to_model(head_0.weights, temp_m)
+    with torch.no_grad():
+        temp_m.fc2_parent.weight.fill_(5.55)
+    head_0.weights = model_to_vector(temp_m).detach()
+
+    engine.run_round(1)
+    for cid in range(2):
+        assert engine.clients_state[cid].parent_head_state is not None
+        assert "weight" in engine.clients_state[cid].parent_head_state
+        assert torch.allclose(engine.clients_state[cid].parent_head_state["weight"], torch.tensor(5.55), atol=1e-1)
+
+
+def test_run_all_baselines_force_cli_argument():
+    from src.baselines.run_all_baselines import parse_args
+    import sys
+    orig_argv = sys.argv
+    try:
+        sys.argv = ["run_all_baselines.py", "--force", "--smoke-test"]
+        args = parse_args()
+        assert args.force is True
+        assert args.smoke_test is True
+    finally:
+        sys.argv = orig_argv
+
+
 

@@ -35,6 +35,8 @@ DEFAULT_SIGMAS = [0.01, 0.05, 0.10, 0.20]
 
 def per_release_epsilon(sigma: float, c_g: float, delta: float) -> float:
     """Closed-form single-release Gaussian-mechanism bound."""
+    if sigma <= 0.0:
+        return float("inf")
     return c_g * math.sqrt(2.0 * math.log(1.25 / delta)) / sigma
 
 
@@ -45,6 +47,8 @@ def basic_composition(eps_rel: float, rounds: int, delta: float) -> dict:
 def rdp_composition(sigma: float, c_g: float, delta: float, rounds: int,
                     alphas=None) -> dict:
     """Optimal RDP conversion for T composed Gaussian releases."""
+    if sigma <= 0.0:
+        return {"epsilon": float("inf"), "delta": delta, "alpha_star": None}
     if alphas is None:
         alphas = [1.0 + x / 100.0 for x in range(1, 10000)]
     best_eps, best_alpha = float("inf"), None

@@ -97,6 +97,7 @@ def soft_cosine_trust(
     hard_threshold: float = -0.1,
     adaptive_temperature: bool = False,
     active_masks: Optional[torch.Tensor] = None,
+    classifier_slice: Optional[Tuple[int, int]] = None,
 ) -> torch.Tensor:
     """
     Trust weights from cosine similarity to the unit-normalized centroid, with
@@ -114,27 +115,47 @@ def soft_cosine_trust(
     if n == 1:
         return torch.ones(1, device=deltas.device)
 
-    unit = F.normalize(deltas, dim=1, eps=1e-10)
-    
     # Skew-calibrated directional alignment: if active class masks are provided,
-    # evaluate similarity within the active parameter subspace
+    # evaluate similarity specifically within the active parameter subspace of the classifier head
     if active_masks is not None and active_masks.size(0) == n:
-        # Mask out parameters corresponding to unobserved classes to avoid false penalties on specialized clients
-        mask_weights = active_masks.float().unsqueeze(1) if active_masks.dim() == 1 else active_masks.float()
-        if mask_weights.size(1) == unit.size(1):
-            unit = unit * mask_weights
-            unit = F.normalize(unit, dim=1, eps=1e-10)
+        num_classes = active_masks.size(1)
+        head_deltas = None
+        if classifier_slice is not None:
+            s_start, s_end = classifier_slice
+            if s_end <= deltas.size(1) and (s_end - s_start) % num_classes == 0:
+                head_deltas = deltas[:, s_start:s_end]
+        elif deltas.size(1) == num_classes:
+            head_deltas = deltas
+        elif deltas.size(1) % num_classes == 0 and deltas.size(1) // num_classes <= 4096:
+            head_deltas = deltas
 
-    centroid = unit.mean(dim=0)
-    norm_centroid = centroid.norm()
-    # When directions nearly cancel there is no dominant honest direction;
-    # cosine statistics against a near-zero centroid only amplify float noise,
-    # so fall back to uniform trust.
-    if norm_centroid < 0.2:
-        return torch.full((n,), 1.0 / n, device=deltas.device)
+        if head_deltas is not None:
+            feature_dim = head_deltas.size(1) // num_classes
+            mask = active_masks.float().unsqueeze(2).expand(n, num_classes, feature_dim).reshape(n, -1)
+            unit_head = head_deltas * mask
+            unit_head = F.normalize(unit_head, dim=1, eps=1e-10)
+            centroid_head = unit_head.mean(dim=0)
+            norm_centroid = centroid_head.norm()
+            if norm_centroid < 0.2:
+                return torch.full((n,), 1.0 / n, device=deltas.device)
+            # Compare each client's update within its active class subspace against the consensus subspace
+            centroid_masked = centroid_head.unsqueeze(0) * mask
+            sims = F.cosine_similarity(unit_head, centroid_masked, dim=1, eps=1e-10)
+        else:
+            unit = F.normalize(deltas, dim=1, eps=1e-10)
+            centroid = unit.mean(dim=0)
+            norm_centroid = centroid.norm()
+            if norm_centroid < 0.2:
+                return torch.full((n,), 1.0 / n, device=deltas.device)
+            sims = F.cosine_similarity(unit, centroid.unsqueeze(0).expand_as(unit), dim=1, eps=1e-10)
+    else:
+        unit = F.normalize(deltas, dim=1, eps=1e-10)
+        centroid = unit.mean(dim=0)
+        norm_centroid = centroid.norm()
+        if norm_centroid < 0.2:
+            return torch.full((n,), 1.0 / n, device=deltas.device)
+        sims = F.cosine_similarity(unit, centroid.unsqueeze(0).expand_as(unit), dim=1, eps=1e-10)
 
-    sims = F.cosine_similarity(unit, centroid.unsqueeze(0).expand_as(unit), dim=1, eps=1e-10)
-    
     # Optional hard rejection: updates opposing consensus are masked out to -inf
     if hard_rejection:
         sims = torch.where(sims < hard_threshold, torch.tensor(-1e9, device=deltas.device), sims)
@@ -177,7 +198,8 @@ def bound_update_norms(stacked: torch.Tensor, k: float) -> torch.Tensor:
     if k is None or k <= 0:
         return stacked
     norms = stacked.norm(dim=1)
-    scale = (k * _lower_quartile(norms) / norms).clamp(max=1.0)
+    lq = _lower_quartile(norms)
+    scale = torch.where(norms > 1e-8, (k * lq / norms).clamp(max=1.0), torch.ones_like(norms))
     return stacked * scale.unsqueeze(1)
 
 
@@ -199,7 +221,7 @@ class DeltaSpaceRobustAggregator:
     """
     def __init__(self, mode: str = "soft_cosine", beta: float = 0.20,
                  temperature: float = 0.5, norm_bound_k: float = 3.0,
-                 buffer_slices=None, adaptive_temperature: bool = False,
+                 buffer_slices=None, classifier_slice=None, adaptive_temperature: bool = False,
                  hard_rejection: bool = False, hard_threshold: float = -0.1):
         if mode not in ("trimmed_mean", "soft_cosine"):
             raise ValueError(f"Unknown robust aggregation mode '{mode}'")
@@ -213,6 +235,13 @@ class DeltaSpaceRobustAggregator:
         # Optional list of (start, end) index ranges marking buffer coordinates
         # in the flattened parameter vector (e.g. BN running stats).
         self.buffer_slices = buffer_slices or []
+        self.classifier_slice = classifier_slice
+        if self.buffer_slices and self.classifier_slice:
+            s_start, s_end = self.classifier_slice
+            shift = sum(e - s for s, e in self.buffer_slices if e <= s_start)
+            self._param_classifier_slice = (s_start - shift, s_end - shift)
+        else:
+            self._param_classifier_slice = self.classifier_slice
         self._idx_cache = {}
         self.last_trust_scores: Optional[torch.Tensor] = None
 
@@ -239,7 +268,9 @@ class DeltaSpaceRobustAggregator:
         # Sentinel Pre-filter: drop any updates containing NaN or Inf
         clean_deltas = [d for d in deltas if not (torch.isnan(d).any() or torch.isinf(d).any())]
         if not clean_deltas:
-            clean_deltas = [torch.zeros_like(deltas[0])]
+            # If all updates contain NaNs, immediately return a zero delta to leave the reference unchanged
+            self.last_trust_scores = torch.zeros(len(deltas), device=deltas[0].device)
+            return torch.zeros_like(deltas[0])
 
         stacked = torch.stack(clean_deltas, dim=0).float()
         out_dtype = stacked.dtype
@@ -265,7 +296,8 @@ class DeltaSpaceRobustAggregator:
             hard_rejection=self.hard_rejection,
             hard_threshold=self.hard_threshold,
             adaptive_temperature=self.adaptive_temperature,
-            active_masks=active_masks
+            active_masks=active_masks,
+            classifier_slice=self._param_classifier_slice,
         )
         self.last_trust_scores = trust.detach().clone()
         return (trust.unsqueeze(1) * bounded).sum(dim=0)
@@ -290,4 +322,21 @@ def compute_buffer_slices(model: nn.Module):
             slices.append((offset, offset + numel))
         offset += numel
     return slices
+
+
+def compute_classifier_slices(model: nn.Module) -> Optional[Tuple[int, int]]:
+    """(start, end) flat-vector range of primary classifier linear head weight
+    of shape [num_classes, feature_dim].
+    """
+    offset = 0
+    for key, v in model.state_dict().items():
+        numel = v.numel()
+        if (
+            ("fc2_root" in key or "fc2" in key or "classifier_root.3" in key or "classifier" in key)
+            and key.endswith(".weight")
+            and v.dim() == 2
+        ):
+            return (offset, offset + numel)
+        offset += numel
+    return None
 

@@ -92,6 +92,7 @@ def run_job_1(args, force: bool = False):
         methods=args.methods,
         regimes=args.regimes,
         output_dir=os.path.join(_project_root, "outputs", "baselines"),
+        force=args.force,
     )
 
     run_personalization_suite(sub_args, device, seeds, base_defaults)
@@ -135,6 +136,7 @@ def run_job_2(args, force: bool = False):
         attacks=args.attacks,
         rates=args.rates,
         output_dir=os.path.join(_project_root, "outputs", "baselines"),
+        force=args.force,
     )
 
     run_byzantine_suite(sub_args, device, seeds, base_defaults)
@@ -159,7 +161,14 @@ def run_job_3(args, force: bool = False):
     from scripts.run_scale_50clients import run_50clients_scaling
     rounds = 1 if args.smoke_test else (args.rounds or 20)
     sub = 100 if args.smoke_test else None
-    run_50clients_scaling(num_clients=50, clients_per_round=10, num_rounds=rounds, batch_size=64)
+    run_50clients_scaling(
+        num_clients=50,
+        clients_per_round=10,
+        num_rounds=rounds,
+        batch_size=64,
+        device=args.device,
+        train_subset=sub,
+    )
 
     dur = time.time() - t0
     if not args.smoke_test:
@@ -180,7 +189,14 @@ def run_job_4(args, force: bool = False):
     t0 = time.time()
     from scripts.run_mobilenet_benchmark import run_mobilenet_benchmark
     rounds = 1 if args.smoke_test else (args.rounds or 15)
-    run_mobilenet_benchmark(num_clients=15, num_rounds=rounds, batch_size=32)
+    sub = 100 if args.smoke_test else None
+    run_mobilenet_benchmark(
+        num_clients=15,
+        num_rounds=rounds,
+        batch_size=32,
+        device=args.device,
+        train_subset=sub,
+    )
 
     dur = time.time() - t0
     if not args.smoke_test:
@@ -220,6 +236,7 @@ def run_job_5(args, force: bool = False):
         methods=args.methods,
         regimes=args.regimes,
         output_dir=os.path.join(_project_root, "outputs", "baselines"),
+        force=args.force,
     )
 
     run_ablation_suite(sub_args, device, seeds, base_defaults)

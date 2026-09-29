@@ -150,16 +150,20 @@ def run_fl_config(tag, modality="update_similarity", sketch_dim=None,
             for cid in range(num_clients):
                 sims = [float(torch.dot(client_reps[cid], client_reps[j]).item())
                         for j in range(num_clients)]
-                assignments[cid] = int(np.argmax([
-                    np.mean([sims[j] for j in range(num_clients)
-                             if assignments[j] == k]) for k in range(n_clusters)]))
+                cluster_scores = []
+                for k in range(n_clusters):
+                    cluster_sims = [sims[j] for j in range(num_clients) if assignments[j] == k]
+                    cluster_scores.append(float(np.mean(cluster_sims)) if cluster_sims else -1e9)
+                assignments[cid] = int(np.argmax(cluster_scores))
         else:
             for cid in range(num_clients):
                 sims = [float(torch.dot(client_reps[cid], client_reps[j]).item())
                         for j in range(num_clients)]
-                assignments[cid] = int(np.argmax([
-                    np.mean([sims[j] for j in range(num_clients)
-                             if assignments[j] == k]) for k in range(n_clusters)]))
+                cluster_scores = []
+                for k in range(n_clusters):
+                    cluster_sims = [sims[j] for j in range(num_clients) if assignments[j] == k]
+                    cluster_scores.append(float(np.mean(cluster_sims)) if cluster_sims else -1e9)
+                assignments[cid] = int(np.argmax(cluster_scores))
 
         # Global aggregation (backbone + root); heads persist locally
         avg_state = {}
@@ -171,6 +175,18 @@ def run_fl_config(tag, modality="update_similarity", sketch_dim=None,
             else:
                 avg_state[k] = gsd[k]
         global_model.load_state_dict(avg_state)
+
+        # Intra-cluster aggregation for parent heads
+        for k_idx in range(n_clusters):
+            k_cids = [cid for cid in range(num_clients) if assignments[cid] == k_idx]
+            if k_cids:
+                avg_p = {}
+                for key in cluster_heads[k_idx].state_dict().keys():
+                    avg_p[key] = torch.stack(
+                        [client_states[cid][f"fc2_parent.{key}"].float() for cid in k_cids],
+                        dim=0
+                    ).mean(dim=0)
+                cluster_heads[k_idx].load_state_dict(avg_p)
         log(f"  [{tag}] round {r + 1}/{num_rounds} "
             f"({time.perf_counter() - t_start:.0f}s)")
 

@@ -591,9 +591,11 @@ class PyTorchLocalUpdater:
         num_pre_loss = int(getattr(config, "ala_num_pre_loss", 10))
 
         n_total = len(client_dataset)
-        rand_num = max(2, int(rand_percent * n_total / 100))
+        if n_total < 2:
+            return
+        rand_num = min(n_total, max(2, int(rand_percent * n_total / 100)))
         gen = torch.Generator().manual_seed(100000 + int(state.client_id) * 7919)
-        start = int(torch.randint(0, n_total - rand_num + 1, (1,), generator=gen).item())
+        start = int(torch.randint(0, max(1, n_total - rand_num + 1), (1,), generator=gen).item())
         ala_dataset = ClientDataset(client_dataset, list(range(start, start + rand_num)))
         ala_loader = self._make_loader(ala_dataset, config)
 

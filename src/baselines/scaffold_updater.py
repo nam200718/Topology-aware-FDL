@@ -100,7 +100,10 @@ class ScaffoldUpdater(PyTorchLocalUpdater):
         # c_i^+ = c_i - c_server + (1 / (K * eta_l)) * (w_start - w_end)
         # delta_c_i = c_i^+ - c_i = -c_server + (1 / (K * eta_l)) * (w_start - w_end)
         effective_step_size = max(1, total_steps) * current_lr
-        delta_c = -c_server + (1.0 / effective_step_size) * (w_start - w_end)
+        if effective_step_size > 1e-8:
+            delta_c = -c_server + (1.0 / effective_step_size) * (w_start - w_end)
+        else:
+            delta_c = -c_server
 
         state.control_variate = (c_i + delta_c).detach().cpu()
         state._scaffold_delta_c = delta_c.detach().cpu()

@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -5,7 +6,7 @@ import torch.nn.functional as F
 from src.core.aggregator import DeltaSpaceRobustAggregator, compute_buffer_slices
 from src.core.base_engine import BaseEngine
 from src.core.interfaces import ClientState
-from src.core.model import vector_to_model
+from src.core.model import vector_to_model, model_to_vector
 from src.data.dataset import get_fast_dataloader
 
 
@@ -146,6 +147,20 @@ class HierarchicalEnsembleEngine(BaseEngine):
             for hid in self.cluster_heads_state.keys()
         }
 
+        # Pre-extract cluster head fc2_parent states for shared-backbone multi-head synchronization
+        use_shared_backbone = (
+            getattr(self.config.clients, "compute_optimization_mode", None) == "shared_backbone"
+            and hasattr(self.updater, "multihead_model")
+            and hasattr(self.updater.multihead_model, "fc2_parent")
+        )
+        head_parent_states = {}
+        if use_shared_backbone:
+            temp_model = copy.deepcopy(self.updater.multihead_model)
+            for hid, h_state in self.cluster_heads_state.items():
+                if h_state.weights is not None and len(h_state.weights) == len(model_to_vector(temp_model)):
+                    vector_to_model(h_state.weights.to(self.device), temp_model)
+                    head_parent_states[hid] = {k: v.clone() for k, v in temp_model.fc2_parent.state_dict().items()}
+
         weights_before = {}
         for client_id in participants:
             # Client receives Root model (global server)
@@ -154,6 +169,10 @@ class HierarchicalEnsembleEngine(BaseEngine):
             # Client receives Parent model (cluster head)
             head_id = self.topology.get_neighbors(client_id)[0]
             self.clients_state[client_id].parent_weights = self.cluster_heads_state[head_id].weights.clone()
+            if head_id in head_parent_states:
+                self.clients_state[client_id].parent_head_state = {
+                    k: v.clone() for k, v in head_parent_states[head_id].items()
+                }
 
             weights_before[client_id] = self.server_weights.clone()
 
