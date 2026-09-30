@@ -192,19 +192,74 @@ SEEDS = [42, 123, 7]
 
 
 def get_method_meta(method_id: str) -> Dict[str, Any]:
-    """Retrieve metadata dict for a method ID."""
+    """Retrieve metadata dict for a method ID with aliases."""
+    alias_map = {
+        "hep": "topo",
+        "hep_fl": "topo",
+        "hep-fl": "topo",
+        "hep_defended": "topo_defended",
+        "hep-fl_defended": "topo_defended",
+        "defended_hep": "topo_defended",
+        "defended_hep_fl": "topo_defended",
+        "no_aclm": "topo_no_aclm",
+        "no_parent": "topo_no_parent",
+        "k1": "topo_k1",
+        "oracle_k3": "topo_oracle_k3",
+    }
+    m_clean = str(method_id).strip().lower()
+    canonical = alias_map.get(m_clean, m_clean)
     for m in METHODS:
-        if m["id"] == method_id:
+        if m["id"] == canonical:
             return m
-    raise ValueError(f"Unknown method ID: {method_id}")
+    valid = [m["id"] for m in METHODS] + list(alias_map.keys())
+    raise ValueError(f"Unknown method ID: '{method_id}'. Valid methods/aliases: {valid}")
 
 
 def get_regime_meta(regime_id: str) -> Dict[str, Any]:
-    """Retrieve metadata dict for a heterogeneity regime ID."""
+    """Retrieve metadata dict for a heterogeneity regime ID with aliases."""
+    alias_map = {
+        "0.05": "extreme",
+        "dirichlet_0.05": "extreme",
+        "alpha_0.05": "extreme",
+        "0.1": "severe",
+        "dirichlet_0.1": "severe",
+        "alpha_0.1": "severe",
+        "0.5": "moderate",
+        "dirichlet_0.5": "moderate",
+        "alpha_0.5": "moderate",
+        "1.0": "mild",
+        "1": "mild",
+        "dirichlet_1.0": "mild",
+        "alpha_1.0": "mild",
+        "inf": "iid",
+        "dirichlet_inf": "iid",
+    }
+    r_clean = str(regime_id).strip().lower()
+    canonical = alias_map.get(r_clean, r_clean)
     for r in REGIMES:
-        if r["id"] == regime_id:
+        if r["id"] == canonical:
             return r
-    raise ValueError(f"Unknown regime ID: {regime_id}")
+    valid = [r["id"] for r in REGIMES] + list(alias_map.keys())
+    raise ValueError(f"Unknown regime ID: '{regime_id}'. Valid regimes/aliases: {valid}")
+
+
+def get_attack_meta(attack_id: str) -> Dict[str, Any]:
+    """Retrieve metadata dict for a byzantine attack ID with aliases."""
+    alias_map = {
+        "noise": "random_noise",
+        "gaussian": "random_noise",
+        "gaussian_noise": "random_noise",
+        "grad_ascent": "gradient_ascent",
+        "ascent": "gradient_ascent",
+    }
+    a_clean = str(attack_id).strip().lower()
+    canonical = alias_map.get(a_clean, a_clean)
+    for a in ATTACK_TYPES:
+        if a["id"] == canonical:
+            return a
+    valid = [a["id"] for a in ATTACK_TYPES] + list(alias_map.keys())
+    raise ValueError(f"Unknown attack ID: '{attack_id}'. Valid attacks/aliases: {valid}")
+
 
 
 def create_personalization_config(

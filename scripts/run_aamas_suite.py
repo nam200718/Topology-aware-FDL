@@ -32,7 +32,7 @@ if _project_root not in sys.path:
 
 from src.baselines.factory import detect_accelerator
 from src.baselines.experiment_configs import CIFAR100_DEFAULTS
-from src.baselines.run_all_baselines import run_personalization_suite, run_byzantine_suite, run_ablation_suite
+from src.baselines.run_all_baselines import run_personalization_suite, run_byzantine_suite, run_ablation_suite, _parse_list_arg
 
 MANIFEST_FILE = os.path.join(_project_root, "outputs", "aamas_manifest.json")
 
@@ -72,7 +72,7 @@ def run_job_1(args, force: bool = False):
 
     t0 = time.time()
     device = args.device or detect_accelerator()
-    seeds = [int(s.strip()) for s in args.seeds.split(",")]
+    seeds = _parse_list_arg(args.seeds, int) or [42, 123, 7]
 
     base_defaults = dict(CIFAR100_DEFAULTS)
     base_defaults["dataset"] = args.dataset
@@ -116,7 +116,7 @@ def run_job_2(args, force: bool = False):
 
     t0 = time.time()
     device = args.device or detect_accelerator()
-    seeds = [int(s.strip()) for s in args.seeds.split(",")]
+    seeds = _parse_list_arg(args.seeds, int) or [42, 123, 7]
 
     base_defaults = dict(CIFAR100_DEFAULTS)
     base_defaults["dataset"] = args.dataset
@@ -220,7 +220,7 @@ def run_job_5(args, force: bool = False):
 
     t0 = time.time()
     device = args.device or detect_accelerator()
-    seeds = [int(s.strip()) for s in args.seeds.split(",")]
+    seeds = _parse_list_arg(args.seeds, int) or [42, 123, 7]
 
     base_defaults = dict(CIFAR100_DEFAULTS)
     base_defaults["dataset"] = args.dataset
@@ -277,16 +277,18 @@ def main():
     parser = argparse.ArgumentParser(description="AAMAS 2027 Unified Paper Suite Orchestrator")
     parser.add_argument(
         "--job",
+        "--track",
+        dest="job",
         type=str,
         default="all",
         choices=["1", "2", "3", "4", "5", "personalization", "byzantine", "scale50", "edge", "ablation", "finalize", "all"],
         help="Job to run: 1 (personalization), 2 (byzantine), 3 (scale50), 4 (edge), 5 (ablation), finalize, or all",
     )
-    parser.add_argument("--methods", type=str, default=None, help="Comma-separated methods")
-    parser.add_argument("--regimes", type=str, default=None, help="Comma-separated regimes")
-    parser.add_argument("--attacks", type=str, default=None, help="Comma-separated attacks")
-    parser.add_argument("--rates", type=str, default=None, help="Comma-separated rates")
-    parser.add_argument("--seeds", type=str, default="42,123,7", help="Random seeds (default: 42,123,7)")
+    parser.add_argument("--methods", nargs="+", default=None, help="Methods to run (space or comma separated)")
+    parser.add_argument("--regimes", nargs="+", default=None, help="Regimes to run (space or comma separated)")
+    parser.add_argument("--attacks", nargs="+", default=None, help="Attacks to run (space or comma separated)")
+    parser.add_argument("--rates", nargs="+", default=None, help="Rates to run (space or comma separated)")
+    parser.add_argument("--seeds", nargs="+", default=["42", "123", "7"], help="Random seeds (space or comma separated)")
     parser.add_argument("--dataset", type=str, default="cifar100", choices=["cifar100", "cifar10", "synthetic", "mnist"])
     parser.add_argument("--rounds", type=int, default=None, help="Override communication rounds")
     parser.add_argument("--clients", type=int, default=None, help="Override client count")

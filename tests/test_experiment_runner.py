@@ -51,3 +51,40 @@ def test_cli_parser():
     assert args.target == "comparison"
     assert args.num_rounds == 3
     assert args.dataset == "mnist"
+
+
+def test_run_all_baselines_cli_parsing():
+    import sys
+    from unittest.mock import patch
+    from src.baselines.run_all_baselines import parse_args, _parse_list_arg
+    from src.baselines.experiment_configs import get_method_meta, get_regime_meta, get_attack_meta
+
+    # 1. Test space-separated seeds, methods, regimes, and track alias
+    test_argv = [
+        "run_all_baselines.py",
+        "--track", "personalization",
+        "--seeds", "42", "123", "7",
+        "--methods", "hep_fl", "fedavg",
+        "--regimes", "0.1", "0.5",
+    ]
+    with patch.object(sys, "argv", test_argv):
+        args = parse_args()
+        assert args.job == "personalization"
+        assert _parse_list_arg(args.seeds, int) == [42, 123, 7]
+        assert [get_method_meta(m)["id"] for m in _parse_list_arg(args.methods, str)] == ["topo", "fedavg"]
+        assert [get_regime_meta(r)["id"] for r in _parse_list_arg(args.regimes, str)] == ["severe", "moderate"]
+
+    # 2. Test comma-separated values
+    test_argv_2 = [
+        "run_all_baselines.py",
+        "--job", "byzantine",
+        "--seeds", "42,123,7",
+        "--attacks", "label_flip,noise",
+        "--rates", "0.1,0.2",
+    ]
+    with patch.object(sys, "argv", test_argv_2):
+        args_2 = parse_args()
+        assert _parse_list_arg(args_2.seeds, int) == [42, 123, 7]
+        assert [get_attack_meta(a)["id"] for a in _parse_list_arg(args_2.attacks, str)] == ["label_flip", "random_noise"]
+        assert _parse_list_arg(args_2.rates, float) == [0.1, 0.2]
+

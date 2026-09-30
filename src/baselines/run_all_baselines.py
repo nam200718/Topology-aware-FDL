@@ -23,11 +23,37 @@ from src.baselines.experiment_configs import (
     BYZANTINE_RATES,
     SEEDS,
     CIFAR100_DEFAULTS,
+    get_method_meta,
+    get_regime_meta,
+    get_attack_meta,
     create_personalization_config,
     create_byzantine_config,
 )
 from src.baselines.multi_seed_runner import MultiSeedRunner
 from src.baselines.factory import detect_accelerator
+
+
+def _parse_list_arg(val, item_type=str):
+    """Parses a CLI argument that may be given as:
+    - a space-separated list of items (from nargs='+')
+    - a comma-separated string or list of comma-separated strings
+    - a single item or None
+    """
+    if val is None:
+        return []
+    if isinstance(val, (list, tuple)):
+        tokens = []
+        for x in val:
+            if isinstance(x, str):
+                tokens.extend(x.replace(",", " ").split())
+            else:
+                tokens.append(x)
+        return [item_type(t) for t in tokens if str(t).strip() != ""]
+    elif isinstance(val, str):
+        tokens = val.replace(",", " ").split()
+        return [item_type(t) for t in tokens if t.strip() != ""]
+    return [item_type(val)]
+
 
 
 def _atomic_json_dump(data, file_path: str):
@@ -45,39 +71,41 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run AAMAS 2027 Baseline Experiments (CIFAR-100)")
     parser.add_argument(
         "--job",
+        "--track",
+        dest="job",
         choices=["personalization", "byzantine", "ablation", "all"],
         default="personalization",
         help="Experiment suite to run.",
     )
     parser.add_argument(
         "--methods",
-        type=str,
+        nargs="+",
         default=None,
-        help="Comma-separated list of methods (e.g. 'fedavg,fedprox,multikrum,scaffold,ditto,topo')",
+        help="List of methods to evaluate (space-separated or comma-separated, e.g. 'fedavg ditto topo' or 'fedavg,ditto')",
     )
     parser.add_argument(
         "--regimes",
-        type=str,
+        nargs="+",
         default=None,
-        help="Comma-separated list of regimes (e.g. 'iid,mild,moderate,severe,extreme')",
+        help="List of heterogeneity regimes (space-separated or comma-separated, e.g. '0.1 0.5' or 'severe,moderate')",
     )
     parser.add_argument(
         "--attacks",
-        type=str,
+        nargs="+",
         default=None,
-        help="Comma-separated list of attack types (e.g. 'label_flip,sign_flip,gradient_ascent,random_noise')",
+        help="List of attack types (space-separated or comma-separated, e.g. 'label_flip sign_flip')",
     )
     parser.add_argument(
         "--rates",
-        type=str,
+        nargs="+",
         default=None,
-        help="Comma-separated list of byzantine rates (e.g. '0.0,0.1,0.2,0.3,0.4')",
+        help="List of byzantine rates (space-separated or comma-separated, e.g. '0.0 0.1 0.2')",
     )
     parser.add_argument(
         "--seeds",
-        type=str,
-        default="42,123,7",
-        help="Comma-separated random seeds",
+        nargs="+",
+        default=["42", "123", "7"],
+        help="Random seeds (space-separated or comma-separated, e.g. '42 123 7' or '42,123,7')",
     )
     parser.add_argument(
         "--dataset",
@@ -141,8 +169,8 @@ def run_personalization_suite(args, device, seeds, base_defaults):
     print("STARTING JOB 1: CIFAR-100 PERSONALIZATION & HETEROGENEITY BENCHMARK")
     print("=" * 70)
 
-    target_methods = [m.strip() for m in args.methods.split(",")] if args.methods else PERSONALIZATION_METHODS
-    target_regimes = [r.strip() for r in args.regimes.split(",")] if args.regimes else [r["id"] for r in REGIMES]
+    target_methods = [get_method_meta(m)["id"] for m in _parse_list_arg(args.methods, str)] if args.methods else PERSONALIZATION_METHODS
+    target_regimes = [get_regime_meta(r)["id"] for r in _parse_list_arg(args.regimes, str)] if args.regimes else [r["id"] for r in REGIMES]
 
     out_dir = os.path.join(args.output_dir, "personalization")
     os.makedirs(out_dir, exist_ok=True)
@@ -216,9 +244,9 @@ def run_byzantine_suite(args, device, seeds, base_defaults):
     print("STARTING JOB 2: CIFAR-100 BYZANTINE ROBUSTNESS BENCHMARK")
     print("=" * 70)
 
-    target_methods = [m.strip() for m in args.methods.split(",")] if args.methods else BYZANTINE_METHODS
-    target_attacks = [a.strip() for a in args.attacks.split(",")] if args.attacks else [a["id"] for a in ATTACK_TYPES]
-    target_rates = [float(r.strip()) for r in args.rates.split(",")] if args.rates else BYZANTINE_RATES
+    target_methods = [get_method_meta(m)["id"] for m in _parse_list_arg(args.methods, str)] if args.methods else BYZANTINE_METHODS
+    target_attacks = [get_attack_meta(a)["id"] for a in _parse_list_arg(args.attacks, str)] if args.attacks else [a["id"] for a in ATTACK_TYPES]
+    target_rates = _parse_list_arg(args.rates, float) if args.rates else BYZANTINE_RATES
 
     out_dir = os.path.join(args.output_dir, "byzantine")
     os.makedirs(out_dir, exist_ok=True)
@@ -294,8 +322,8 @@ def run_ablation_suite(args, device, seeds, base_defaults):
     print("STARTING JOB 5: CIFAR-100 ABLATION & CLUSTER VALUATION BENCHMARK")
     print("=" * 70)
 
-    target_methods = [m.strip() for m in args.methods.split(",")] if args.methods else ABLATION_METHODS
-    target_regimes = [r.strip() for r in args.regimes.split(",")] if args.regimes else [r["id"] for r in REGIMES]
+    target_methods = [get_method_meta(m)["id"] for m in _parse_list_arg(args.methods, str)] if args.methods else ABLATION_METHODS
+    target_regimes = [get_regime_meta(r)["id"] for r in _parse_list_arg(args.regimes, str)] if args.regimes else [r["id"] for r in REGIMES]
 
     out_dir = os.path.join(args.output_dir, "ablation")
     os.makedirs(out_dir, exist_ok=True)
@@ -367,7 +395,7 @@ def run_ablation_suite(args, device, seeds, base_defaults):
 def main():
     args = parse_args()
     device = args.device or detect_accelerator()
-    seeds = [int(s.strip()) for s in args.seeds.split(",")]
+    seeds = _parse_list_arg(args.seeds, int) or [42, 123, 7]
 
     base_defaults = dict(CIFAR100_DEFAULTS)
     base_defaults["dataset"] = args.dataset
