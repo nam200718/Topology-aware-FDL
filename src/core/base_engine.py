@@ -44,7 +44,7 @@ class BaseEngine(ABC):
             data_dir = getattr(self.config.env, "data_dir", "./data")
             if dataset_name == "cifar100":
                 from src.data.dataset import get_cifar100
-                print("Downloading and dividing CIFAR-100 dataset...")
+                print("Loading and preparing CIFAR-100 dataset...")
                 train_ds, test_ds = get_cifar100(
                     data_dir=data_dir,
                     train_subset=getattr(self.config.env, "train_subset", None),
@@ -52,7 +52,7 @@ class BaseEngine(ABC):
                     seed=getattr(self.config.env, "seed", 42)
                 )
             else:
-                print("Downloading and dividing CIFAR-10 dataset...")
+                print("Loading and preparing CIFAR-10 dataset...")
                 from src.data.dataset import get_cifar10
                 train_ds, test_ds = get_cifar10(
                     data_dir=data_dir,
@@ -63,7 +63,7 @@ class BaseEngine(ABC):
             self.in_channels = 3
         else:
             data_dir = getattr(self.config.env, "data_dir", "./data")
-            print("Downloading and dividing MNIST dataset...")
+            print("Loading and preparing MNIST dataset...")
             train_ds, test_ds = get_mnist(
                 data_dir=data_dir,
                 train_subset=getattr(self.config.env, "train_subset", None),

@@ -22,16 +22,17 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 from src.core.model import MobileNetV3Small, MultiHeadMobileNetV3Small
-from src.data.dataset import get_cifar10, partition_data, ClientDataset, get_fast_dataloader, FastDataset
+from src.data.dataset import get_cifar10, get_cifar100, partition_data, ClientDataset, get_fast_dataloader, FastDataset
 from src.experiments.builder import detect_device
 
 
-def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_size: int = 32, device=None, train_subset=None, data_dir="./data"):
+def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_size: int = 32, device=None, train_subset=None, data_dir="./data", dataset="cifar10"):
     if device is None:
         device = detect_device()
     else:
         device = torch.device(device) if isinstance(device, str) else device
-    print(f"Target Hardware Device: {device}")
+    num_classes = 100 if dataset == "cifar100" else 10
+    print(f"Target Hardware Device: {device} | Dataset: {dataset.upper()} ({num_classes} classes)")
 
     # 1. Profile Memory and Latency on MobileNetV3-Small
     print("\n" + "="*70)
@@ -43,7 +44,7 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
     crit = nn.CrossEntropyLoss()
 
     # FedAvg
-    m_fedavg = MobileNetV3Small(in_channels=3, num_classes=10).to(device)
+    m_fedavg = MobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
     opt_fedavg = torch.optim.SGD(m_fedavg.parameters(), lr=0.01, foreach=False)
     # Warmup
     for _ in range(5):
@@ -60,8 +61,8 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
     lat_fedavg = (time.perf_counter() - t0) / 30.0 * 1000.0
 
     # Ditto (2 models)
-    m_g = MobileNetV3Small(in_channels=3, num_classes=10).to(device)
-    m_p = MobileNetV3Small(in_channels=3, num_classes=10).to(device)
+    m_g = MobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
+    m_p = MobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
     opt_g = torch.optim.SGD(m_g.parameters(), lr=0.01, foreach=False)
     opt_p = torch.optim.SGD(m_p.parameters(), lr=0.01, foreach=False)
     for _ in range(5):
@@ -74,7 +75,7 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
     lat_ditto = (time.perf_counter() - t0) / 30.0 * 1000.0
 
     # HEP (MultiHeadMobileNetV3)
-    m_hep = MultiHeadMobileNetV3Small(in_channels=3, num_classes=10).to(device)
+    m_hep = MultiHeadMobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
     opt_hep = torch.optim.SGD(m_hep.parameters(), lr=0.01, foreach=False)
     for _ in range(5):
         opt_hep.zero_grad()
@@ -106,10 +107,13 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
     print(f"  Ditto:  Params={ditto_params/1e6:.2f}M | Latency={lat_ditto:.2f}ms | VRAM={vram_ditto:.2f}MB")
     print(f"  HEP:    Params={hep_params/1e6:.2f}M | Latency={lat_hep:.2f}ms | VRAM={vram_hep:.2f}MB (Savings: -46.8% VRAM, -48.7% Latency)")
 
-    # 2. Benchmark Federated Performance on CIFAR-10 (alpha=0.5 and alpha=0.05)
+    # 2. Benchmark Federated Performance (alpha=0.5 and alpha=0.05)
     tr_sub = 10000 if train_subset is None else train_subset
     te_sub = 2000 if train_subset is None else min(2000, train_subset)
-    train_raw, test_raw = get_cifar10(data_dir=data_dir, train_subset=tr_sub, test_subset=te_sub, seed=42)
+    if dataset == "cifar100":
+        train_raw, test_raw = get_cifar100(data_dir=data_dir, train_subset=tr_sub, test_subset=te_sub, seed=42)
+    else:
+        train_raw, test_raw = get_cifar10(data_dir=data_dir, train_subset=tr_sub, test_subset=te_sub, seed=42)
     train_fast = FastDataset(train_raw, device=device)
     test_fast = FastDataset(test_raw, device=device)
 
@@ -134,13 +138,13 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
 
         # 1. FedAvg MobileNetV3
         print("  [1/3] Training FedAvg MobileNetV3...")
-        global_m = MobileNetV3Small(in_channels=3, num_classes=10).to(device)
+        global_m = MobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
         for r in range(num_rounds):
             client_states = []
             for cid in range(num_clients):
                 c_train = ClientDataset(train_fast, train_splits[cid])
                 loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True, drop_last=(len(c_train) > batch_size))
-                local_m = MobileNetV3Small(in_channels=3, num_classes=10).to(device)
+                local_m = MobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
                 local_m.load_state_dict(global_m.state_dict())
                 opt = torch.optim.SGD(local_m.parameters(), lr=0.02, momentum=0.9, weight_decay=1e-4, foreach=False)
                 local_m.train()
@@ -172,14 +176,14 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
 
         # 2. Ditto MobileNetV3
         print("  [2/3] Training Ditto MobileNetV3...")
-        global_m_d = MobileNetV3Small(in_channels=3, num_classes=10).to(device)
-        local_models_d = [MobileNetV3Small(in_channels=3, num_classes=10).to(device) for _ in range(num_clients)]
+        global_m_d = MobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
+        local_models_d = [MobileNetV3Small(in_channels=3, num_classes=num_classes).to(device) for _ in range(num_clients)]
         for r in range(num_rounds):
             client_states = []
             for cid in range(num_clients):
                 c_train = ClientDataset(train_fast, train_splits[cid])
                 loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True, drop_last=(len(c_train) > batch_size))
-                local_g = MobileNetV3Small(in_channels=3, num_classes=10).to(device)
+                local_g = MobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
                 local_g.load_state_dict(global_m_d.state_dict())
                 opt_g = torch.optim.SGD(local_g.parameters(), lr=0.02, momentum=0.9, weight_decay=1e-4, foreach=False)
 
@@ -225,7 +229,7 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
 
         # 3. HEP MobileNetV3
         print("  [3/3] Training HEP MultiHeadMobileNetV3...")
-        global_m_hep = MultiHeadMobileNetV3Small(in_channels=3, num_classes=10).to(device)
+        global_m_hep = MultiHeadMobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
         num_clusters = 3
         cluster_heads = [global_m_hep.classifier_parent for _ in range(num_clusters)]
         local_heads = [global_m_hep.classifier_local for _ in range(num_clients)]
@@ -239,7 +243,7 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
                 loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True, drop_last=(len(c_train) > batch_size))
                 k_idx = client_clusters[cid]
 
-                l_m = MultiHeadMobileNetV3Small(in_channels=3, num_classes=10).to(device)
+                l_m = MultiHeadMobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
                 l_m.load_state_dict(global_m_hep.state_dict())
                 opt = torch.optim.SGD(l_m.parameters(), lr=0.02, momentum=0.9, weight_decay=1e-4, foreach=False)
 
@@ -304,6 +308,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=32, help="Batch size")
     parser.add_argument("--device", type=str, default=None, help="Target device (cpu, cuda, directml)")
     parser.add_argument("--data-dir", type=str, default="./data", help="Path to dataset directory or Kaggle input mount")
+    parser.add_argument("--dataset", type=str, default="cifar10", choices=["cifar10", "cifar100"], help="Dataset to evaluate on")
     parser.add_argument("--train-subset", type=int, default=None, help="Train subset size")
     args = parser.parse_args()
     run_mobilenet_benchmark(
@@ -313,4 +318,5 @@ if __name__ == "__main__":
         device=args.device,
         train_subset=args.train_subset,
         data_dir=args.data_dir,
+        dataset=args.dataset,
     )

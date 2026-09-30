@@ -62,6 +62,25 @@ def test_kaggle_auto_linking(tmp_path):
     finally:
         os.environ.pop("KAGGLE_DATASET_PATH", None)
 
+    # 3. Test double-nested directory detection (dataset named 'cifar-100-python' containing 'cifar-100-python')
+    double_mock = tmp_path / "kaggle_input" / "cifar-100-python"
+    inner_mock = double_mock / "cifar-100-python"
+    inner_mock.mkdir(parents=True)
+    (inner_mock / "train").write_text("train_dummy")
+    (inner_mock / "test").write_text("test_dummy")
+    (inner_mock / "meta").write_text("meta_dummy")
+
+    target_data_dir_3 = tmp_path / "working" / "data3"
+    target_data_dir_3.mkdir(parents=True)
+
+    os.environ["KAGGLE_DATASET_PATH"] = str(tmp_path / "kaggle_input")
+    try:
+        found = _auto_link_dataset(str(target_data_dir_3), "cifar100")
+        assert found is True
+        assert os.path.exists(target_data_dir_3 / "cifar-100-python" / "train")
+    finally:
+        os.environ.pop("KAGGLE_DATASET_PATH", None)
+
 def test_resolve_safe_data_dir(tmp_path):
     import os
     from src.data.dataset import _resolve_safe_data_dir

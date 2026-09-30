@@ -24,23 +24,27 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 from src.core.model import ResNet9, MultiHeadResNet9
-from src.data.dataset import get_cifar10, partition_data, ClientDataset, get_fast_dataloader, FastDataset
+from src.data.dataset import get_cifar10, get_cifar100, partition_data, ClientDataset, get_fast_dataloader, FastDataset
 from src.experiments.builder import detect_device
 
 
-def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, num_rounds: int = 20, batch_size: int = 64, device=None, train_subset=None, data_dir="./data"):
+def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, num_rounds: int = 20, batch_size: int = 64, device=None, train_subset=None, data_dir="./data", dataset="cifar10"):
     if device is None:
         device = detect_device()
     else:
         device = torch.device(device) if isinstance(device, str) else device
     clients_per_round = min(clients_per_round, num_clients)
-    print(f"Target Hardware Device: {device}")
+    num_classes = 100 if dataset == "cifar100" else 10
+    print(f"Target Hardware Device: {device} | Dataset: {dataset.upper()} ({num_classes} classes)")
 
-    # Load CIFAR-10 preloaded to GPU memory
+    # Load dataset preloaded to GPU memory
     tr_sub = 15000 if train_subset is None else train_subset
     te_sub = 3000 if train_subset is None else min(3000, train_subset)
-    train_raw, test_raw = get_cifar10(data_dir=data_dir, train_subset=tr_sub, test_subset=te_sub, seed=42)
-    print("Preloading CIFAR-10 to GPU memory for 50-client scaling...")
+    if dataset == "cifar100":
+        train_raw, test_raw = get_cifar100(data_dir=data_dir, train_subset=tr_sub, test_subset=te_sub, seed=42)
+    else:
+        train_raw, test_raw = get_cifar10(data_dir=data_dir, train_subset=tr_sub, test_subset=te_sub, seed=42)
+    print(f"Preloading {dataset.upper()} to GPU memory for 50-client scaling...")
     train_fast = FastDataset(train_raw, device=device)
     test_fast = FastDataset(test_raw, device=device)
 
@@ -64,7 +68,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
         # 1. FedAvg (50 clients, 10 active/round)
         # -------------------------------------------------------------
         print("\n[1/4] Training FedAvg (N=50, Cp=0.2)...")
-        global_model = ResNet9(in_channels=3, num_classes=10).to(device)
+        global_model = ResNet9(in_channels=3, num_classes=num_classes).to(device)
 
         for r in range(num_rounds):
             active_clients = rng.choice(num_clients, clients_per_round, replace=False)
@@ -72,7 +76,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
             for cid in active_clients:
                 c_train = ClientDataset(train_fast, train_splits[cid])
                 loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
-                local_m = ResNet9(in_channels=3, num_classes=10).to(device)
+                local_m = ResNet9(in_channels=3, num_classes=num_classes).to(device)
                 local_m.load_state_dict(global_model.state_dict())
                 opt = torch.optim.SGD(local_m.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
 
@@ -114,7 +118,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
         # 2. FedRep (50 clients, 10 active/round)
         # -------------------------------------------------------------
         print("\n[2/4] Training FedRep (N=50, Cp=0.2)...")
-        global_bb = ResNet9(in_channels=3, num_classes=10).to(device)
+        global_bb = ResNet9(in_channels=3, num_classes=num_classes).to(device)
         local_heads = [nn.Linear(256, 10).to(device) for _ in range(num_clients)]
 
         for r in range(num_rounds):
@@ -123,7 +127,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
             for cid in active_clients:
                 c_train = ClientDataset(train_fast, train_splits[cid])
                 loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
-                local_bb = ResNet9(in_channels=3, num_classes=10).to(device)
+                local_bb = ResNet9(in_channels=3, num_classes=num_classes).to(device)
                 local_bb.load_state_dict(global_bb.state_dict())
                 l_head = local_heads[cid]
 
@@ -180,8 +184,8 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
         # 3. Ditto (50 clients, 10 active/round)
         # -------------------------------------------------------------
         print("\n[3/4] Training Ditto (N=50, Cp=0.2)...")
-        global_m = ResNet9(in_channels=3, num_classes=10).to(device)
-        local_models = [ResNet9(in_channels=3, num_classes=10).to(device) for _ in range(num_clients)]
+        global_m = ResNet9(in_channels=3, num_classes=num_classes).to(device)
+        local_models = [ResNet9(in_channels=3, num_classes=num_classes).to(device) for _ in range(num_clients)]
 
         for r in range(num_rounds):
             active_clients = rng.choice(num_clients, clients_per_round, replace=False)
@@ -189,7 +193,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
             for cid in active_clients:
                 c_train = ClientDataset(train_fast, train_splits[cid])
                 loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
-                local_g = ResNet9(in_channels=3, num_classes=10).to(device)
+                local_g = ResNet9(in_channels=3, num_classes=num_classes).to(device)
                 local_g.load_state_dict(global_m.state_dict())
                 opt_g = torch.optim.SGD(local_g.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
 
@@ -246,10 +250,10 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
         # -------------------------------------------------------------
         print(f"\n[4/4] Training HEP w/ S-AFR & Cluster Momentum (N={num_clients}, K={min(5, num_clients)}, Cp={clients_per_round/num_clients:.1f})...")
         num_clusters = min(5, num_clients)
-        global_backbone = ResNet9(in_channels=3, num_classes=10).to(device)
-        global_root_head = nn.Linear(256, 10).to(device)
-        cluster_heads = [nn.Linear(256, 10).to(device) for _ in range(num_clusters)]
-        local_heads = [nn.Linear(256, 10).to(device) for _ in range(num_clients)]
+        global_backbone = ResNet9(in_channels=3, num_classes=num_classes).to(device)
+        global_root_head = nn.Linear(256, num_classes).to(device)
+        cluster_heads = [nn.Linear(256, num_classes).to(device) for _ in range(num_clusters)]
+        local_heads = [nn.Linear(256, num_classes).to(device) for _ in range(num_clients)]
         client_alphas = [torch.tensor([0.33, 0.33, 0.34], device=device) for _ in range(num_clients)]
         client_clusters = [i % num_clusters for i in range(num_clients)]
         sample_counts = np.zeros(num_clients, dtype=int)
@@ -262,10 +266,10 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
         entropy_priors = []
         for cid in range(num_clients):
             c_labels = train_fast.labels[train_splits[cid]].cpu().numpy()
-            counts = np.bincount(c_labels, minlength=10)
+            counts = np.bincount(c_labels, minlength=num_classes)
             probs = counts / (counts.sum() + 1e-8)
             entropy = -np.sum(probs * np.log(probs + 1e-12))
-            r_skew = float(np.clip(entropy / np.log(10), 0.0, 1.0))
+            r_skew = float(np.clip(entropy / np.log(num_classes), 0.0, 1.0))
             pi_r = r_skew ** 2.0
             pi_l = (1.0 - pi_r) * (1.0 - r_skew)
             pi_p = max(0.0, 1.0 - pi_r - pi_l)
@@ -286,9 +290,9 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
                 loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
                 k_idx = client_clusters[cid]
 
-                l_bb = ResNet9(in_channels=3, num_classes=10).to(device)
+                l_bb = ResNet9(in_channels=3, num_classes=num_classes).to(device)
                 l_bb.load_state_dict(global_backbone.state_dict())
-                l_root = nn.Linear(256, 10).to(device)
+                l_root = nn.Linear(256, num_classes).to(device)
                 l_root.load_state_dict(global_root_head.state_dict())
                 l_parent = copy.deepcopy(cluster_heads[k_idx])
                 l_local = local_heads[cid]
@@ -407,6 +411,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size")
     parser.add_argument("--device", type=str, default=None, help="Target device (cpu, cuda, directml)")
     parser.add_argument("--data-dir", type=str, default="./data", help="Path to dataset directory or Kaggle input mount")
+    parser.add_argument("--dataset", type=str, default="cifar10", choices=["cifar10", "cifar100"], help="Dataset to evaluate on")
     parser.add_argument("--train-subset", type=int, default=None, help="Train subset size")
     args = parser.parse_args()
     run_50clients_scaling(
@@ -417,4 +422,5 @@ if __name__ == "__main__":
         device=args.device,
         train_subset=args.train_subset,
         data_dir=args.data_dir,
+        dataset=args.dataset,
     )

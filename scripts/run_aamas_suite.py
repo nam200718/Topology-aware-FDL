@@ -171,6 +171,7 @@ def run_job_3(args, force: bool = False):
         device=args.device,
         train_subset=sub,
         data_dir=getattr(args, "data_dir", "./data"),
+        dataset=getattr(args, "dataset", "cifar10"),
     )
 
     dur = time.time() - t0
@@ -200,6 +201,7 @@ def run_job_4(args, force: bool = False):
         device=args.device,
         train_subset=sub,
         data_dir=getattr(args, "data_dir", "./data"),
+        dataset=getattr(args, "dataset", "cifar10"),
     )
 
     dur = time.time() - t0

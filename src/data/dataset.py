@@ -1,3 +1,7 @@
+import os
+import shutil
+import tarfile
+import zipfile
 import torch
 from torchvision import datasets, transforms
 import numpy as np
@@ -216,36 +220,63 @@ def get_mnist(data_dir="./data", train_subset=None, test_subset=None, seed=42):
     return train_dataset, test_dataset
 
 
+def _is_valid_dataset_dir(path: str, dataset_name: str) -> bool:
+    """Verifies that a directory directly contains the essential torchvision dataset files."""
+    if not path or not os.path.isdir(path):
+        return False
+    try:
+        files = set(os.listdir(path))
+    except OSError:
+        return False
+    if dataset_name == "cifar100":
+        return {"train", "test"}.issubset(files)
+    elif dataset_name == "cifar10":
+        return {"data_batch_1", "test_batch"}.issubset(files) or {"batches.meta", "data_batch_1"}.issubset(files)
+    return False
+
+
 def _auto_link_dataset(data_dir: str, dataset_name: str) -> bool:
     """Auto-detect pre-existing dataset in /kaggle/input or common cloud mount directories.
     Supports:
     1. Standard subdirectory (e.g. /kaggle/input/.../cifar-100-python)
-    2. Flat root dataset (e.g. /kaggle/input/... directly containing train, test, meta)
-    3. Archives (*.tar.gz, *.tgz, *.tar, *.zip)
+    2. Double-nested folders (e.g. /kaggle/input/cifar-100-python/cifar-100-python)
+    3. Flat root dataset (e.g. /kaggle/input/... directly containing train, test, meta)
+    4. Archives (*.tar.gz, *.tgz, *.tar, *.zip)
     Links or extracts into data_dir to eliminate download times and network timeouts on Kaggle.
     """
     import os, shutil, tarfile, zipfile
 
     if dataset_name == "cifar100":
         folder_name = "cifar-100-python"
-        target_files = {"train", "test", "meta"}
         archive_prefixes = ("cifar-100", "cifar100")
     elif dataset_name == "cifar10":
         folder_name = "cifar-10-batches-py"
-        target_files = {"batches.meta", "data_batch_1"}
         archive_prefixes = ("cifar-10", "cifar10")
     else:
         return False
 
     target_dir = os.path.join(data_dir, folder_name)
+
+    # Clean up broken symlink if target no longer exists
     if os.path.islink(target_dir) and not os.path.exists(target_dir):
         try:
             os.unlink(target_dir)
         except OSError:
             pass
 
-    if os.path.exists(target_dir) and (len(os.listdir(target_dir)) > 0):
-        return True
+    # If target directory already exists and contains the valid files, return immediately
+    if os.path.exists(target_dir):
+        if _is_valid_dataset_dir(target_dir, dataset_name):
+            return True
+        else:
+            # Clean up invalid symlink/folder
+            try:
+                if os.path.islink(target_dir):
+                    os.unlink(target_dir)
+                else:
+                    shutil.rmtree(target_dir, ignore_errors=True)
+            except OSError:
+                pass
 
     search_roots = []
     for env_var in ("KAGGLE_DATASET_PATH", "HEP_DATA_DIR", "DATA_DIR"):
@@ -259,40 +290,45 @@ def _auto_link_dataset(data_dir: str, dataset_name: str) -> bool:
     for candidate_root in search_roots:
         if not os.path.exists(candidate_root):
             continue
-        for root, dirs, files in os.walk(candidate_root):
-            file_set = set(files)
+        for root, dirs, files in os.walk(candidate_root, followlinks=True):
+            # Limit depth to avoid traversing deep unrelated directories
+            rel_depth = root[len(candidate_root):].count(os.sep)
+            if rel_depth > 4:
+                continue
 
-            # Case 1: Standard subfolder named folder_name
-            if folder_name in dirs:
-                src_path = os.path.join(root, folder_name)
-                os.makedirs(data_dir, exist_ok=True)
-                try:
-                    os.symlink(src_path, target_dir)
-                    print(f"⚡ [Kaggle Input] Symlinked {dataset_name} folder from {src_path} -> {target_dir} (0.0s)")
-                    return True
-                except Exception:
-                    try:
-                        shutil.copytree(src_path, target_dir, dirs_exist_ok=True)
-                        print(f"⚡ [Kaggle Input] Copied {dataset_name} folder from {src_path} -> {target_dir}")
-                        return True
-                    except Exception:
-                        pass
-
-            # Case 2: Flat directory directly containing the dataset files (common on Kaggle)
-            if target_files.issubset(file_set) or (dataset_name == "cifar10" and {"data_batch_1", "test_batch"}.issubset(file_set)):
+            # Case 1: The current directory itself directly contains the dataset files
+            if _is_valid_dataset_dir(root, dataset_name):
                 src_path = root
                 os.makedirs(data_dir, exist_ok=True)
                 try:
                     os.symlink(src_path, target_dir)
-                    print(f"⚡ [Kaggle Input] Symlinked flat {dataset_name} files from {src_path} -> {target_dir} (0.0s)")
+                    print(f"⚡ [Kaggle Input] Symlinked {dataset_name} files from {src_path} -> {target_dir} (0.0s)")
                     return True
                 except Exception:
                     try:
                         shutil.copytree(src_path, target_dir, dirs_exist_ok=True)
-                        print(f"⚡ [Kaggle Input] Copied flat {dataset_name} files from {src_path} -> {target_dir}")
+                        print(f"⚡ [Kaggle Input] Copied {dataset_name} files from {src_path} -> {target_dir}")
                         return True
                     except Exception:
                         pass
+
+            # Case 2: A subfolder named folder_name directly contains the dataset files
+            if folder_name in dirs:
+                sub_path = os.path.join(root, folder_name)
+                if _is_valid_dataset_dir(sub_path, dataset_name):
+                    src_path = sub_path
+                    os.makedirs(data_dir, exist_ok=True)
+                    try:
+                        os.symlink(src_path, target_dir)
+                        print(f"⚡ [Kaggle Input] Symlinked {dataset_name} folder from {src_path} -> {target_dir} (0.0s)")
+                        return True
+                    except Exception:
+                        try:
+                            shutil.copytree(src_path, target_dir, dirs_exist_ok=True)
+                            print(f"⚡ [Kaggle Input] Copied {dataset_name} folder from {src_path} -> {target_dir}")
+                            return True
+                        except Exception:
+                            pass
 
             # Case 3: Archive file (*.tar.gz, *.tgz, *.zip)
             for fname in files:
@@ -305,7 +341,7 @@ def _auto_link_dataset(data_dir: str, dataset_name: str) -> bool:
                             with tarfile.open(src_archive, "r:*") as tar:
                                 tar.extractall(data_dir)
                             print(f"⚡ [Kaggle Input] Extracted tar archive {src_archive} -> {data_dir}")
-                            if os.path.exists(target_dir):
+                            if _is_valid_dataset_dir(target_dir, dataset_name):
                                 return True
                         except Exception:
                             pass
@@ -314,7 +350,7 @@ def _auto_link_dataset(data_dir: str, dataset_name: str) -> bool:
                             with zipfile.ZipFile(src_archive, "r") as zf:
                                 zf.extractall(data_dir)
                             print(f"⚡ [Kaggle Input] Extracted zip archive {src_archive} -> {data_dir}")
-                            if os.path.exists(target_dir):
+                            if _is_valid_dataset_dir(target_dir, dataset_name):
                                 return True
                         except Exception:
                             pass
