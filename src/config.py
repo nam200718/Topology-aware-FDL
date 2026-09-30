@@ -16,6 +16,8 @@ class EnvironmentConfig(BaseModel):
     test_subset: Optional[int] = None
     # Dataset to use ("mnist", "cifar10", "cifar100", or "synthetic")
     dataset: Literal["mnist", "cifar10", "cifar100", "synthetic"] = "mnist"
+    # Root directory for storing or locating dataset files
+    data_dir: str = "./data"
 
 
 class TopologyConfig(BaseModel):

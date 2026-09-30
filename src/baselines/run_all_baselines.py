@@ -112,6 +112,12 @@ def parse_args():
         help="Device to run on (cuda, cpu, directml)",
     )
     parser.add_argument(
+        "--data-dir",
+        type=str,
+        default="./data",
+        help="Path to dataset directory or Kaggle input mount (e.g. /kaggle/input/cifar100)",
+    )
+    parser.add_argument(
         "--output-dir",
         type=str,
         default="./outputs/baselines",
@@ -365,6 +371,7 @@ def main():
 
     base_defaults = dict(CIFAR100_DEFAULTS)
     base_defaults["dataset"] = args.dataset
+    base_defaults["data_dir"] = args.data_dir
     if args.rounds is not None:
         base_defaults["num_rounds"] = args.rounds
     if args.clients is not None:

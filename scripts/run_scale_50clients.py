@@ -28,7 +28,7 @@ from src.data.dataset import get_cifar10, partition_data, ClientDataset, get_fas
 from src.experiments.builder import detect_device
 
 
-def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, num_rounds: int = 20, batch_size: int = 64, device=None, train_subset=None):
+def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, num_rounds: int = 20, batch_size: int = 64, device=None, train_subset=None, data_dir="./data"):
     if device is None:
         device = detect_device()
     else:
@@ -39,7 +39,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
     # Load CIFAR-10 preloaded to GPU memory
     tr_sub = 15000 if train_subset is None else train_subset
     te_sub = 3000 if train_subset is None else min(3000, train_subset)
-    train_raw, test_raw = get_cifar10(data_dir="./data", train_subset=tr_sub, test_subset=te_sub, seed=42)
+    train_raw, test_raw = get_cifar10(data_dir=data_dir, train_subset=tr_sub, test_subset=te_sub, seed=42)
     print("Preloading CIFAR-10 to GPU memory for 50-client scaling...")
     train_fast = FastDataset(train_raw, device=device)
     test_fast = FastDataset(test_raw, device=device)
@@ -406,6 +406,7 @@ if __name__ == "__main__":
     parser.add_argument("--clients-per-round", type=int, default=10, help="Active clients per round")
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size")
     parser.add_argument("--device", type=str, default=None, help="Target device (cpu, cuda, directml)")
+    parser.add_argument("--data-dir", type=str, default="./data", help="Path to dataset directory or Kaggle input mount")
     parser.add_argument("--train-subset", type=int, default=None, help="Train subset size")
     args = parser.parse_args()
     run_50clients_scaling(
@@ -415,4 +416,5 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         device=args.device,
         train_subset=args.train_subset,
+        data_dir=args.data_dir,
     )

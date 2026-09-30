@@ -265,6 +265,7 @@ def create_personalization_config(
             dataset=defaults["dataset"],
             train_subset=defaults.get("train_subset"),
             test_subset=defaults.get("test_subset"),
+            data_dir=defaults.get("data_dir", "./data"),
         ),
         topology=TopologyConfig(
             type=topo_type,
@@ -341,6 +342,7 @@ def create_byzantine_config(
             dataset=defaults["dataset"],
             train_subset=defaults.get("train_subset"),
             test_subset=defaults.get("test_subset"),
+            data_dir=defaults.get("data_dir", "./data"),
         ),
         topology=TopologyConfig(
             type=topo_type,

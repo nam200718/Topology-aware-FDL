@@ -76,6 +76,7 @@ def run_job_1(args, force: bool = False):
 
     base_defaults = dict(CIFAR100_DEFAULTS)
     base_defaults["dataset"] = args.dataset
+    base_defaults["data_dir"] = getattr(args, "data_dir", "./data")
     if args.rounds is not None:
         base_defaults["num_rounds"] = args.rounds
     if args.clients is not None:
@@ -119,6 +120,7 @@ def run_job_2(args, force: bool = False):
 
     base_defaults = dict(CIFAR100_DEFAULTS)
     base_defaults["dataset"] = args.dataset
+    base_defaults["data_dir"] = getattr(args, "data_dir", "./data")
     if args.rounds is not None:
         base_defaults["num_rounds"] = args.rounds
     if args.clients is not None:
@@ -168,6 +170,7 @@ def run_job_3(args, force: bool = False):
         batch_size=64,
         device=args.device,
         train_subset=sub,
+        data_dir=getattr(args, "data_dir", "./data"),
     )
 
     dur = time.time() - t0
@@ -196,6 +199,7 @@ def run_job_4(args, force: bool = False):
         batch_size=32,
         device=args.device,
         train_subset=sub,
+        data_dir=getattr(args, "data_dir", "./data"),
     )
 
     dur = time.time() - t0
@@ -220,6 +224,7 @@ def run_job_5(args, force: bool = False):
 
     base_defaults = dict(CIFAR100_DEFAULTS)
     base_defaults["dataset"] = args.dataset
+    base_defaults["data_dir"] = getattr(args, "data_dir", "./data")
     if args.rounds is not None:
         base_defaults["num_rounds"] = args.rounds
     if args.clients is not None:
@@ -286,6 +291,7 @@ def main():
     parser.add_argument("--rounds", type=int, default=None, help="Override communication rounds")
     parser.add_argument("--clients", type=int, default=None, help="Override client count")
     parser.add_argument("--device", type=str, default=None, help="Override device ('cuda', 'cpu')")
+    parser.add_argument("--data-dir", type=str, default="./data", help="Dataset directory or Kaggle input mount (e.g. /kaggle/input/cifar100)")
     parser.add_argument("--force", action="store_true", help="Force re-run even if manifest marks completed")
     parser.add_argument("--smoke-test", action="store_true", help="Run 1-round smoke test across designated jobs")
     args = parser.parse_args()

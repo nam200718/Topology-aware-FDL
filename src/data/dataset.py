@@ -218,16 +218,22 @@ def get_mnist(data_dir="./data", train_subset=None, test_subset=None, seed=42):
 
 def _auto_link_dataset(data_dir: str, dataset_name: str) -> bool:
     """Auto-detect pre-existing dataset in /kaggle/input or common cloud mount directories.
+    Supports:
+    1. Standard subdirectory (e.g. /kaggle/input/.../cifar-100-python)
+    2. Flat root dataset (e.g. /kaggle/input/... directly containing train, test, meta)
+    3. Archives (*.tar.gz, *.tgz, *.tar, *.zip)
     Links or extracts into data_dir to eliminate download times and network timeouts on Kaggle.
     """
-    import os, shutil, tarfile
+    import os, shutil, tarfile, zipfile
 
     if dataset_name == "cifar100":
         folder_name = "cifar-100-python"
-        tar_name = "cifar-100-python.tar.gz"
+        target_files = {"train", "test", "meta"}
+        archive_prefixes = ("cifar-100", "cifar100")
     elif dataset_name == "cifar10":
         folder_name = "cifar-10-batches-py"
-        tar_name = "cifar-10-python.tar.gz"
+        target_files = {"batches.meta", "data_batch_1"}
+        archive_prefixes = ("cifar-10", "cifar10")
     else:
         return False
 
@@ -242,47 +248,102 @@ def _auto_link_dataset(data_dir: str, dataset_name: str) -> bool:
         return True
 
     search_roots = []
-    for env_var in ("HEP_DATA_DIR", "DATA_DIR"):
+    for env_var in ("KAGGLE_DATASET_PATH", "HEP_DATA_DIR", "DATA_DIR"):
         val = os.environ.get(env_var)
         if val and val not in search_roots:
             search_roots.append(val)
     for p in ["/workspace/data", "/kaggle/input", "/content", os.path.expanduser("~/.cache")]:
         if p not in search_roots:
             search_roots.append(p)
+
     for candidate_root in search_roots:
         if not os.path.exists(candidate_root):
             continue
         for root, dirs, files in os.walk(candidate_root):
+            file_set = set(files)
+
+            # Case 1: Standard subfolder named folder_name
             if folder_name in dirs:
                 src_path = os.path.join(root, folder_name)
                 os.makedirs(data_dir, exist_ok=True)
                 try:
                     os.symlink(src_path, target_dir)
-                    print(f"⚡ [Kaggle Input] Symlinked {dataset_name} from {src_path} -> {target_dir} (0.0s)")
+                    print(f"⚡ [Kaggle Input] Symlinked {dataset_name} folder from {src_path} -> {target_dir} (0.0s)")
                     return True
                 except Exception:
                     try:
                         shutil.copytree(src_path, target_dir, dirs_exist_ok=True)
-                        print(f"⚡ [Kaggle Input] Copied {dataset_name} from {src_path} -> {target_dir}")
+                        print(f"⚡ [Kaggle Input] Copied {dataset_name} folder from {src_path} -> {target_dir}")
                         return True
                     except Exception:
                         pass
-            elif tar_name in files:
-                src_tar = os.path.join(root, tar_name)
+
+            # Case 2: Flat directory directly containing the dataset files (common on Kaggle)
+            if target_files.issubset(file_set) or (dataset_name == "cifar10" and {"data_batch_1", "test_batch"}.issubset(file_set)):
+                src_path = root
                 os.makedirs(data_dir, exist_ok=True)
                 try:
-                    with tarfile.open(src_tar, "r:gz") as tar:
-                        tar.extractall(data_dir)
-                    print(f"⚡ [Kaggle Input] Extracted archive {src_tar} -> {data_dir}")
+                    os.symlink(src_path, target_dir)
+                    print(f"⚡ [Kaggle Input] Symlinked flat {dataset_name} files from {src_path} -> {target_dir} (0.0s)")
                     return True
                 except Exception:
-                    pass
+                    try:
+                        shutil.copytree(src_path, target_dir, dirs_exist_ok=True)
+                        print(f"⚡ [Kaggle Input] Copied flat {dataset_name} files from {src_path} -> {target_dir}")
+                        return True
+                    except Exception:
+                        pass
+
+            # Case 3: Archive file (*.tar.gz, *.tgz, *.zip)
+            for fname in files:
+                lower_f = fname.lower()
+                if any(pref in lower_f for pref in archive_prefixes):
+                    src_archive = os.path.join(root, fname)
+                    os.makedirs(data_dir, exist_ok=True)
+                    if lower_f.endswith((".tar.gz", ".tgz", ".tar")):
+                        try:
+                            with tarfile.open(src_archive, "r:*") as tar:
+                                tar.extractall(data_dir)
+                            print(f"⚡ [Kaggle Input] Extracted tar archive {src_archive} -> {data_dir}")
+                            if os.path.exists(target_dir):
+                                return True
+                        except Exception:
+                            pass
+                    elif lower_f.endswith(".zip"):
+                        try:
+                            with zipfile.ZipFile(src_archive, "r") as zf:
+                                zf.extractall(data_dir)
+                            print(f"⚡ [Kaggle Input] Extracted zip archive {src_archive} -> {data_dir}")
+                            if os.path.exists(target_dir):
+                                return True
+                        except Exception:
+                            pass
     return False
+
+
+def _resolve_safe_data_dir(data_dir: str) -> str:
+    """Redirects read-only directories (e.g. /kaggle/input/...) to a safe writable working directory."""
+    import os
+    if not data_dir:
+        return "./data"
+    abs_dir = os.path.abspath(data_dir)
+    is_kaggle_input = data_dir.startswith("/kaggle/input") or abs_dir.startswith("/kaggle/input")
+    is_read_only = os.path.exists(abs_dir) and not os.access(abs_dir, os.W_OK)
+    if is_kaggle_input or is_read_only:
+        os.environ["KAGGLE_DATASET_PATH"] = abs_dir
+        if os.path.exists("/kaggle/working"):
+            safe_dir = "/kaggle/working/data"
+        else:
+            safe_dir = "./data"
+        os.makedirs(safe_dir, exist_ok=True)
+        return safe_dir
+    return data_dir
 
 
 def get_cifar10(data_dir="./data", train_subset=None, test_subset=None, seed=42):
     """Downloads and returns the CIFAR-10 train and test sets, optionally subsetted."""
     import os, shutil
+    data_dir = _resolve_safe_data_dir(data_dir)
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
@@ -323,6 +384,7 @@ def get_cifar10(data_dir="./data", train_subset=None, test_subset=None, seed=42)
 def get_cifar100(data_dir="./data", train_subset=None, test_subset=None, seed=42):
     """Downloads and returns the CIFAR-100 train and test sets, optionally subsetted."""
     import os, shutil
+    data_dir = _resolve_safe_data_dir(data_dir)
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))

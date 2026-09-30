@@ -41,10 +41,12 @@ class BaseEngine(ABC):
             test_ds = TensorDataset(x_te, y_te)
             self.in_channels = 1
         elif dataset_name in ("cifar10", "cifar100"):
+            data_dir = getattr(self.config.env, "data_dir", "./data")
             if dataset_name == "cifar100":
                 from src.data.dataset import get_cifar100
                 print("Downloading and dividing CIFAR-100 dataset...")
                 train_ds, test_ds = get_cifar100(
+                    data_dir=data_dir,
                     train_subset=getattr(self.config.env, "train_subset", None),
                     test_subset=getattr(self.config.env, "test_subset", None),
                     seed=getattr(self.config.env, "seed", 42)
@@ -53,14 +55,17 @@ class BaseEngine(ABC):
                 print("Downloading and dividing CIFAR-10 dataset...")
                 from src.data.dataset import get_cifar10
                 train_ds, test_ds = get_cifar10(
+                    data_dir=data_dir,
                     train_subset=getattr(self.config.env, "train_subset", None),
                     test_subset=getattr(self.config.env, "test_subset", None),
                     seed=getattr(self.config.env, "seed", 42)
                 )
             self.in_channels = 3
         else:
+            data_dir = getattr(self.config.env, "data_dir", "./data")
             print("Downloading and dividing MNIST dataset...")
             train_ds, test_ds = get_mnist(
+                data_dir=data_dir,
                 train_subset=getattr(self.config.env, "train_subset", None),
                 test_subset=getattr(self.config.env, "test_subset", None),
                 seed=getattr(self.config.env, "seed", 42)
