@@ -10,6 +10,7 @@ Usage:
 
 import os
 import sys
+import copy
 import json
 import time
 import numpy as np
@@ -40,7 +41,7 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
     print("="*70)
 
     dummy_x = torch.randn(batch_size, 3, 32, 32, device=device)
-    dummy_y = torch.randint(0, 10, (batch_size,), device=device)
+    dummy_y = torch.randint(0, num_classes, (batch_size,), device=device)
     crit = nn.CrossEntropyLoss()
 
     # FedAvg
@@ -231,13 +232,15 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
         print("  [3/3] Training HEP MultiHeadMobileNetV3...")
         global_m_hep = MultiHeadMobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
         num_clusters = 3
-        cluster_heads = [global_m_hep.classifier_parent for _ in range(num_clusters)]
-        local_heads = [global_m_hep.classifier_local for _ in range(num_clients)]
+        cluster_heads = [copy.deepcopy(global_m_hep.classifier_parent).to(device) for _ in range(num_clusters)]
+        local_heads = [copy.deepcopy(global_m_hep.classifier_local).to(device) for _ in range(num_clients)]
         client_clusters = [i % num_clusters for i in range(num_clients)]
         client_alphas = [torch.tensor([0.33, 0.33, 0.34], device=device) for _ in range(num_clients)]
 
         for r in range(num_rounds):
-            client_states = []
+            client_bb_states = []
+            cluster_updates = {k: [] for k in range(num_clusters)}
+
             for cid in range(num_clients):
                 c_train = ClientDataset(train_fast, train_splits[cid])
                 loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True, drop_last=(len(c_train) > batch_size))
@@ -245,6 +248,8 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
 
                 l_m = MultiHeadMobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
                 l_m.load_state_dict(global_m_hep.state_dict())
+                l_m.classifier_parent.load_state_dict(cluster_heads[k_idx].state_dict())
+                l_m.classifier_local.load_state_dict(local_heads[cid].state_dict())
                 opt = torch.optim.SGD(l_m.parameters(), lr=0.02, momentum=0.9, weight_decay=1e-4, foreach=False)
 
                 l_m.train()
@@ -259,22 +264,51 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
                         if ep <= 2: loss += crit(l_m.classifier_local(feats), y)
                         loss.backward()
                         opt.step()
-                client_states.append(l_m.state_dict())
 
-            avg_s = {}
-            for k in global_m_hep.state_dict().keys():
-                avg_s[k] = torch.stack([client_states[i][k].float() for i in range(num_clients)], dim=0).mean(dim=0)
-            global_m_hep.load_state_dict(avg_s)
+                # Preserve updated local head on-device
+                local_heads[cid].load_state_dict(l_m.classifier_local.state_dict())
+
+                # Collect backbone & root head updates for global aggregation
+                bb_root = {k: v.detach().clone() for k, v in l_m.state_dict().items() if not k.startswith("classifier_parent") and not k.startswith("classifier_local")}
+                client_bb_states.append(bb_root)
+
+                # Collect cluster head updates
+                cluster_updates[k_idx].append({k: v.detach().clone() for k, v in l_m.classifier_parent.state_dict().items()})
+
+            # Server aggregation for shared features & root head
+            avg_bb_root = {}
+            for k in client_bb_states[0].keys():
+                avg_bb_root[k] = torch.stack([client_bb_states[i][k].float() for i in range(num_clients)], dim=0).mean(dim=0)
+            global_m_hep.load_state_dict(avg_bb_root, strict=False)
+
+            # Cluster aggregation for parent heads
+            for k in range(num_clusters):
+                if cluster_updates[k]:
+                    avg_p = {}
+                    for key in cluster_updates[k][0].keys():
+                        avg_p[key] = torch.stack([cluster_updates[k][i][key].float() for i in range(len(cluster_updates[k]))], dim=0).mean(dim=0)
+                    cluster_heads[k].load_state_dict(avg_p)
 
         accs_hep = []
         global_m_hep.eval()
         with torch.no_grad():
             for cid in range(num_clients):
+                k_idx = client_clusters[cid]
+                eval_m = MultiHeadMobileNetV3Small(in_channels=3, num_classes=num_classes).to(device)
+                eval_m.load_state_dict(global_m_hep.state_dict())
+                eval_m.classifier_parent.load_state_dict(cluster_heads[k_idx].state_dict())
+                eval_m.classifier_local.load_state_dict(local_heads[cid].state_dict())
+                eval_m.eval()
+
                 c_test = ClientDataset(test_fast, test_splits[cid])
                 loader = get_fast_dataloader(c_test, batch_size=batch_size, shuffle=False)
                 c_tot, c_cor = 0, 0
                 for x, y in loader:
-                    pred = global_m_hep(x, head="local").argmax(dim=1)
+                    feats = eval_m.extract_features(x)
+                    prob_r = F.softmax(eval_m.classifier_root(feats), dim=1)
+                    prob_p = F.softmax(eval_m.classifier_parent(feats), dim=1)
+                    prob_l = F.softmax(eval_m.classifier_local(feats), dim=1)
+                    pred = (0.33 * prob_r + 0.33 * prob_p + 0.34 * prob_l).argmax(dim=1)
                     c_cor += (pred == y).sum().item(); c_tot += y.size(0)
                 accs_hep.append((c_cor / c_tot * 100.0) if c_tot > 0 else 0.0)
 

@@ -131,7 +131,7 @@ def soft_cosine_trust(
 
         if head_deltas is not None:
             feature_dim = head_deltas.size(1) // num_classes
-            mask = active_masks.float().unsqueeze(2).expand(n, num_classes, feature_dim).reshape(n, -1)
+            mask = active_masks.float().to(deltas.device).unsqueeze(2).expand(n, num_classes, feature_dim).reshape(n, -1)
             unit_head = head_deltas * mask
             unit_head = F.normalize(unit_head, dim=1, eps=1e-10)
             centroid_head = unit_head.mean(dim=0)
@@ -266,11 +266,15 @@ class DeltaSpaceRobustAggregator:
             raise ValueError("Cannot aggregate empty list of deltas.")
         
         # Sentinel Pre-filter: drop any updates containing NaN or Inf
-        clean_deltas = [d for d in deltas if not (torch.isnan(d).any() or torch.isinf(d).any())]
+        clean_indices = [i for i, d in enumerate(deltas) if not (torch.isnan(d).any() or torch.isinf(d).any())]
+        clean_deltas = [deltas[i] for i in clean_indices]
         if not clean_deltas:
             # If all updates contain NaNs, immediately return a zero delta to leave the reference unchanged
             self.last_trust_scores = torch.zeros(len(deltas), device=deltas[0].device)
             return torch.zeros_like(deltas[0])
+
+        if active_masks is not None and active_masks.size(0) == len(deltas) and len(clean_indices) < len(deltas):
+            active_masks = active_masks[clean_indices]
 
         stacked = torch.stack(clean_deltas, dim=0).float()
         out_dtype = stacked.dtype

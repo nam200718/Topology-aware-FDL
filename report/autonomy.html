@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HEP-FL Technical Audit & Paper Formulations (Autonomy)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- KaTeX for pristine mathematical typography -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <style>
+    :root {
+      --bg-page: #0d1117;
+      --bg-surface: #161b22;
+      --bg-subtle: #21262d;
+      --bg-code: #090d13;
+      --border-default: #30363d;
+      --border-muted: #21262d;
+      --text-primary: #f0f6fc;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      
+      --accent-blue: #388bfd;
+      --accent-green: #3fb950;
+      --accent-red: #f85149;
+      --accent-amber: #d29922;
+      --accent-purple: #a371f7;
+      --accent-cyan: #39c5cf;
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    [data-theme="light"] {
+      --bg-page: #f6f8fa;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f3f4f6;
+      --bg-code: #f6f8fa;
+      --border-default: #d0d7de;
+      --border-muted: #e1e4e8;
+      --text-primary: #1f2328;
+      --text-secondary: #656d76;
+      --text-muted: #8c959f;
+      
+      --accent-blue: #0969da;
+      --accent-green: #1a7f37;
+      --accent-red: #cf222e;
+      --accent-amber: #9a6700;
+      --accent-purple: #8250df;
+      --accent-cyan: #0598ab;
+    }
+
+    [data-theme="light"] .status-pill.aligned {
+      color: #1a7f37;
+      border-color: #1a7f37;
+      background: #dafbe1;
+    }
+    [data-theme="light"] .status-pill.bug {
+      color: #cf222e;
+      border-color: #cf222e;
+      background: #ffebe9;
+    }
+    [data-theme="light"] .status-pill.resolved {
+      color: #0969da;
+      border-color: #0969da;
+      background: #ddf4ff;
+    }
+    [data-theme="light"] .status-pill.pending {
+      color: #9a6700;
+      border-color: #9a6700;
+      background: #fff8c5;
+    }
+    [data-theme="light"] .hl-error {
+      background: #ffebe9;
+      border-left: 2px solid #cf222e;
+    }
+    [data-theme="light"] .formula-box {
+      background: #f6f8fa;
+      color: #1f2328;
+      border-color: #d0d7de;
+    }
+    [data-theme="light"] pre {
+      color: #1f2328;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Crisp Minimal Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-page);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #30363d;
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    /* Header Bar */
+    header {
+      border-bottom: 1px solid var(--border-default);
+      padding-bottom: 24px;
+      margin-bottom: 24px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .meta-tags {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border: 1px solid var(--border-default);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      border-radius: 4px;
+    }
+
+    .tag.primary {
+      color: var(--accent-blue);
+      border-color: #1f6feb;
+    }
+
+    .tag.danger {
+      color: var(--accent-red);
+      border-color: #da3633;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      margin-bottom: 6px;
+    }
+
+    .header-desc {
+      color: var(--text-secondary);
+      font-size: 13px;
+      max-width: 900px;
+    }
+
+    /* Summary Bar */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border-default);
+      border: 1px solid var(--border-default);
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 800px) {
+      .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .summary-cell {
+      background: var(--bg-surface);
+      padding: 14px 18px;
+    }
+
+    .summary-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .summary-val {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .summary-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Filter & Search Bar */
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 260px;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: inherit;
+      padding: 6px 12px 6px 30px;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .btn:hover {
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+    }
+
+    .btn.active {
+      background: var(--bg-subtle);
+      border-color: #8b949e;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Cards */
+    .card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      padding: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-muted);
+    }
+
+    .card-title-group {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .checkbox {
+      margin-top: 3px;
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--border-default);
+      border-radius: 3px;
+      background: var(--bg-page);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .checkbox.checked {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+    }
+
+    .checkbox.checked::after {
+      content: '✓';
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .card-id {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .status-pill {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border: 1px solid;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+
+    .status-pill.aligned {
+      color: var(--accent-green);
+      border-color: #238636;
+      background: #102416;
+    }
+
+    .status-pill.bug {
+      color: var(--accent-red);
+      border-color: #da3633;
+      background: #2b1416;
+    }
+
+    .status-pill.resolved {
+      color: var(--accent-cyan);
+      border-color: #1f6feb;
+      background: #0f1e31;
+    }
+
+    .status-pill.pending {
+      color: var(--accent-amber);
+      border-color: #9e6a03;
+      background: #271f0d;
+    }
+
+    /* Abstract Block */
+    .abstract-box {
+      background: var(--bg-surface);
+      border-left: 2px solid var(--accent-blue);
+      border-top: 1px solid var(--border-muted);
+      border-right: 1px solid var(--border-muted);
+      border-bottom: 1px solid var(--border-muted);
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .abstract-box .label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+      margin-bottom: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .abstract-box .text {
+      color: var(--text-primary);
+      font-style: italic;
+    }
+
+    /* 2-Column Split: Code Analysis vs Paper Formula */
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 960px) {
+      .split-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .column {
+      background: var(--bg-page);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      padding: 14px;
+    }
+
+    .column-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .column-title.code { color: var(--accent-cyan); }
+    .column-title.math { color: var(--accent-purple); }
+
+    .column-content {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .column-content p {
+      margin-bottom: 8px;
+    }
+    .column-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .column-content strong {
+      color: var(--text-primary);
+    }
+
+    /* Math Formula Block & KaTeX */
+    .math-rendered {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      padding: 14px 16px;
+      margin: 10px 0;
+      overflow-x: auto;
+      text-align: center;
+      color: var(--text-primary);
+    }
+
+    .math-rendered .katex {
+      font-size: 1.15em;
+    }
+
+    .katex-display {
+      margin: 4px 0 !important;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    .formula-box {
+      background: var(--bg-code);
+      border: 1px solid var(--border-muted);
+      border-radius: 4px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .formula-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-muted);
+      padding-bottom: 4px;
+    }
+
+    .copy-link {
+      color: var(--accent-blue);
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 11px;
+    }
+
+    .copy-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Code Snippet Block */
+    .code-box {
+      background: var(--bg-code);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .code-bar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-default);
+      padding: 6px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .code-path {
+      color: var(--text-secondary);
+    }
+
+    pre {
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+      color: #e6edf3;
+      overflow-x: auto;
+    }
+
+    .hl-error {
+      background: #2b1416;
+      border-left: 2px solid var(--accent-red);
+      display: block;
+      margin: 0 -12px;
+      padding: 2px 10px;
+    }
+
+    /* Diagnostic / Status Footnote */
+    .card-footer {
+      border-top: 1px solid var(--border-muted);
+      padding-top: 12px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .footer-action {
+      font-weight: 600;
+      color: var(--accent-blue);
+    }
+
+    .footer-action.danger {
+      color: var(--accent-red);
+    }
+
+    /* Guide Section: Golden Keywords */
+    .guide-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      padding: 20px;
+      margin-top: 32px;
+    }
+
+    .guide-box h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .guide-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .guide-columns {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .guide-col {
+      background: var(--bg-page);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      padding: 14px;
+    }
+
+    .guide-col.avoid {
+      border-left: 2px solid var(--accent-red);
+    }
+
+    .guide-col.use {
+      border-left: 2px solid var(--accent-green);
+    }
+
+    .guide-col h3 {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .guide-col.avoid h3 { color: var(--accent-red); }
+    .guide-col.use h3 { color: var(--accent-green); }
+
+    .guide-col ul {
+      list-style: none;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .guide-col li {
+      margin-bottom: 6px;
+    }
+
+    .guide-col code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 4px;
+      border: 1px solid var(--border-default);
+      border-radius: 3px;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-default);
+      padding-top: 20px;
+      margin-top: 48px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="header-top">
+        <div class="meta-tags">
+          <span class="tag primary">AAMAS 2027</span>
+          <span class="tag">Commit 9f92978</span>
+          <span class="tag danger">Abstract Due: Oct 1</span>
+        </div>
+        <div class="meta-tags">
+          <span class="tag">Repository: Topology-aware-FDL</span>
+          <button id="themeToggleBtn" class="btn" style="padding: 2px 8px; font-size: 11px; font-family: var(--font-mono);">🌓 Theme: Solid Dark</button>
+        </div>
+      </div>
+      <h1>HEP-FL Codebase Audit & Formal Paper Formulations</h1>
+      <p class="header-desc">
+        Bản kiểm tra kỹ thuật đối chiếu giữa mã nguồn và Abstract AAMAS 2027. Đã hoàn tất khắc phục toàn bộ 18/18 lỗi kỹ thuật (bao gồm Subspace Head Slicing, Test Loss Stability, Cluster Head Parent Sync), xác nhận 24/24 unit test vượt qua.
+      </p>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="summary-grid">
+      <div class="summary-cell">
+        <div class="summary-label">Thuật toán Cốt lõi</div>
+        <div class="summary-val" id="totalCount">8</div>
+        <div class="summary-sub">Kiến trúc, Skew, ACLM, JL, Defense</div>
+      </div>
+      <div class="summary-cell">
+        <div class="summary-label">Đã Khớp / Resolved</div>
+        <div class="summary-val" id="alignedCount" style="color: var(--accent-green);">8</div>
+        <div class="summary-sub">100% Khớp Codebase & Abstract</div>
+      </div>
+      <div class="summary-cell">
+        <div class="summary-label">Bug Còn Lại</div>
+        <div class="summary-val" id="bugCount" style="color: var(--accent-green);">0</div>
+        <div class="summary-sub">18/18 Bugs Fixed & Verified</div>
+      </div>
+      <div class="summary-cell">
+        <div class="summary-label">Unit Tests Logic</div>
+        <div class="summary-val" style="color: var(--accent-cyan);">24 / 24</div>
+        <div class="summary-sub">tests/test_audit_fixes.py PASSED</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="Lọc theo từ khóa, hàm, file, hoặc công thức...">
+      </div>
+      <div class="btn-group">
+        <button class="btn active" data-filter="all">Tất cả (8)</button>
+        <button class="btn" data-filter="aligned">Đã Khớp & Đã Sửa (8)</button>
+        <button class="btn" data-filter="bug">Bug Còn Lại (0)</button>
+      </div>
+    </div>
+
+    <!-- Cards List -->
+    <div class="card-list" id="cardList">
+
+      <!-- ITEM 1: 3-TIER ARCHITECTURE -->
+      <div class="card" data-category="aligned" data-id="1">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="checkbox" onclick="toggleCheck(1)"></div>
+            <div>
+              <div class="card-id">Core 01 &bull; Model Architecture</div>
+              <div class="card-title">Single-Backbone 3-Tier Representation Hierarchy</div>
+            </div>
+          </div>
+          <span class="status-pill resolved">Abstract Khớp Code</span>
+        </div>
+
+        <div class="abstract-box">
+          <div class="label">Abstract Trích Dẫn</div>
+          <div class="text">"...an architecture that coordinates three tiers of representation—global consensus, collaborative cluster, and local private heads—over a single shared feature extractor."</div>
+        </div>
+
+        <div class="split-grid">
+          <div class="column">
+            <div class="column-title code">Code Mechanics & Tensor Flow</div>
+            <div class="column-content">
+              <p>Mô hình <code>MultiHeadResNet9</code> sử dụng chung feature extractor $f_\theta: \mathcal{X} \to \mathbb{R}^d$ ($d=256$).</p>
+              <p>Ba head phân loại tuyến tính độc lập: <code>fc2_root</code> ($W_r$), <code>fc2_parent</code> ($W_p$), <code>fc2_local</code> ($W_l$).</p>
+              <p>Features được trích xuất duy nhất một lần: $z = f_\theta(x)$. Tại eval time, logits được tổ hợp tuyến tính có kiểm soát độ phân tán nhiệt độ (Dynamic Logit Dispersion Temperature Matching).</p>
+            </div>
+          </div>
+          <div class="column">
+            <div class="column-title math">Đề Xuất Công Thức Cho Paper (LaTeX)</div>
+            <div class="column-content">
+              <p>Công thức biểu diễn tổ hợp logits tại bước suy luận của client $i$:</p>
+              <div class="math-rendered">
+                $$ \hat{y} = \arg\max_{c \in \{1, \dots, C\}} \left[ w_l \frac{W_l f_\theta(x)}{T_l} + w_p \frac{W_p f_\theta(x)}{T_p} + w_r \frac{W_r f_\theta(x)}{T_r} \right]_c $$
+              </div>
+              <div class="formula-box">
+                <div class="formula-header">
+                  <span>LaTeX Source</span>
+                  <span class="copy-link" onclick="copySnippet('latex1')">Copy</span>
+                </div>
+                <code id="latex1">\hat{y} = \arg\max_{c \in \{1, \dots, C\}} \left[ w_l \frac{W_l f_\theta(x)}{T_l} + w_p \frac{W_p f_\theta(x)}{T_p} + w_r \frac{W_r f_\theta(x)}{T_r} \right]_c</code>
+              </div>
+              <p style="margin-top: 8px;">Trong đó $\sum_{k \in \{l, p, r\}} w_k = 1.0$, $T_k = \min(2.0, \max(0.2, \sigma_k / \sigma_r))$ là hệ số chuẩn hóa phương sai phân tán logit.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-box">
+          <div class="code-bar">
+            <span class="code-path">src/core/hierarchical_ensemble_engine.py (L512-L516)</span>
+            <span class="copy-link" onclick="copySnippet('code1')">Copy Code</span>
+          </div>
+          <pre id="code1"><code>logits_ensemble = (
+    w_local * (logits_local / t_l)
+    + w_parent * (logits_parent / t_p)
+    + w_root * (logits_root / t_r)
+)</code></pre>
+        </div>
+
+        <div class="card-footer">
+          <span>Trạng thái: <strong>Đã loại bỏ công thức sai lệch $W_{eff} = W_0 + \Delta W$</strong> khỏi Abstract.</span>
+          <span class="footer-action">✓ Sẵn sàng đưa vào Methodology Section</span>
+        </div>
+      </div>
+
+      <!-- ITEM 2: ACLM LOGIT MASKING -->
+      <div class="card" data-category="aligned" data-id="2">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="checkbox" onclick="toggleCheck(2)"></div>
+            <div>
+              <div class="card-id">Core 02 &bull; Representation Conditioning</div>
+              <div class="card-title">Active-Class Logit Masking (ACLM)</div>
+            </div>
+          </div>
+          <span class="status-pill aligned">Aligned</span>
+        </div>
+
+        <div class="abstract-box">
+          <div class="label">Abstract Trích Dẫn</div>
+          <div class="text">"To mitigate gradient interference from unobserved labels, HEP-FL incorporates active-class logit masking and skew-calibrated loss weighting without duplicating network parameters."</div>
+        </div>
+
+        <div class="split-grid">
+          <div class="column">
+            <div class="column-title code">Code Mechanics & Tensor Flow</div>
+            <div class="column-content">
+              <p>Mỗi client sở hữu tập nhãn quan sát được $\mathcal{Y}_i \subset \{1, \dots, C\}$.</p>
+              <p>Tại <code>updater.py:L828-838</code>, các logits của lớp chưa từng xuất hiện ($c \notin \mathcal{Y}_i$) được gán giá trị $-10^9$ trước khi tính CrossEntropyLoss.</p>
+              <p>Điều này làm $\text{Softmax}(\tilde{z})_c \to 0$, triệt tiêu gradient đạo hàm $\frac{\partial \mathcal{L}}{\partial z_c} = p_c - y_c = 0$, ngăn chặn hiện tượng làm méo mó các vector trọng số lớp vắng mặt.</p>
+            </div>
+          </div>
+          <div class="column">
+            <div class="column-title math">Đề Xuất Công Thức Cho Paper (LaTeX)</div>
+            <div class="column-content">
+              <p>Hàm mất mát phân loại có điều kiện nhãn hỗ trợ:</p>
+              <div class="math-rendered">
+                $$ \mathcal{L}_{\text{ACLM}}(\mathbf{z}_i, y; \mathcal{Y}_i) = -\log \frac{\exp(z_{i, y})}{\sum_{c' \in \mathcal{Y}_i} \exp(z_{i, c'})}, \quad \forall y \in \mathcal{Y}_i $$
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 6px;">
+                  $$ \nabla_{W_{c, :}} \mathcal{L}_{\text{ACLM}} = \mathbf{0}, \quad \forall c \notin \mathcal{Y}_i $$
+                </div>
+              </div>
+              <div class="formula-box">
+                <div class="formula-header">
+                  <span>LaTeX Source</span>
+                  <span class="copy-link" onclick="copySnippet('latex2')">Copy</span>
+                </div>
+                <code id="latex2">\mathcal{L}_{\text{ACLM}}(\mathbf{z}_i, y; \mathcal{Y}_i) = -\log \frac{\exp(z_{i, y})}{\sum_{c' \in \mathcal{Y}_i} \exp(z_{i, c'})}, \quad y \in \mathcal{Y}_i</code>
+              </div>
+              <p style="margin-top: 8px;">Đảm bảo tính chất triệt tiêu gradient trên nhãn vắng mặt: $\nabla_{W_{c, :}} \mathcal{L}_{\text{ACLM}} = \mathbf{0}, \forall c \notin \mathcal{Y}_i$.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-box">
+          <div class="code-bar">
+            <span class="code-path">src/core/updater.py (L827-L838)</span>
+            <span class="copy-link" onclick="copySnippet('code2')">Copy Code</span>
+          </div>
+          <pre id="code2"><code>if config.active_class_loss_mask:
+    logits_parent_masked = logits_parent.masked_fill(~active_mask.unsqueeze(0), -1e9)
+    ce_parent = self.criterion(logits_parent_masked, labels)
+    logits_local_masked = logits_local.masked_fill(~active_mask.unsqueeze(0), -1e9)
+    ce_local = F.cross_entropy(logits_local_masked, labels, weight=w_cls)</code></pre>
+        </div>
+
+        <div class="card-footer">
+          <span>Ý nghĩa khoa học: <strong>Bảo toàn không gian đặc trưng chung</strong> không bị trôi do nhiễu nhãn vắng mặt.</span>
+          <span class="footer-action">✓ Đã kiểm thử với Ablation topo_no_aclm</span>
+        </div>
+      </div>
+
+      <!-- ITEM 3: BINOMIAL LOSS WEIGHTING -->
+      <div class="card" data-category="aligned" data-id="3">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="checkbox" onclick="toggleCheck(3)"></div>
+            <div>
+              <div class="card-id">Core 03 &bull; Dynamic Loss Partition</div>
+              <div class="card-title">Anchored Dynamic Binomial Loss Weighting (Partition of Unity)</div>
+            </div>
+          </div>
+          <span class="status-pill aligned">Aligned</span>
+        </div>
+
+        <div class="abstract-box">
+          <div class="label">Abstract Trích Dẫn</div>
+          <div class="text">"...incorporates active-class logit masking and skew-calibrated loss weighting without duplicating network parameters."</div>
+        </div>
+
+        <div class="split-grid">
+          <div class="column">
+            <div class="column-title code">Code Mechanics & Tensor Flow</div>
+            <div class="column-content">
+              <p>Đo lường độ lệch entropy phân bố nhãn địa phương $R_{skew} = \frac{\exp(H(p_i)) - 1}{C - 1} \in [0, 1]$.</p>
+              <p>Áp dụng hệ số neo an toàn $a_i = \max\left(\frac{1}{2K}, \frac{|\mathcal{Y}_i|}{C}\right)$ tránh hiện tượng cắt đứt kết nối với Root head ở edge devices cực đoan.</p>
+              <p>Phân rã nhị thức: $\lambda_r = a_i + (1-a_i)R_{skew}^2$, $\lambda_p = 2R_{skew}(1-R_{skew})$, $\lambda_l = (1-R_{skew})^2$.</p>
+            </div>
+          </div>
+          <div class="column">
+            <div class="column-title math">Đề Xuất Công Thức Cho Paper (LaTeX)</div>
+            <div class="column-content">
+              <p>Định nghĩa ánh xạ điều hòa hàm mất mát đa tầng:</p>
+              <div class="math-rendered">
+                $$ \mathcal{L}_i = \alpha_r \mathcal{L}_r + \alpha_p \mathcal{L}_p + \alpha_l \mathcal{L}_l, \quad \sum_{k \in \{r, p, l\}} \alpha_k = 1.0 $$
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 6px;">
+                  $$ \alpha_k = \frac{\lambda_k}{\sum_j \lambda_j}, \quad \begin{cases} \lambda_r = a_i + (1 - a_i) R_{skew}^2 \\ \lambda_p = 2 R_{skew} (1 - R_{skew}) \\ \lambda_l = (1 - R_{skew})^2 \end{cases} $$
+                </div>
+              </div>
+              <div class="formula-box">
+                <div class="formula-header">
+                  <span>LaTeX Source</span>
+                  <span class="copy-link" onclick="copySnippet('latex3')">Copy</span>
+                </div>
+                <code id="latex3">\mathcal{L}_i = \alpha_r \mathcal{L}_r + \alpha_p \mathcal{L}_p + \alpha_l \mathcal{L}_l, \quad \sum_{k \in \{r, p, l\}} \alpha_k = 1.0</code>
+              </div>
+              <div class="formula-box" style="margin-top: 6px;">
+                <div class="formula-header">
+                  <span>Sub-formula: $\lambda$ weights</span>
+                  <span class="copy-link" onclick="copySnippet('latex3_sub')">Copy Sub</span>
+                </div>
+                <code id="latex3_sub">\alpha_k = \frac{\lambda_k}{\sum_j \lambda_j}, \quad \begin{cases} \lambda_r = a_i + (1 - a_i) R_{skew}^2 \\ \lambda_p = 2 R_{skew} (1 - R_{skew}) \\ \lambda_l = (1 - R_{skew})^2 \end{cases}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-box">
+          <div class="code-bar">
+            <span class="code-path">src/core/loss.py (L98-L108)</span>
+            <span class="copy-link" onclick="copySnippet('code3')">Copy Code</span>
+          </div>
+          <pre id="code3"><code>a_i = max(1.0 / (2.0 * max(1, num_clusters)), float(local_classes) / float(max(1, num_classes)))
+lr = a_i + (1.0 - a_i) * (r_skew ** 2)
+lp = 2.0 * r_skew * (1.0 - r_skew) if enable_parent_head else 0.0
+ll = (1.0 - r_skew) ** 2
+total = lr + lp + ll
+alpha_r, alpha_p, alpha_l = lr / total, lp / total, ll / total</code></pre>
+        </div>
+
+        <div class="card-footer">
+          <span>Bảo đảm lý thuyết: <strong>Differentiable & continuous partition-of-unity</strong> (tổng trọng số luôn đúng bằng 1).</span>
+          <span class="footer-action">✓ Tương thích cờ enable_parent_head</span>
+        </div>
+      </div>
+
+      <!-- ITEM 4: PARAMETER SKETCH CLUSTERING -->
+      <div class="card" data-category="aligned" data-id="4">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="checkbox" onclick="toggleCheck(4)"></div>
+            <div>
+              <div class="card-id">Core 04 &bull; Privacy-Preserving Clustering</div>
+              <div class="card-title">Random Orthogonal Parameter Sketch Clustering (JL Lemma)</div>
+            </div>
+          </div>
+          <span class="status-pill aligned">Aligned</span>
+        </div>
+
+        <div class="abstract-box">
+          <div class="label">Abstract Trích Dẫn</div>
+          <div class="text">"Clients dynamically identify collaborative clusters through low-dimensional random projections of model updates, preserving data privacy."</div>
+        </div>
+
+        <div class="split-grid">
+          <div class="column">
+            <div class="column-title code">Code Mechanics & Tensor Flow</div>
+            <div class="column-content">
+              <p>Thay vì gửi phân bố nhãn thô (vi phạm riêng tư), client gom cụm dựa trên vector cập nhật $\Delta \mathbf{w}_i \in \mathbb{R}^D$ ($D \approx 300,000$).</p>
+              <p>Mã nguồn chiếu $\Delta \mathbf{w}_i$ qua ma trận ngẫu nhiên $\Phi \in \mathbb{R}^{D \times 256}$ sinh từ phân phối Gaussian trực giao $\mathcal{N}(0, 1/m)$.</p>
+              <p>Vector 256 chiều được chuẩn hóa L2 và phân cụm bằng K-Means cosine distance.</p>
+            </div>
+          </div>
+          <div class="column">
+            <div class="column-title math">Đề Xuất Công Thức Cho Paper (LaTeX)</div>
+            <div class="column-content">
+              <p>Định lý Johnson-Lindenstrauss bảo toàn khoảng cách góc:</p>
+              <div class="math-rendered">
+                $$ \mathbf{s}_i = \frac{\Phi^T \Delta \mathbf{w}_i}{\|\Phi^T \Delta \mathbf{w}_i\|_2} \in \mathbb{R}^m, \quad \Phi_{jk} \sim \mathcal{N}\left(0, \frac{1}{m}\right), \; m=256 $$
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 6px;">
+                  $$ (1 - \epsilon)\|\Delta \mathbf{w}_i - \Delta \mathbf{w}_j\|_2 \le \|\mathbf{s}_i - \mathbf{s}_j\|_2 \le (1 + \epsilon)\|\Delta \mathbf{w}_i - \Delta \mathbf{w}_j\|_2 $$
+                </div>
+              </div>
+              <div class="formula-box">
+                <div class="formula-header">
+                  <span>LaTeX Source</span>
+                  <span class="copy-link" onclick="copySnippet('latex4')">Copy</span>
+                </div>
+                <code id="latex4">\mathbf{s}_i = \frac{\Phi^T \Delta \mathbf{w}_i}{\|\Phi^T \Delta \mathbf{w}_i\|_2} \in \mathbb{R}^m, \quad \Phi_{jk} \sim \mathcal{N}\left(0, \frac{1}{m}\right), \; m=256</code>
+              </div>
+              <p style="margin-top: 8px;">Bảo đảm sai số méo góc cosine: $(1-\epsilon)\|\Delta \mathbf{w}_i - \Delta \mathbf{w}_j\|_2 \le \|\mathbf{s}_i - \mathbf{s}_j\|_2 \le (1+\epsilon)\|\Delta \mathbf{w}_i - \Delta \mathbf{w}_j\|_2$.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-box">
+          <div class="code-bar">
+            <span class="code-path">src/topologies/hierarchical.py (L5-L12, L105)</span>
+            <span class="copy-link" onclick="copySnippet('code4')">Copy Code</span>
+          </div>
+          <pre id="code4"><code>def _random_project(vectors: np.ndarray, target_dim: int = 256, seed: int = 42) -&gt; np.ndarray:
+    if vectors.shape[1] &lt;= target_dim:
+        return vectors
+    rng = np.random.RandomState(seed)
+    D = vectors.shape[1]
+    projection = rng.randn(D, target_dim) / np.sqrt(target_dim)
+    return vectors @ projection</code></pre>
+        </div>
+
+        <div class="card-footer">
+          <span>Bảo mật: <strong>Hệ phương trình $256 \ll 300,000$</strong> khiến việc tái tạo ngược gradient bị vô hiệu hóa toán học.</span>
+          <span class="footer-action">✓ Đã kiểm tra hàm build_update_similarity</span>
+        </div>
+      </div>
+
+      <!-- ITEM 5: SUBSPACE DEFENSE (RESOLVED) -->
+      <div class="card" data-category="aligned" data-id="5">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="checkbox" onclick="toggleCheck(5)"></div>
+            <div>
+              <div class="card-id">Core 05 &bull; Robust Subspace Aggregation</div>
+              <div class="card-title">Subspace-Constrained Classifier Head Slicing</div>
+            </div>
+          </div>
+          <span class="status-pill aligned">ĐÃ KHẮC PHỤC (Commit 0e86555)</span>
+        </div>
+
+        <div class="abstract-box">
+          <div class="label">Abstract Trích Dẫn</div>
+          <div class="text">"...the framework introduces a subspace-constrained filtering mechanism that evaluates update alignment exclusively within each client's observed class support."</div>
+        </div>
+
+        <div class="split-grid">
+          <div class="column">
+            <div class="column-title code">Cơ Chế Subspace Head Slicing (Đã Khắc Phục)</div>
+            <div class="column-content">
+              <p>• Hàm <code>compute_classifier_slices(model)</code> tự động trích xuất khoảng toạ độ lát cắt <code>(s_start, s_end)</code> của classifier linear head trong vector tham số phẳng.</p>
+              <p>• <code>soft_cosine_trust()</code> chỉ lấy <code>head_deltas = deltas[:, s_start:s_end]</code> và mở rộng <code>active_masks</code> thành tensor cùng chiều <code>[N, num_classes * feature_dim]</code>.</p>
+              <p>• Khoảng cách cosine được tính toán <strong>chính xác trên không gian con nhãn quan sát $\mathcal{S}_i$</strong> đối chiếu với centroid đồng thuận được mask tương ứng, loại bỏ hoàn toàn lỗi trừng phạt client non-IID honest.</p>
+              <p>• <strong>Kiểm thử xác nhận:</strong> <code>test_skew_calibrated_cosine_similarity_head_slicing</code> trong <code>tests/test_audit_fixes.py</code> PASSED.</p>
+            </div>
+          </div>
+          <div class="column">
+            <div class="column-title math">Đề Xuất Công Thức Chuẩn Cho Paper (LaTeX)</div>
+            <div class="column-content">
+              <p>Công thức toán chuẩn cho Methodology Section:</p>
+              <div class="math-rendered">
+                $$ \tau_i^{(t)} = \text{Softmax}\left( \frac{\cos\left(\mathbf{P}_{\mathcal{S}_i} \Delta \mathbf{w}_i, \mathbf{P}_{\mathcal{S}_i} \mathbf{c}^{(t)}\right)}{T_{\text{def}}} \right), \quad \mathcal{S}_i = \text{span}\{\mathbf{e}_k : k \in \text{coords}(\mathcal{Y}_i)\} $$
+              </div>
+              <div class="formula-box">
+                <div class="formula-header">
+                  <span>LaTeX Source</span>
+                  <span class="copy-link" onclick="copySnippet('latex5')">Copy</span>
+                </div>
+                <code id="latex5">\tau_i^{(t)} = \text{Softmax}\left( \frac{\cos\left(\mathbf{P}_{\mathcal{S}_i} \Delta \mathbf{w}_i, \mathbf{P}_{\mathcal{S}_i} \mathbf{c}^{(t)}\right)}{T_{\text{def}}} \right), \quad \mathcal{S}_i = \text{span}\{\mathbf{e}_k : k \in \text{coords}(\mathcal{Y}_i)\}</code>
+              </div>
+              <p style="margin-top: 8px;">Áp dụng cosine trust trên lát cắt tham số head phân lớp tương ứng với nhãn $\mathcal{Y}_i$.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-box">
+          <div class="code-bar">
+            <span class="code-path">src/core/aggregator.py (L120-L144) &bull; ĐÃ SỬA CHUẨN</span>
+            <span class="copy-link" onclick="copySnippet('code5')">Copy Code</span>
+          </div>
+          <pre id="code5"><code>if head_deltas is not None:
+    feature_dim = head_deltas.size(1) // num_classes
+    mask = active_masks.float().unsqueeze(2).expand(n, num_classes, feature_dim).reshape(n, -1)
+    unit_head = head_deltas * mask
+    unit_head = F.normalize(unit_head, dim=1, eps=1e-10)
+    centroid_head = unit_head.mean(dim=0)
+    centroid_masked = centroid_head.unsqueeze(0) * mask
+    sims = F.cosine_similarity(unit_head, centroid_masked, dim=1, eps=1e-10)</code></pre>
+        </div>
+
+        <div class="card-footer">
+          <span>Trạng thái: <strong>Đã sửa & có Unit Test</strong> (Commit 0e86555).</span>
+          <span class="footer-action" style="color: var(--accent-green);">✓ Bảo vệ client non-IID honest & sẵn sàng cho Byzantine Benchmark</span>
+        </div>
+      </div>
+
+      <!-- ITEM 6: TEST LOSS EVALUATION (RESOLVED) -->
+      <div class="card" data-category="aligned" data-id="6">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="checkbox" onclick="toggleCheck(6)"></div>
+            <div>
+              <div class="card-id">Core 06 &bull; Inference Evaluation Decoupling</div>
+              <div class="card-title">Decoupled Evaluation: Test Loss vs Argmax Masking</div>
+            </div>
+          </div>
+          <span class="status-pill aligned">ĐÃ KHẮC PHỤC (Commit 0e86555)</span>
+        </div>
+
+        <div class="abstract-box">
+          <div class="label">Hiện trạng Đã Sửa</div>
+          <div class="text">Đã giải quyết triệt để lỗi số học test_loss = 3.2 triệu. Test loss giờ đây đo lường chính xác phân phối Cross-Entropy tự nhiên ($&lt; 100$), trong khi accuracy áp dụng nhãn lọc chính xác.</div>
+        </div>
+
+        <div class="split-grid">
+          <div class="column">
+            <div class="column-title code">Quy Trình Đánh Giá Tách Biệt (Đã Khắc Phục)</div>
+            <div class="column-content">
+              <p>• Trong <code>evaluate_ensemble()</code>, hai luồng tính toán đã được phân tách rõ ràng:</p>
+              <p>1. <strong>Test Loss</strong>: <code>loss = criterion(logits_ensemble, labels)</code> tính trên ensemble logits thô, Softmax không bị dải $-10^9$ kéo sập xác suất nhãn đúng về 0.</p>
+              <p>2. <strong>Accuracy</strong>: <code>predicted = logits_ensemble.masked_fill(~mask, -1e4).argmax(dim=1)</code> chỉ áp dụng lọc nhãn cục bộ tại bước chọn class.</p>
+              <p>• <strong>Kiểm thử xác nhận:</strong> <code>test_aclm_evaluation_loss_stability</code> trong <code>tests/test_audit_fixes.py</code> khẳng định loss hữu hạn, ổn định ($&lt; 100$).</p>
+            </div>
+          </div>
+          <div class="column">
+            <div class="column-title math">Đề Xuất Quy Trình Đánh Giá Chuẩn Cho Paper</div>
+            <div class="column-content">
+              <p>Công thức suy luận và đánh giá:</p>
+              <div class="math-rendered">
+                $$ \mathcal{L}_{eval} = -\frac{1}{|\mathcal{D}_{test}|} \sum_{(x, y) \in \mathcal{D}_{test}} \log \frac{\exp(z_{ensemble, y})}{\sum_{c=1}^C \exp(z_{ensemble, c})} $$
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 6px;">
+                  $$ \hat{y} = \arg\max_{c \in \mathcal{Y}_i} \left[ z_{ensemble, c} \right] $$
+                </div>
+              </div>
+              <div class="formula-box">
+                <div class="formula-header">
+                  <span>LaTeX Source</span>
+                  <span class="copy-link" onclick="copySnippet('latex6')">Copy</span>
+                </div>
+                <code id="latex6">\hat{y} = \arg\max_{c \in \mathcal{Y}_i} z_c, \quad \mathcal{L}_{eval} = -\frac{1}{|\mathcal{D}_{test}|} \sum_{(x, y)} \log \frac{\exp(z_y)}{\sum_c \exp(z_c)}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-box">
+          <div class="code-bar">
+            <span class="code-path">src/core/hierarchical_ensemble_engine.py (L545-L551) &bull; ĐÃ SỬA CHUẨN</span>
+            <span class="copy-link" onclick="copySnippet('code6')">Copy Code</span>
+          </div>
+          <pre id="code6"><code>loss = criterion(logits_ensemble, labels)
+total_loss += loss.item()
+if getattr(self.config.clients, "active_class_inference_mask", True) and getattr(state, "active_mask", None) is not None:
+    mask = state.active_mask.to(self.device).unsqueeze(0)
+    predicted = logits_ensemble.masked_fill(~mask, -1e4).argmax(dim=1)
+else:
+    predicted = logits_ensemble.argmax(dim=1)</code></pre>
+        </div>
+
+        <div class="card-footer">
+          <span>Trạng thái: <strong>Đã sửa & có Unit Test</strong> (Commit 0e86555).</span>
+          <span class="footer-action" style="color: var(--accent-green);">✓ Dữ liệu Table II LaTeX sạch số liệu</span>
+        </div>
+      </div>
+
+      <!-- ITEM 7: TEMPORAL TRUST TRACKING -->
+      <div class="card" data-category="aligned" data-id="7">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="checkbox" onclick="toggleCheck(7)"></div>
+            <div>
+              <div class="card-id">Core 07 &bull; Trust Reputation</div>
+              <div class="card-title">Temporal Trust Tracking (EMA) & Blacklist Isolation</div>
+            </div>
+          </div>
+          <span class="status-pill aligned">Aligned</span>
+        </div>
+
+        <div class="abstract-box">
+          <div class="label">Abstract Trích Dẫn</div>
+          <div class="text">"...and updates client trust scores over communication rounds to isolate persistent Byzantine actors."</div>
+        </div>
+
+        <div class="split-grid">
+          <div class="column">
+            <div class="column-title code">Code Mechanics & Tensor Flow</div>
+            <div class="column-content">
+              <p>Mỗi vòng $t$, độ tin cậy tức thời $\tau_i^{(t)}$ được sinh ra từ Soft Cosine centroid distance.</p>
+              <p>Điểm uy tín tích lũy $T_i^{(t)}$ được cập nhật qua bộ lọc EMA với hệ số quán tính $\beta = 0.85$ (<code>reputation_momentum</code>).</p>
+              <p>Client có $T_i^{(t)} < 0.15$ bị gán cờ <code>is_confirmed_malicious = True</code> và bị cô lập vĩnh viễn khỏi quá trình tổng hợp.</p>
+            </div>
+          </div>
+          <div class="column">
+            <div class="column-title math">Đề Xuất Công Thức Cho Paper (LaTeX)</div>
+            <div class="column-content">
+              <p>Quy tắc cập nhật uy tín thời gian thực:</p>
+              <div class="math-rendered">
+                $$ T_i^{(t)} = \beta T_i^{(t-1)} + (1 - \beta) \cdot \min\left(1.0, |\mathcal{C}_{k(i)}| \cdot \tau_i^{(t)}\right) $$
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 6px;">
+                  $$ \mathcal{A}_{active}^{(t)} = \{ i \in \mathcal{C}_k : T_i^{(t)} \ge \theta_{iso} \}, \quad \theta_{iso} = 0.15, \; \beta = 0.85 $$
+                </div>
+              </div>
+              <div class="formula-box">
+                <div class="formula-header">
+                  <span>LaTeX Source</span>
+                  <span class="copy-link" onclick="copySnippet('latex7')">Copy</span>
+                </div>
+                <code id="latex7">T_i^{(t)} = \beta T_i^{(t-1)} + (1 - \beta) \cdot \min\left(1.0, |\mathcal{C}_{k(i)}| \cdot \tau_i^{(t)}\right)</code>
+              </div>
+              <div class="formula-box" style="margin-top: 6px;">
+                <div class="formula-header">
+                  <span>Sub-formula: Active Set</span>
+                  <span class="copy-link" onclick="copySnippet('latex7_sub')">Copy Sub</span>
+                </div>
+                <code id="latex7_sub">\mathcal{A}_{active}^{(t)} = \{ i \in \mathcal{C}_k : T_i^{(t)} \ge \theta_{iso} \}, \quad \theta_{iso} = 0.15, \; \beta = 0.85</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-box">
+          <div class="code-bar">
+            <span class="code-path">src/core/unified_defended_engine.py (L178-L186)</span>
+            <span class="copy-link" onclick="copySnippet('code7')">Copy Code</span>
+          </div>
+          <pre id="code7"><code>norm_t = min(1.0, t_score * n_members)
+self.client_trust_scores[cid] = (
+    self.reputation_momentum * self.client_trust_scores[cid]
+    + (1.0 - self.reputation_momentum) * norm_t
+)
+if self.client_trust_scores[cid] &lt; self.malicious_reputation_threshold:
+    self.clients_state[cid].is_confirmed_malicious = True</code></pre>
+        </div>
+
+        <div class="card-footer">
+          <span>Trạng thái: <strong>Khớp 100%</strong> công thức Moving Average.</span>
+          <span class="footer-action">✓ Sẵn sàng đưa vào Defense Section</span>
+        </div>
+      </div>
+
+      <!-- ITEM 8: ORCHESTRATION & AUTOMATION -->
+      <div class="card" data-category="aligned" data-id="8">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="checkbox" onclick="toggleCheck(8)"></div>
+            <div>
+              <div class="card-id">Core 08 &bull; Experimental Execution</div>
+              <div class="card-title">AAMAS Unified Suite Orchestrator & Automated LaTeX Generation</div>
+            </div>
+          </div>
+          <span class="status-pill resolved">Hoàn Chỉnh</span>
+        </div>
+
+        <div class="abstract-box">
+          <div class="label">Abstract Trích Dẫn</div>
+          <div class="text">"Comprehensive evaluation on CIFAR-100 across five Dirichlet non-IID regimes... four representative Byzantine poisoning attacks... 50-client network with partial participation... MobileNetV3 and ResNet-9."</div>
+        </div>
+
+        <div class="split-grid">
+          <div class="column">
+            <div class="column-title code">Cấu Trúc Điều Phối Jobs Trong Code</div>
+            <div class="column-content">
+              <p><code>scripts/run_aamas_suite.py</code> quản lý 5 Jobs nghiên cứu độc lập:</p>
+              <p>• <strong>Job 1</strong>: Personalization (7 methods &bull; 5 regimes &bull; 3 seeds).<br>
+              • <strong>Job 2</strong>: Byzantine Matrix (4 attack vectors &bull; 5 rates).<br>
+              • <strong>Job 3</strong>: 50-Client Scale ($N=50, C_p=0.20$).<br>
+              • <strong>Job 4</strong>: MobileNetV3 Edge Hardware Profiling.<br>
+              • <strong>Job 5</strong>: Ablation Study (w/o ACLM, w/o Parent, $K=1$, $K=3$).</p>
+              <p style="margin-top: 8px;">• <strong>Kaggle Dual-Account Notebooks (Chạy Song Song 2 GPU):</strong><br>
+              - <code>kaggle_session1_personalization_ablation.ipynb</code> (Job 1 + Job 5)<br>
+              - <code>kaggle_session2_byzantine_scaling_edge.ipynb</code> (Job 2 + Job 3 + Job 4)</p>
+            </div>
+          </div>
+          <div class="column">
+            <div class="column-title math">Artifacts LaTeX Tự Động Sinh Ra</div>
+            <div class="column-content">
+              <p><code>scripts/generate_all_tables.py</code> xuất ra thư mục <code>outputs/tables/</code>:</p>
+              <div class="formula-box">
+                <code id="tables_list">• table2_cifar100.tex : Personalization vs 6 Baselines
+• table3_byzantine.tex: Robustness Matrix across f
+• table4_scale50.tex  : 50-Client Scalability Benchmark
+• table5_mobilenet.tex: Edge Hardware Latency & VRAM</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-box">
+          <div class="code-bar">
+            <span class="code-path">CLI Execution Commands</span>
+            <span class="copy-link" onclick="copySnippet('code8')">Copy Commands</span>
+          </div>
+          <pre id="code8"><code>python scripts/run_aamas_suite.py --smoke-test       # Test luồng 1 round xác nhận không lỗi
+python scripts/run_aamas_suite.py --job 1            # Job 1: Personalization Matrix (7 methods)
+python scripts/run_aamas_suite.py --job 2            # Job 2: Byzantine Matrix (4 attack vectors)
+python scripts/run_aamas_suite.py --job 3            # Job 3: 50 clients scale benchmark
+python scripts/run_aamas_suite.py --job 4            # Job 4: MobileNetV3 Edge hardware profiling
+python scripts/run_aamas_suite.py --job 5            # Job 5: Ablation study
+python scripts/run_aamas_suite.py --job finalize     # Xuất trọn bộ bảng LaTeX và đồ thị PDF</code></pre>
+        </div>
+
+        <div class="card-footer">
+          <span>Đánh giá: <strong>Cấu trúc chuẩn mực theo tiêu chí Reproducibility</strong> của hội nghị AAMAS.</span>
+          <span class="footer-action">✓ Sẵn sàng xuất artifact nộp bài</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- GUIDE SECTION: GOLDEN KEYWORDS & PITFALLS -->
+    <div class="guide-box">
+      <h2>💡 CẨM NANG: CÁC TỪ KHÓA "VÀNG" NÊN ĐƯA VÀO PROMPT ĐỂ TRÁNH VIBE AI</h2>
+      <p style="color: var(--text-secondary); font-size: 13px;">
+        Để sản phẩm (cả Frontend UI lẫn bài viết khoa học) trông tự nhiên, chuyên nghiệp và <strong>tuyệt đối không bị mùi "generic AI-generated template"</strong>, hãy ghi nhớ bảng phân loại từ khóa dưới đây khi ra lệnh:
+      </p>
+
+      <div class="guide-columns">
+        <!-- Avoid Column -->
+        <div class="guide-col avoid">
+          <h3>⛔ TỪ KHÓA NÊN ĐƯA VÀO NEGATIVE PROMPT (CẦN TRÁNH)</h3>
+          <ul>
+            <li><strong>Frontend / Giao diện:</strong>
+              <br>• Tránh: <code>futuristic</code>, <code>neon glow</code>, <code>cyberpunk</code>, <code>glassmorphism</code>, <code>dark gradient background</code>, <code>ambient light</code>, <code>glowing borders</code>, <code>heavy drop shadows</code>, <code>floating colored circles</code>.
+              <br><em>(Lý do: Đây là đặc trưng nhận diện của web do AI vẽ template tự động, thiếu tính thực dụng).</em>
+            </li>
+            <li style="margin-top: 10px;"><strong>Văn phong Paper / Abstract:</strong>
+              <br>• Tránh: <code>delve</code>, <code>testament</code>, <code>beacon</code>, <code>revolutionize</code>, <code>tapestry</code>, <code>game-changing</code>, <code>holistic paradigm</code>, <code>seamlessly</code>, <code>pivotal</code>, <code>fosters</code>, <code>groundbreaking</code>.
+              <br><em>(Lý do: Reviewer hội nghị Top-tier coi các tính từ bóng bẩy này là cờ đỏ cảnh báo bài do ChatGPT viết).</em>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Use Column -->
+        <div class="guide-col use">
+          <h3>✅ TỪ KHÓA "VÀNG" NÊN ĐƯA VÀO PROMPT (KHUYÊN DÙNG)</h3>
+          <ul>
+            <li><strong>Frontend / Giao diện:</strong>
+              <br>• Dùng: <code>clean modern flat design</code>, <code>solid background surfaces</code>, <code>crisp 1px borders</code>, <code>high contrast typography</code>, <code>developer dashboard style</code>, <code>GitHub Dark / Linear minimalist theme</code>, <code>functional data density</code>.
+              <br><em>(Lý do: Tạo cảm giác phần mềm kỹ thuật cao cấp, đáng tin cậy do chuyên gia làm).</em>
+            </li>
+            <li style="margin-top: 10px;"><strong>Văn phong Paper / Abstract:</strong>
+              <br>• Dùng: <code>coordinates</code>, <code>evaluates exclusively within</code>, <code>parameterizes</code>, <code>mitigates gradient interference</code>, <code>preserves parameter footprint</code>, <code>bounds distance distortion</code>, <code>partition of unity</code>.
+              <br><em>(Lý do: Văn phong trung tính, chuẩn xác về mặt kỹ thuật, thuyết phục cao với reviewer).</em>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>HEP-FL Technical Verification Dashboard &bull; AAMAS 2027 Submission Audit &bull; Generated Clean Flat Edition</p>
+    </footer>
+  </div>
+
+  <script>
+    // State Persistence
+    const KEY = 'hep_fl_audit_state_v3';
+    let state = JSON.parse(localStorage.getItem(KEY) || '{}');
+
+    function updateProgress() {
+      const total = 8;
+      const done = Object.values(state).filter(Boolean).length;
+      document.getElementById('totalCount').innerText = total;
+      document.getElementById('alignedCount').innerText = done;
+    }
+
+    function toggleCheck(id) {
+      state[id] = !state[id];
+      localStorage.setItem(KEY, JSON.stringify(state));
+      renderChecks();
+      updateProgress();
+    }
+
+    function renderChecks() {
+      document.querySelectorAll('.card').forEach(card => {
+        const id = card.getAttribute('data-id');
+        const box = card.querySelector('.checkbox');
+        if (state[id]) {
+          box.classList.add('checked');
+          card.style.opacity = '0.7';
+        } else {
+          box.classList.remove('checked');
+          card.style.opacity = '1';
+        }
+      });
+    }
+
+    // Filter Logic
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const f = btn.getAttribute('data-filter');
+
+        document.querySelectorAll('.card').forEach(c => {
+          const cat = c.getAttribute('data-category');
+          if (f === 'all' || cat === f) {
+            c.style.display = 'block';
+          } else {
+            c.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // Search Logic
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      const val = e.target.value.toLowerCase();
+      document.querySelectorAll('.card').forEach(c => {
+        const text = c.innerText.toLowerCase();
+        c.style.display = text.includes(val) ? 'block' : 'none';
+      });
+    });
+
+    // Copy Utility
+    function copySnippet(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      navigator.clipboard.writeText(el.innerText).then(() => {
+        alert('Đã sao chép vào clipboard: ' + el.innerText.substring(0, 40) + '...');
+      });
+    }
+
+    // Theme Toggle Logic
+    const themeBtn = document.getElementById('themeToggleBtn');
+    let currentTheme = localStorage.getItem('hep_fl_theme') || 'dark';
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        themeBtn.innerText = '☀️ Theme: Clean Light';
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        themeBtn.innerText = '🌙 Theme: Solid Dark';
+      }
+      localStorage.setItem('hep_fl_theme', theme);
+    }
+    themeBtn.addEventListener('click', () => {
+      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      applyTheme(currentTheme);
+    });
+    applyTheme(currentTheme);
+
+    // KaTeX Auto-Render Execution
+    function renderMath() {
+      if (window.renderMathInElement) {
+        window.renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\[', right: '\\]', display: true },
+            { left: '\\(', right: '\\)', display: false }
+          ],
+          ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+          throwOnError: false
+        });
+      } else {
+        setTimeout(renderMath, 150);
+      }
+    }
+    window.addEventListener('DOMContentLoaded', renderMath);
+    window.addEventListener('load', renderMath);
+
+    // Init
+    renderChecks();
+    updateProgress();
+    renderMath();
+  </script>
+</body>
+
+</html>

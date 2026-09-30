@@ -119,7 +119,7 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
         # -------------------------------------------------------------
         print("\n[2/4] Training FedRep (N=50, Cp=0.2)...")
         global_bb = ResNet9(in_channels=3, num_classes=num_classes).to(device)
-        local_heads = [nn.Linear(256, 10).to(device) for _ in range(num_clients)]
+        local_heads = [nn.Linear(256, num_classes).to(device) for _ in range(num_clients)]
 
         for r in range(num_rounds):
             active_clients = rng.choice(num_clients, clients_per_round, replace=False)

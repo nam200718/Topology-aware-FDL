@@ -299,6 +299,8 @@ def run_byzantine_suite(args, device, seeds, base_defaults):
                     "byzantine_rate": rate,
                     "mean_acc": res["mean_accuracy"],
                     "std_acc": res["std_accuracy"],
+                    "mean_b10": res.get("mean_bottom10"),
+                    "std_b10": res.get("std_bottom10"),
                     "per_seed_acc": res["per_seed_accuracies"],
                     "elapsed_s": res["elapsed_seconds"],
                 }

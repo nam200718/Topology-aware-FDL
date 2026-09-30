@@ -194,7 +194,7 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
                 # Compute deltas relative to parent reference
                 p_deltas = [s.weights - ref for s in clean_states]
                 masks = [client_active_masks.get(s.client_id) for s in clean_states]
-                stacked_masks = torch.stack(masks) if all(m is not None for m in masks) else None
+                stacked_masks = torch.stack(masks).to(ref.device) if all(m is not None for m in masks) else None
 
                 agg_delta = self.cluster_defense_aggregator.aggregate_deltas(
                     p_deltas, reference=ref, active_masks=stacked_masks
@@ -234,7 +234,7 @@ class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
             if defense_scope in ("global", "both"):
                 r_deltas = [s.weights - root_reference for s in all_root_contributions]
                 masks = [client_active_masks.get(s.client_id) for s in all_root_contributions]
-                stacked_masks = torch.stack(masks) if all(m is not None for m in masks) else None
+                stacked_masks = torch.stack(masks).to(root_reference.device) if all(m is not None for m in masks) else None
 
                 agg_delta = self.global_defense_aggregator.aggregate_deltas(
                     r_deltas, reference=root_reference, active_masks=stacked_masks
