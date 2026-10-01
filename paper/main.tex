@@ -1,0 +1,76 @@
+\documentclass[sigconf,anonymous]{aamas}
+
+%%% Load required packages
+\usepackage{balance} % for balancing columns on the final page
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{subcaption}
+\usepackage{placeins} % Prevents tables/figures from floating past their sections
+
+%%% AAMAS-2027 copyright block (do not change!)
+\makeatletter
+\gdef\@copyrightpermission{
+  \begin{minipage}{0.2\columnwidth}
+   \href{https://creativecommons.org/licenses/by/4.0/}{\includegraphics[width=0.90\textwidth]{by}}
+  \end{minipage}\hfill
+  \begin{minipage}{0.8\columnwidth}
+   \href{https://creativecommons.org/licenses/by/4.0/}{This work is licensed under a Creative Commons Attribution International 4.0 License.}
+  \end{minipage}
+  \vspace{5pt}
+}
+\makeatother
+
+\setcopyright{ifaamas}
+\acmConference[AAMAS 2027]{Proc.\@ of the 26th International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2027)}{3--7 May 2027}{Hanoi, Vietnam}{M.~Baldoni, F.~Fang, W.~Yeoh, N.~Yorke-Smith (eds.)}
+\copyrightyear{2027}
+\acmYear{2027}
+\acmDOI{}
+\acmISBN{}
+
+%%% OpenReview submission ID
+\acmSubmissionID{<<OpenReview submission id>>}
+
+%%% Track
+\submissionType{Research Paper Track}
+
+%%% Title
+\title{FedHEP: Efficient Hierarchical Ensemble Personalization in Federated Learning}
+
+%%% Author block (hidden in anonymous mode)
+\author{Anonymous Author(s)}
+
+%%% Custom macros
+\newcommand{\fedhep}{\textsc{FedHEP}}
+\newcommand{\hepfl}{\textsc{FedHEP}}
+\newcommand{\aclm}{\textsc{ACLM}}
+\newcommand{\sccf}{\textsc{SCCF}}
+\newcommand{\ttt}{\textsc{TTT}}
+\newcommand{\Rskew}{R_{\mathrm{skew}}}
+
+%%% Abstract and Keywords
+\input{sections/abstract}
+
+\begin{document}
+
+\maketitle
+
+%%% Paper Sections
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/methodology}
+\input{sections/experiments}
+\input{sections/conclusion}
+
+%%% Balance columns on last page
+\balance
+
+%%% References
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}

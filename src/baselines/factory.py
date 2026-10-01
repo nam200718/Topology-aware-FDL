@@ -124,7 +124,7 @@ def build_baseline_engine(
         engine = CentralizedEngine(config, topology, aggregator, device=dev)
         check_star_invariant(topology, num_clients)
 
-    elif method_id.startswith("topo") or method_id.startswith("hep"):
+    elif method_id.startswith("topo") or method_id.startswith("hep") or method_id.startswith("fedhep"):
         clusters = config.topology.params.get("num_clusters", 3)
         topology = HierarchicalTopology(num_clusters=clusters)
         aggregator = FedAvgAggregator()

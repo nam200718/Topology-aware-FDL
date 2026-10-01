@@ -1,0 +1,31 @@
+\begin{table}[!htbp]
+\caption{Byzantine robustness test accuracy (\%) on CIFAR-100 under four adversarial attack vectors with corruption fraction $q \in [0.0, 0.4]$ ($\alpha=0.5$).}
+\label{tab:byzantine}
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l ccccc}
+\toprule
+Attack Vector & $q=0.0$ & $q=0.1$ & $q=0.2$ & $q=0.3$ & $q=0.4$ \\
+\midrule
+\multicolumn{6}{l}{\textit{FedAvg (No Defense)}} \\
+Label Flipping   & -- & -- & -- & -- & -- \\
+Sign Flipping    & -- & -- & -- & -- & -- \\
+Gradient Ascent  & -- & -- & -- & -- & -- \\
+Gaussian Noise   & -- & -- & -- & -- & -- \\
+\midrule
+\multicolumn{6}{l}{\textit{Multi-Krum Baseline}} \\
+Label Flipping   & -- & -- & -- & -- & -- \\
+Sign Flipping    & -- & -- & -- & -- & -- \\
+Gradient Ascent  & -- & -- & -- & -- & -- \\
+Gaussian Noise   & -- & -- & -- & -- & -- \\
+\midrule
+\multicolumn{6}{l}{\textit{\hepfl{} (SCCF + Norm Bounding + TTT)}} \\
+Label Flipping   & -- & -- & -- & -- & -- \\
+Sign Flipping    & -- & -- & -- & -- & -- \\
+Gradient Ascent  & -- & -- & -- & -- & -- \\
+Gaussian Noise   & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

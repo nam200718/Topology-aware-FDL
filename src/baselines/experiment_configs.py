@@ -194,6 +194,12 @@ SEEDS = [42, 123, 7]
 def get_method_meta(method_id: str) -> Dict[str, Any]:
     """Retrieve metadata dict for a method ID with aliases."""
     alias_map = {
+        "fedhep": "topo",
+        "fed_hep": "topo",
+        "fed-hep": "topo",
+        "fedhep_defended": "topo_defended",
+        "fedhep-defended": "topo_defended",
+        "fed_hep_defended": "topo_defended",
         "hep": "topo",
         "hep_fl": "topo",
         "hep-fl": "topo",

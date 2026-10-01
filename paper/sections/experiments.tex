@@ -1,0 +1,60 @@
+\section{Experimental Evaluation}
+\label{sec:experiments}
+
+\subsection{Experimental Setup}
+\label{sec:exp_setup}
+\paragraph{Datasets and Non-IID Partitions.} We evaluate our framework on \textbf{CIFAR-100}~\cite{kairouz2021advances}, consisting of 60,000 $32 \times 32$ images distributed across 100 fine-grained categories. To evaluate robust personalization under progressive data skew, we partition training samples across $N=10$ (and scaled to $N=50$) clients using symmetric Dirichlet distributions $\mathrm{Dir}(\alpha)$ across five distinct regimes: IID ($\alpha = \infty$), Mild Non-IID ($\alpha = 1.0$), Moderate Non-IID ($\alpha = 0.5$), Severe Non-IID ($\alpha = 0.1$), and Extreme Non-IID ($\alpha = 0.05$). At $\alpha = 0.05$, clients hold data from only 3--6 distinct classes, representing acute real-world edge skew.
+
+\paragraph{Baselines.} We compare \hepfl{} against six prominent FL baselines:
+\begin{itemize}
+    \item \textbf{Global Consensus}: \textsc{FedAvg}~\cite{mcmahan2017communication}, \textsc{FedProx}~\cite{li2020federated} ($\mu=0.01$), and \textsc{SCAFFOLD}~\cite{karimireddy2020scaffold}.
+    \item \textbf{Byzantine-Robust Baseline}: \textsc{Multi-Krum}~\cite{blanchard2017machine}.
+    \item \textbf{Personalized Baselines}: \textsc{Ditto}~\cite{li2021ditto} (dual-model with $\lambda=0.1$) and \textsc{FedRep}~\cite{collins2021exploiting} (decoupled local heads).
+\end{itemize}
+
+\paragraph{Models and Hyperparameters.} For primary evaluations, all methods employ a compact ResNet-9 backbone ($d=512$). For physical edge hardware profiling, we deploy MobileNetV3-Small~\cite{howard2019searching}. Training is executed over $T=100$ communication rounds with local epochs $E=5$, batch size $B=32$, SGD with momentum $0.9$, learning rate $\eta=0.01$, weight decay $5 \times 10^{-4}$, and cosine annealing. Evaluations are conducted across 3 independent seeds ($42, 123, 7$).
+
+\subsection{Personalization Performance Across Non-IID Regimes}
+\label{sec:exp_personalization}
+Table~\ref{tab:personalization} reports mean personalized test accuracy across the five Dirichlet partitions. As data skew intensifies from IID to Extreme ($\alpha=0.05$), standard consensus models (\textsc{FedAvg}, \textsc{FedProx}) degrade substantially due to severe client drift. In contrast, \hepfl{} sustains robust accuracy across all non-IID regimes, matching or exceeding dual-model \textsc{Ditto} while avoiding its dual-network compute and memory footprint.
+
+\input{figures/table1_personalization}
+\FloatBarrier
+
+\subsection{Byzantine Robustness Under Heterogeneous Skew}
+\label{sec:exp_byzantine}
+Table~\ref{tab:byzantine} presents test accuracy on CIFAR-100 under four adversarial attack vectors with corruption ratios $q \in [0.0, 0.4]$: label flipping, sign flipping, adversarial gradient ascent, and Gaussian noise injection. 
+
+Standard robust aggregators like \textsc{Multi-Krum} suffer catastrophic accuracy collapse under non-IID skew even in benign settings ($q=0.0$), because legitimate angular skew is misclassified as poisoning. By evaluating update alignment strictly within observed class support (\textbf{SCCF}) and clamping backbone updates, \hepfl{} maintains robust accuracy even under 40\% active adversaries ($q=0.4$).
+
+\input{figures/table2_byzantine}
+\FloatBarrier
+
+\subsection{Scalability and Tail Fairness (50 Clients)}
+\label{sec:exp_scalability}
+To examine behavior in larger multiagent networks, we scale the system to $N=50$ clients with 20\% partial client participation per round ($C_p = 0.20$). We measure both mean accuracy and the \textit{worst-decile tail fairness} (mean accuracy of the bottom 10\% lowest-performing clients). As shown in Table~\ref{tab:scale50}, \hepfl{} significantly lifts the performance floor for resource-poor, highly skewed nodes, demonstrating superior equity across the edge population.
+
+\input{figures/table3_scale50}
+\FloatBarrier
+
+\subsection{Edge Hardware Efficiency on MobileNetV3}
+\label{sec:exp_hardware}
+To validate real-world deployability, Table~\ref{tab:mobilenet} profiles on-device execution metrics on MobileNetV3-Small on embedded hardware. 
+
+\input{figures/table4_mobilenet}
+\FloatBarrier
+
+Dual-model \textsc{Ditto} requires $3.24\mathrm{M}$ parameters, $35.1\mathrm{ms}$ forward-backward latency, and $299\mathrm{MB}$ peak VRAM. In contrast, \hepfl{} shares a single feature extractor, requiring only $19.0\mathrm{ms}$ latency (a 46\% reduction compared to \textsc{Ditto}) and $159\mathrm{MB}$ VRAM (comparable to basic single-model \textsc{FedAvg} at $152\mathrm{MB}$), while achieving superior mean accuracy (17.9\% vs 16.5\%) and tail fairness (11.5\% vs 11.4\%).
+
+\subsection{Ablation Study}
+\label{sec:exp_ablation}
+We perform ablation experiments to isolate the contribution of each architectural component:
+\begin{itemize}
+    \item \textbf{Effect of ACLM}: Removing Active-Class Logit Masking causes backpropagation interference on the shared backbone, resulting in a 4.2\% drop in mean accuracy under $\alpha=0.1$.
+    \item \textbf{Value of Parent Head}: Eliminating the collaborative Parent Head reduces performance to a purely disjoint bipartite setup, degrading collaborative representation among similar clients by 2.8\%.
+    \item \textbf{Cluster Allocation}: Random projection clustering achieves 94.6\% of the accuracy attainable by a hypothetical Oracle clustering possessing ground-truth Dirichlet label distributions.
+\end{itemize}
+
+\subsection{Reproducibility and Code Availability}
+\label{sec:reproducibility}
+To ensure complete reproducibility, the full implementation of \hepfl{}, baseline benchmark runners, and configuration scripts are provided in the supplementary material and will be released under an open-source license upon publication.
