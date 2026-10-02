@@ -28,7 +28,18 @@ from src.data.dataset import get_cifar10, get_cifar100, partition_data, ClientDa
 from src.experiments.builder import detect_device
 
 
-def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, num_rounds: int = 20, batch_size: int = 64, device=None, train_subset=None, data_dir="./data", dataset="cifar10"):
+def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, num_rounds: int = 20, batch_size: int = 64, device=None, train_subset=None, data_dir="./data", dataset="cifar10", skip_if_exists: bool = False):
+    out_path = os.path.join(_project_root, "outputs", "scale_50clients_results.json")
+    if skip_if_exists and os.path.exists(out_path):
+        try:
+            with open(out_path, "r") as f:
+                cached = json.load(f)
+            if "Moderate (alpha=0.5)" in cached and "Severe (alpha=0.1)" in cached:
+                print(f"✅ 50-client scalability results already verified at {out_path}. Skipping rerun.")
+                return cached
+        except Exception:
+            pass
+
     if device is None:
         device = detect_device()
     else:
@@ -413,6 +424,7 @@ if __name__ == "__main__":
     parser.add_argument("--data-dir", type=str, default="./data", help="Path to dataset directory or Kaggle input mount")
     parser.add_argument("--dataset", type=str, default="cifar10", choices=["cifar10", "cifar100"], help="Dataset to evaluate on")
     parser.add_argument("--train-subset", type=int, default=None, help="Train subset size")
+    parser.add_argument("--skip-if-exists", action="store_true", help="Skip benchmark if verified results already exist")
     args = parser.parse_args()
     run_50clients_scaling(
         num_clients=args.clients,
@@ -423,4 +435,5 @@ if __name__ == "__main__":
         train_subset=args.train_subset,
         data_dir=args.data_dir,
         dataset=args.dataset,
+        skip_if_exists=args.skip_if_exists,
     )

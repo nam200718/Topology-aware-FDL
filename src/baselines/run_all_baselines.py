@@ -6,6 +6,7 @@ Usage examples:
     python -m src.baselines.run_all_baselines --job byzantine --attacks label_flip,sign_flip
 """
 import argparse
+import copy
 import json
 import os
 import sys
@@ -276,6 +277,19 @@ def run_byzantine_suite(args, device, seeds, base_defaults):
                 if (m_id, atk, round(float(rate), 4)) in completed_keys and not getattr(args, "force", False):
                     print(f"\n>>> Skipping Method: {m_id.upper()} | Attack: {atk} | Byzantine Rate: {int(rate * 100)}% (Already Completed) <<<")
                     continue
+
+                # At rate 0.0, zero attackers exist regardless of attack vector; reuse existing clean result
+                if round(float(rate), 4) == 0.0 and (m_id, atk, 0.0) not in completed_keys and not getattr(args, "force", False):
+                    clean_match = next((item for item in results_table if item.get("method") == m_id and round(float(item.get("byzantine_rate", -1)), 4) == 0.0), None)
+                    if clean_match is not None:
+                        entry = copy.deepcopy(clean_match)
+                        entry["attack"] = atk
+                        results_table.append(entry)
+                        completed_keys.add((m_id, atk, 0.0))
+                        _atomic_json_dump(results_table, checkpoint_file)
+                        print(f"\n>>> Reusing clean baseline (q=0.0) for Method: {m_id.upper()} | Attack: {atk} (identical to {clean_match.get('attack')}) <<<")
+                        continue
+
                 print(f"\n>>> Method: {m_id.upper()} | Attack: {atk} | Byzantine Rate: {int(rate * 100)}% <<<")
                 config = create_byzantine_config(
                     method_id=m_id,

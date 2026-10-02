@@ -12,6 +12,7 @@ import os
 import sys
 import copy
 import json
+import shutil
 import time
 import numpy as np
 import torch
@@ -27,7 +28,24 @@ from src.data.dataset import get_cifar10, get_cifar100, partition_data, ClientDa
 from src.experiments.builder import detect_device
 
 
-def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_size: int = 32, device=None, train_subset=None, data_dir="./data", dataset="cifar10"):
+def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_size: int = 32, device=None, train_subset=None, data_dir="./data", dataset="cifar10", skip_if_exists: bool = False):
+    out_path = os.path.join(_project_root, "outputs", "mobilenet_benchmark_results.json")
+    if skip_if_exists:
+        artifact_path = os.path.join(_project_root, "experiments", "account2_artifacts", "mobilenet_benchmark_results.json")
+        target_src = out_path if os.path.exists(out_path) else (artifact_path if os.path.exists(artifact_path) else None)
+        if target_src is not None:
+            try:
+                with open(target_src, "r") as f:
+                    cached = json.load(f)
+                if "hardware_profile" in cached and "accuracy_benchmarks" in cached:
+                    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+                    if target_src != out_path:
+                        shutil.copy(target_src, out_path)
+                    print(f"✅ MobileNetV3 benchmark results already verified at {out_path} (reused from {target_src}). Skipping rerun.")
+                    return cached
+            except Exception:
+                pass
+
     if device is None:
         device = detect_device()
     else:
@@ -344,6 +362,7 @@ if __name__ == "__main__":
     parser.add_argument("--data-dir", type=str, default="./data", help="Path to dataset directory or Kaggle input mount")
     parser.add_argument("--dataset", type=str, default="cifar10", choices=["cifar10", "cifar100"], help="Dataset to evaluate on")
     parser.add_argument("--train-subset", type=int, default=None, help="Train subset size")
+    parser.add_argument("--skip-if-exists", action="store_true", help="Skip benchmark if verified results already exist")
     args = parser.parse_args()
     run_mobilenet_benchmark(
         num_clients=args.clients,
@@ -353,4 +372,5 @@ if __name__ == "__main__":
         train_subset=args.train_subset,
         data_dir=args.data_dir,
         dataset=args.dataset,
+        skip_if_exists=args.skip_if_exists,
     )

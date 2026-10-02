@@ -22,7 +22,7 @@ class ActiveMaskedCrossEntropyLoss(nn.Module):
         if active_mask is not None:
             if active_mask.dim() == 1:
                 active_mask = active_mask.unsqueeze(0)
-            logits = logits.masked_fill(~active_mask, self.mask_value)
+            logits = logits.masked_fill(~active_mask.to(logits.device), self.mask_value)
         return F.cross_entropy(logits, targets)
 
 
@@ -41,15 +41,15 @@ class ClassFrequencyBalancedMaskedLoss(nn.Module):
         if active_mask is not None:
             if active_mask.dim() == 1:
                 active_mask = active_mask.unsqueeze(0)
-            logits = logits.masked_fill(~active_mask, self.mask_value)
+            logits = logits.masked_fill(~active_mask.to(logits.device), self.mask_value)
 
         if class_counts is not None and len(class_counts) > 0:
             # Inverse frequency class weighting
-            weights = 1.0 / (class_counts.float() ** self.gamma + 1e-4)
+            weights = 1.0 / (class_counts.float().to(logits.device) ** self.gamma + 1e-4)
             # Normalize active class weights
             if active_mask is not None:
                 mask_1d = active_mask[0] if active_mask.dim() == 2 else active_mask
-                weights = weights * mask_1d.float()
+                weights = weights * mask_1d.float().to(logits.device)
             if (weights > 0).any():
                 weights = weights / (weights[weights > 0].mean() + 1e-8)
             else:
