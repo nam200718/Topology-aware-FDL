@@ -14,8 +14,8 @@ class EnvironmentConfig(BaseModel):
     # Optional subset sizes for faster experiments
     train_subset: Optional[int] = None
     test_subset: Optional[int] = None
-    # Dataset to use ("mnist", "cifar10", "cifar100", or "synthetic")
-    dataset: Literal["mnist", "cifar10", "cifar100", "synthetic"] = "mnist"
+    # Dataset to use ("mnist", "cifar10", "cifar100", "synthetic", "femnist", "emnist")
+    dataset: Literal["mnist", "cifar10", "cifar100", "synthetic", "femnist", "emnist"] = "mnist"
     # Root directory for storing or locating dataset files
     data_dir: str = "./data"
 

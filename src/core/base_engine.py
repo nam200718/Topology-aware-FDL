@@ -40,6 +40,18 @@ class BaseEngine(ABC):
             train_ds = TensorDataset(x_tr, y_tr)
             test_ds = TensorDataset(x_te, y_te)
             self.in_channels = 1
+        elif dataset_name in ("femnist", "emnist"):
+            data_dir = getattr(self.config.env, "data_dir", "./data")
+            from src.data.dataset import get_femnist
+            print("Loading and preparing FEMNIST (62-class EMNIST) dataset...")
+            train_ds, test_ds = get_femnist(
+                data_dir=data_dir,
+                train_subset=getattr(self.config.env, "train_subset", None),
+                test_subset=getattr(self.config.env, "test_subset", None),
+                seed=getattr(self.config.env, "seed", 42)
+            )
+            self.in_channels = 1
+            self.num_classes = 62
         elif dataset_name in ("cifar10", "cifar100"):
             data_dir = getattr(self.config.env, "data_dir", "./data")
             if dataset_name == "cifar100":
@@ -61,6 +73,7 @@ class BaseEngine(ABC):
                     seed=getattr(self.config.env, "seed", 42)
                 )
             self.in_channels = 3
+            self.num_classes = 100 if dataset_name == "cifar100" else 10
         else:
             data_dir = getattr(self.config.env, "data_dir", "./data")
             print("Loading and preparing MNIST dataset...")
@@ -71,7 +84,7 @@ class BaseEngine(ABC):
                 seed=getattr(self.config.env, "seed", 42)
             )
             self.in_channels = 1
-        self.num_classes = 100 if dataset_name == "cifar100" else 10
+            self.num_classes = 10
 
         self.train_dataset: torch.utils.data.Dataset = train_ds
         self.test_dataset: torch.utils.data.Dataset = test_ds

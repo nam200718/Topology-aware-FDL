@@ -24,6 +24,7 @@ from src.baselines.experiment_configs import (
     BYZANTINE_RATES,
     SEEDS,
     CIFAR100_DEFAULTS,
+    FEMNIST_DEFAULTS,
     get_method_meta,
     get_regime_meta,
     get_attack_meta,
@@ -112,7 +113,7 @@ def parse_args():
         "--dataset",
         type=str,
         default="cifar100",
-        choices=["cifar100", "cifar10", "synthetic", "mnist"],
+        choices=["cifar100", "cifar10", "synthetic", "mnist", "femnist", "emnist"],
         help="Dataset to evaluate on (default: cifar100)",
     )
     parser.add_argument(
@@ -166,18 +167,20 @@ def parse_args():
 
 
 def run_personalization_suite(args, device, seeds, base_defaults):
+    d_name = base_defaults.get("dataset", "cifar100")
     print("\n" + "=" * 70)
-    print("STARTING JOB 1: CIFAR-100 PERSONALIZATION & HETEROGENEITY BENCHMARK")
+    print(f"STARTING JOB 1: {d_name.upper()} PERSONALIZATION & HETEROGENEITY BENCHMARK")
     print("=" * 70)
 
     target_methods = [get_method_meta(m)["id"] for m in _parse_list_arg(args.methods, str)] if args.methods else PERSONALIZATION_METHODS
     target_regimes = [get_regime_meta(r)["id"] for r in _parse_list_arg(args.regimes, str)] if args.regimes else [r["id"] for r in REGIMES]
 
-    out_dir = os.path.join(args.output_dir, "personalization")
+    sub_dir = "personalization" if d_name == "cifar100" else f"personalization_{d_name}"
+    out_dir = os.path.join(args.output_dir, sub_dir)
     os.makedirs(out_dir, exist_ok=True)
 
     results_table = []
-    checkpoint_file = os.path.join(out_dir, "results_personalization.json")
+    checkpoint_file = os.path.join(out_dir, "results_personalization.json" if d_name == "cifar100" else f"results_personalization_{d_name}.json")
     completed_keys = set()
     if os.path.exists(checkpoint_file):
         try:
@@ -216,6 +219,7 @@ def run_personalization_suite(args, device, seeds, base_defaults):
             res = runner.run()
 
             entry = {
+                "dataset": d_name,
                 "method": m_id,
                 "regime": r_id,
                 "mean_acc": res["mean_accuracy"],
@@ -234,7 +238,7 @@ def run_personalization_suite(args, device, seeds, base_defaults):
             _atomic_json_dump(results_table, checkpoint_file)
 
     df = pd.DataFrame(results_table)
-    csv_file = os.path.join(out_dir, "results_personalization.csv")
+    csv_file = os.path.join(out_dir, "results_personalization.csv" if d_name == "cifar100" else f"results_personalization_{d_name}.csv")
     df.to_csv(csv_file, index=False)
     print(f"\nPersonalization suite completed! Results saved to:\n- {checkpoint_file}\n- {csv_file}")
     return df
@@ -413,7 +417,10 @@ def main():
     device = args.device or detect_accelerator()
     seeds = _parse_list_arg(args.seeds, int) or [42, 123, 7]
 
-    base_defaults = dict(CIFAR100_DEFAULTS)
+    if args.dataset in ("femnist", "emnist"):
+        base_defaults = dict(FEMNIST_DEFAULTS)
+    else:
+        base_defaults = dict(CIFAR100_DEFAULTS)
     base_defaults["dataset"] = args.dataset
     base_defaults["data_dir"] = args.data_dir
     if args.rounds is not None:

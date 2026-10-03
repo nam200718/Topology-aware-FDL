@@ -40,6 +40,19 @@ CIFAR100_FULL_DEFAULTS = dict(
     test_subset=None,
 )
 
+# FEMNIST evaluation defaults (62 classes, 1x28x28, ResNet-9)
+FEMNIST_DEFAULTS = dict(
+    dataset="femnist",
+    model_name="resnet9",
+    num_clients=15,
+    local_lr=0.02,
+    local_steps=3,
+    num_rounds=25,
+    eval_interval=5,
+    train_subset=15000,
+    test_subset=3000,
+)
+
 # ============================================================
 # TARGET METHODS: Exactly 5 Baselines + Proposed Topo
 # ============================================================
@@ -282,7 +295,8 @@ def create_personalization_config(
     method = get_method_meta(method_id)
     regime = get_regime_meta(regime_id)
 
-    exp_name = f"cifar100_{method_id}_{regime_id}"
+    d_name = defaults.get("dataset", "cifar100")
+    exp_name = f"{d_name}_{method_id}_{regime_id}"
 
     # Build client config
     client_kwargs = {
@@ -361,7 +375,8 @@ def create_byzantine_config(
     method = get_method_meta(method_id)
     regime = get_regime_meta(regime_id)
 
-    exp_name = f"cifar100_byz_{method_id}_{attack_type}_f{int(byzantine_rate * 100)}"
+    d_name = defaults.get("dataset", "cifar100")
+    exp_name = f"{d_name}_byz_{method_id}_{attack_type}_f{int(byzantine_rate * 100)}"
 
     client_kwargs = {
         "num_clients": defaults["num_clients"],

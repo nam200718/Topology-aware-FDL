@@ -74,7 +74,11 @@ def run_job_1(args, force: bool = False):
     device = args.device or detect_accelerator()
     seeds = _parse_list_arg(args.seeds, int) or [42, 123, 7]
 
-    base_defaults = dict(CIFAR100_DEFAULTS)
+    if args.dataset in ("femnist", "emnist"):
+        from src.baselines.experiment_configs import FEMNIST_DEFAULTS
+        base_defaults = dict(FEMNIST_DEFAULTS)
+    else:
+        base_defaults = dict(CIFAR100_DEFAULTS)
     base_defaults["dataset"] = args.dataset
     base_defaults["data_dir"] = getattr(args, "data_dir", "./data")
     if args.rounds is not None:
@@ -291,7 +295,7 @@ def main():
     parser.add_argument("--attacks", nargs="+", default=None, help="Attacks to run (space or comma separated)")
     parser.add_argument("--rates", nargs="+", default=None, help="Rates to run (space or comma separated)")
     parser.add_argument("--seeds", nargs="+", default=["42", "123", "7"], help="Random seeds (space or comma separated)")
-    parser.add_argument("--dataset", type=str, default="cifar100", choices=["cifar100", "cifar10", "synthetic", "mnist"])
+    parser.add_argument("--dataset", type=str, default="cifar100", choices=["cifar100", "cifar10", "synthetic", "mnist", "femnist", "emnist"])
     parser.add_argument("--rounds", type=int, default=None, help="Override communication rounds")
     parser.add_argument("--clients", type=int, default=None, help="Override client count")
     parser.add_argument("--device", type=str, default=None, help="Override device ('cuda', 'cpu')")

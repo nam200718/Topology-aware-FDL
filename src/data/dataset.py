@@ -232,6 +232,8 @@ def _is_valid_dataset_dir(path: str, dataset_name: str) -> bool:
         return {"train", "test"}.issubset(files)
     elif dataset_name == "cifar10":
         return {"data_batch_1", "test_batch"}.issubset(files) or {"batches.meta", "data_batch_1"}.issubset(files)
+    elif dataset_name in ("femnist", "emnist"):
+        return any("byclass" in f.lower() or "emnist" in f.lower() for f in files) or "EMNIST" in files
     return False
 
 
@@ -252,6 +254,9 @@ def _auto_link_dataset(data_dir: str, dataset_name: str) -> bool:
     elif dataset_name == "cifar10":
         folder_name = "cifar-10-batches-py"
         archive_prefixes = ("cifar-10", "cifar10")
+    elif dataset_name in ("femnist", "emnist"):
+        folder_name = "EMNIST"
+        archive_prefixes = ("emnist", "femnist")
     else:
         return False
 
@@ -451,6 +456,47 @@ def get_cifar100(data_dir="./data", train_subset=None, test_subset=None, seed=42
         indices = rng.choice(len(train_dataset), train_subset, replace=False)
         train_dataset = Subset(train_dataset, indices)
         
+    if test_subset is not None and test_subset < len(test_dataset):
+        indices = rng.choice(len(test_dataset), test_subset, replace=False)
+        test_dataset = Subset(test_dataset, indices)
+
+    return train_dataset, test_dataset
+
+
+def get_femnist(data_dir="./data", train_subset=None, test_subset=None, seed=42):
+    """Downloads and returns the 62-class FEMNIST (EMNIST byclass) train and test sets, optionally subsetted."""
+    import os, shutil
+    data_dir = _resolve_safe_data_dir(data_dir)
+
+    # EMNIST raw data requires 90 deg counter-clockwise rotation and horizontal flip
+    # to orient characters upright matching standard visual conventions.
+    transform = transforms.Compose([
+        transforms.Lambda(lambda img: transforms.functional.hflip(transforms.functional.rotate(img, -90))),
+        transforms.ToTensor(),
+        transforms.Normalize((0.1751,), (0.3332,)),
+    ])
+
+    _auto_link_dataset(data_dir, "femnist")
+    lock = _acquire_download_lock(data_dir, "emnist")
+    try:
+        try:
+            train_dataset = datasets.EMNIST(data_dir, split="byclass", train=True, download=True, transform=transform)
+            test_dataset = datasets.EMNIST(data_dir, split="byclass", train=False, download=True, transform=transform)
+        except (EOFError, RuntimeError, OSError, ValueError):
+            # Auto-heal: delete corrupted partial download and retry
+            emnist_dir = os.path.join(data_dir, "EMNIST")
+            if os.path.exists(emnist_dir):
+                shutil.rmtree(emnist_dir, ignore_errors=True)
+            train_dataset = datasets.EMNIST(data_dir, split="byclass", train=True, download=True, transform=transform)
+            test_dataset = datasets.EMNIST(data_dir, split="byclass", train=False, download=True, transform=transform)
+    finally:
+        _release_download_lock(lock)
+
+    rng = np.random.RandomState(seed)
+    if train_subset is not None and train_subset < len(train_dataset):
+        indices = rng.choice(len(train_dataset), train_subset, replace=False)
+        train_dataset = Subset(train_dataset, indices)
+
     if test_subset is not None and test_subset < len(test_dataset):
         indices = rng.choice(len(test_dataset), test_subset, replace=False)
         test_dataset = Subset(test_dataset, indices)
