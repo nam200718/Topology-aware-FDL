@@ -156,6 +156,7 @@ def main():
     parser.add_argument("--auto-stop", action="store_true", help="Automatically trigger pod shutdown upon completion")
     parser.add_argument("--force", action="store_true", help="Force rerun even if results already exist in checkpoints")
     parser.add_argument("--device", type=str, default=None, help="Override compute device ('cuda', 'cpu')")
+    parser.add_argument("--timeout-seconds", type=int, default=28800, help="Hard ceiling for timeout watchdog (default: 28800s / 8h)")
     args = parser.parse_args()
 
     workspace, data_dir, outputs_dir = resolve_base_dirs()
@@ -167,9 +168,9 @@ def main():
         print("\n[DRY RUN COMPLETE] Pre-flight checks passed successfully. Exiting without execution.")
         return
 
-    # Arm 2-hour safety watchdog
+    # Arm safety watchdog (default: 8 hours ceiling)
     if args.auto_stop:
-        arm_timeout_watchdog(timeout_seconds=7200)
+        arm_timeout_watchdog(timeout_seconds=args.timeout_seconds)
 
     t_suite_start = time.time()
 
