@@ -205,13 +205,10 @@ Topology-aware-FDL/
 |   |-- topologies/             # Dynamic topology graphs & clustering controllers
 |   \-- experiments/            # Experiment runner, logging, and plotting
 |-- scripts/
-|   |-- run_comparison.py       # Master runner for YAML-specified experiment suites
-|   |-- run_all_paper_experiments.py # Master orchestrator for all paper experiments
+|   |-- run_aamas_suite.py              # Unified master orchestrator (Jobs 1, 2, 3, 4, 5 & finalize)
+|   |-- run_scale_50clients.py          # 50-client scalability benchmark (Job 3)
+|   |-- run_mobilenet_benchmark.py      # MobileNetV3-Small edge benchmark (Job 4)
 |   |-- profile_hardware_efficiency.py  # Hardware latency & peak VRAM profiler
-|   |-- run_cifar100_benchmark.py       # High-cardinality CIFAR-100 benchmark
-|   |-- run_scale_50clients.py          # 50-client scalability benchmark
-|   |-- run_multi_attack_byzantine.py   # Multi-attack Byzantine suite
-|   |-- run_mobilenet_benchmark.py      # MobileNetV3-Small generalizability benchmark
 |   |-- run_cluster_k_sensitivity.py    # Cluster count (K) sensitivity sweep
 |   |-- run_drift_analysis.py           # Linear CKA representation drift analyzer
 |   |-- run_clustering_privacy_sweep.py # Sketching and DP sweep
@@ -264,7 +261,7 @@ All **94 unit tests** should pass.
 
 ### 4. Run a Fast Smoke Test (1 Round)
 ```bash
-python scripts/run_comparison.py --config configs/test_1round.yaml
+python scripts/run_aamas_suite.py --smoke-test
 ```
 
 ---
@@ -273,44 +270,49 @@ python scripts/run_comparison.py --config configs/test_1round.yaml
 
 ### Step-by-Step CLI Reproduction Commands
 
-* **Main 5-Regime Personalization Benchmark (Table III)**:
+* **Unified Full Suite Execution**:
   ```bash
-  # Execute full benchmark matrix across 5 regimes (seed 42)
-  python scripts/run_comparison.py --config configs/comparison.yaml
-
-  # Extract formatted LaTeX table rows from raw metrics
-  python scripts/generate_all_tables.py
+  python scripts/run_aamas_suite.py --job all
   ```
 
-* **Hardware Latency, Memory Footprint & Parameter Count (Table II & Figure 1)**:
+* **Job 1: Main 5-Regime Personalization Benchmark (Table 1)**:
+  ```bash
+  # Execute full benchmark matrix across 5 regimes (seeds 42, 123, 7)
+  python scripts/run_aamas_suite.py --job 1
+  ```
+
+* **Job 2: Multi-Attack Byzantine Fault Tolerance (Table 2 & Figure 2)**:
+  ```bash
+  # Evaluates 4 Defenses × 4 Attacks × 5 Attacker Fractions
+  python scripts/run_aamas_suite.py --job 2
+  ```
+
+* **Job 3: 50-Client Scalability Benchmark with Partial Participation (Table 3)**:
+  ```bash
+  python scripts/run_aamas_suite.py --job 3
+  # or directly: python scripts/run_scale_50clients.py
+  ```
+
+* **Job 4: MobileNetV3 Edge Vision Latency & Memory Footprint (Table 4)**:
+  ```bash
+  python scripts/run_aamas_suite.py --job 4
+  # or directly: python scripts/run_mobilenet_benchmark.py
+  ```
+
+* **Job 5: Component Ablations & Cluster Valuation (Table 5)**:
+  ```bash
+  python scripts/run_aamas_suite.py --job 5
+  ```
+
+* **Hardware Latency, Memory Footprint & Parameter Count**:
   ```bash
   python scripts/profile_hardware_efficiency.py
   ```
   *Outputs saved to `outputs/hardware_profiling/`.*
 
-* **High-Class Cardinality CIFAR-100 (Table IV.A)**:
+* **Finalize: LaTeX Tables & Figures Compilation**:
   ```bash
-  python scripts/run_cifar100_benchmark.py
-  ```
-  *Results saved to `outputs/cifar100_results.json`.*
-
-* **50-Client Scalability Benchmark with Partial Participation (Table IV.B)**:
-  ```bash
-  python scripts/run_scale_50clients.py
-  ```
-  *Results saved to `outputs/scale_50clients_results.json`.*
-
-* **Multi-Attack Byzantine Fault Tolerance (Table V & Figure 2)**:
-  ```bash
-  python scripts/run_multi_attack_byzantine.py
-  ```
-  *Results saved to `outputs/byzantine_multi_attack.json`.*
-
-* **MobileNetV3 Architectural Benchmark (Table VI)**:
-  ```bash
-  python scripts/run_mobilenet_benchmark.py
-  ```
-  *Results saved to `outputs/mobilenet_results.json`.*
+  python scripts/run_aamas_suite.py --job finalize
 
 * **Cluster Count (K) Sensitivity & Bipartite Certification (Table VII)**:
   ```bash
