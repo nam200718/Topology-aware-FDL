@@ -115,3 +115,18 @@ def test_hierarchical_lora_forward():
     out = lora_layer(x)
     assert out.shape == (8, 128)
 
+
+def test_direct_archive_import():
+    """Verify that legacy residual classes can also be imported directly from archive.legacy_residual."""
+    from archive.legacy_residual.model import (
+        HierarchicalResidualLinear as ArchLinear,
+        HierarchicalResidualResNet9 as ArchResNet9,
+        HierarchicalResidualMobileNetV3Small as ArchMobileNet,
+        HierarchicalLoRALinear as ArchLoRA,
+    )
+    from archive.legacy_residual.loss import compute_hierarchical_residual_penalty as arch_pen
+
+    layer = ArchLinear(in_features=32, num_classes=5)
+    pen = arch_pen(layer, r_skew=0.5, mu=1e-3)
+    assert pen.item() == 0.0
+

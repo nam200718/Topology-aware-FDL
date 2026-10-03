@@ -139,25 +139,16 @@ def compute_binomial_loss_weights(
 
 
 
-def compute_hierarchical_residual_penalty(model: nn.Module, r_skew: float, mu: float = 1e-3) -> torch.Tensor:
-    """
-    Computes continuous entropy-gated L2 shrinkage regularization on residual weights.
-    Under IID (r_skew -> 1.0): strongly penalizes weight_local -> 0 (collapses naturally to FedAvg).
-    Under Extreme Skew (r_skew -> 0.0): penalizes weight_cluster -> 0, allowing private specialization.
-    """
-    from src.core.model import HierarchicalResidualLinear
+def __getattr__(name: str):
+    if name == "compute_hierarchical_residual_penalty":
+        import warnings
+        from archive.legacy_residual.loss import compute_hierarchical_residual_penalty
+        warnings.warn(
+            "compute_hierarchical_residual_penalty is deprecated and has been archived. "
+            "FedHEP uses anchored binomial loss weighting with ActiveMaskedCrossEntropyLoss.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return compute_hierarchical_residual_penalty
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-    device = next(model.parameters()).device
-    reg_loss = torch.tensor(0.0, device=device)
-    for module in model.modules():
-        if isinstance(module, HierarchicalResidualLinear):
-            # Local residual shrinkage: mu * r_skew * ||Delta W_local||^2
-            reg_loss = reg_loss + 0.5 * mu * float(r_skew) * torch.sum(module.weight_local ** 2)
-            if module.use_bias and module.bias_local is not None:
-                reg_loss = reg_loss + 0.5 * mu * float(r_skew) * torch.sum(module.bias_local ** 2)
-
-            # Cluster residual shrinkage: mu * (1 - r_skew) * ||Delta W_cluster||^2
-            reg_loss = reg_loss + 0.5 * mu * float(1.0 - r_skew) * torch.sum(module.weight_cluster ** 2)
-            if module.use_bias and module.bias_cluster is not None:
-                reg_loss = reg_loss + 0.5 * mu * float(1.0 - r_skew) * torch.sum(module.bias_cluster ** 2)
-    return reg_loss

@@ -1,9 +1,9 @@
 """
 Unified Multi-Tier Defended Engine for Heterogeneous Federated Learning.
-Unites Hierarchical Residual Personalization and Multi-Tier Byzantine Defense.
+Unites Hierarchical Ensemble Personalization (FedHEP) and Multi-Tier Byzantine Defense.
 
 Features:
-1. Multi-Scale Parameter Coordination (Global, Cluster Residuals, On-Device Specialization).
+1. Multi-Scale Parameter Coordination (Global, Cluster, and On-Device Personalization Heads).
 2. Skew-Calibrated Soft Cosine Rejection: Eliminates false-positive penalties on specialized clients.
 3. Sentinel Pre-Filter: Disqualifies NaN / Inf gradient explosions immediately.
 4. Temporal Client Trust Tracking: Tracks dynamic client trust evolution across rounds.
@@ -27,7 +27,7 @@ from src.defense.trust_tracker import TrustTracker
 class UnifiedDefendedEngine(HierarchicalEnsembleEngine):
     """
     Unified Multi-Tier Defended Engine.
-    Coordinates hierarchical residual personalization with multi-tier Byzantine defense.
+    Coordinates hierarchical ensemble personalization (FedHEP) with multi-tier Byzantine defense.
     """
     def __init__(self, config, topology, aggregator, device="cpu",
                  defense_config: Optional[DefenseConfig] = None):

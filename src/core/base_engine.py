@@ -40,6 +40,7 @@ class BaseEngine(ABC):
             train_ds = TensorDataset(x_tr, y_tr)
             test_ds = TensorDataset(x_te, y_te)
             self.in_channels = 1
+            self.num_classes = 10
         elif dataset_name in ("femnist", "emnist"):
             data_dir = getattr(self.config.env, "data_dir", "./data")
             from src.data.dataset import get_femnist
