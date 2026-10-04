@@ -153,8 +153,13 @@ cython_debug/
 /data/
 /outputs/*
 !/outputs/REPORT/
+!/outputs/tables/
+!/outputs/master_experimental_data.json
+!/outputs/master_experimental_data.csv
 .gemini/
 .antigravity/
+.understand-anything/
+.understand*/
 .vscode/
 .idea/
 .zed/

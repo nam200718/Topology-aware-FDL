@@ -39,6 +39,94 @@ def load_json(rel_path: str) -> Optional[Any]:
 
 
 # ============================================================
+# TABLE I: FEMNIST PERSONALIZATION BENCHMARK
+# ============================================================
+def load_femnist_data() -> Dict[Tuple[str, str], Dict[str, float]]:
+    """Loads FEMNIST personalization results from baselines/personalization_femnist."""
+    lookup: Dict[Tuple[str, str], Dict[str, float]] = {}
+    primary = load_json("baselines/personalization_femnist/results_personalization_femnist.json")
+    if primary and isinstance(primary, list):
+        for entry in primary:
+            m = entry.get("method", "").lower()
+            r = entry.get("regime", "").lower()
+            lookup[(m, r)] = {
+                "mean_acc": float(entry.get("mean_acc", 0.0)),
+                "std_acc": float(entry.get("std_acc", 0.0)),
+                "mean_b10": float(entry.get("mean_b10", 0.0)),
+                "std_b10": float(entry.get("std_b10", 0.0)),
+            }
+    return lookup
+
+
+def generate_table1_femnist():
+    data = load_femnist_data()
+    print("\n" + "=" * 75)
+    print("TABLE I: FEMNIST PERSONALIZATION BENCHMARK ACROSS 5 REGIMES (62 Classes)")
+    print("=" * 75)
+
+    regimes = [
+        ("iid", r"\textbf{IID ($\alpha=\infty$)}"),
+        ("mild", r"\textbf{Mild ($\alpha=1.0$)}"),
+        ("moderate", r"\textbf{Moderate ($\alpha=0.5$)}"),
+        ("severe", r"\textbf{Severe ($\alpha=0.1$)}"),
+        ("extreme", r"\textbf{Extreme ($\alpha=0.05$)}"),
+    ]
+
+    methods = [
+        ("fedavg", "FedAvg"),
+        ("fedprox", "FedProx"),
+        ("multikrum", "Multi-Krum"),
+        ("scaffold", "SCAFFOLD"),
+        ("ditto", "Ditto"),
+        ("fedrep", "FedRep"),
+        ("topo", "HEP-FL (Ours)"),
+    ]
+
+    lines = []
+    lines.append(r"\begin{table*}[t]")
+    lines.append(r"\centering")
+    lines.append(r"\caption{\textbf{Personalization Benchmark across 5 Heterogeneity Regimes on FEMNIST ($C=62$, ResNet-9).} Mean $\pm$ std across 3 independent seeds. Best results in \textbf{bold}.}")
+    lines.append(r"\label{tab:main_benchmark_femnist}")
+    lines.append(r"\resizebox{\textwidth}{!}{")
+    lines.append(r"\begin{tabular}{lcccccccccc}")
+    lines.append(r"\toprule")
+    lines.append(r" & \multicolumn{2}{c}{\textbf{IID ($\alpha=\infty$)}} & \multicolumn{2}{c}{\textbf{Mild ($\alpha=1.0$)}} & \multicolumn{2}{c}{\textbf{Moderate ($\alpha=0.5$)}} & \multicolumn{2}{c}{\textbf{Severe ($\alpha=0.1$)}} & \multicolumn{2}{c}{\textbf{Extreme ($\alpha=0.05$)}} \\")
+    lines.append(r"\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-11}")
+    lines.append(r"\textbf{Method} & \textbf{Avg Acc} & \textbf{Bottom 10\%} & \textbf{Avg Acc} & \textbf{Bottom 10\%} & \textbf{Avg Acc} & \textbf{Bottom 10\%} & \textbf{Avg Acc} & \textbf{Bottom 10\%} & \textbf{Avg Acc} & \textbf{Bottom 10\%} \\")
+    lines.append(r"\midrule")
+
+    for m_id, label in methods:
+        cells = [f"\\textbf{{{label}}}" if "Ours" in label else label]
+        for r_id, _ in regimes:
+            entry = data.get((m_id, r_id))
+            if entry and entry.get("mean_acc", 0.0) > 0.0:
+                m_val = entry["mean_acc"]
+                s_val = entry.get("std_acc", 0.0)
+                b_val = entry.get("mean_b10", 0.0)
+                if s_val > 0.0:
+                    m_str = f"{m_val:.2f} \\pm {s_val:.2f}\\%"
+                else:
+                    m_str = f"{m_val:.2f}\\%"
+                b_str = f"{b_val:.2f}\\%"
+            else:
+                m_str, b_str = "---", "---"
+            cells.extend([m_str, b_str])
+        lines.append(" & ".join(cells) + r" \\")
+
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    lines.append(r"}")
+    lines.append(r"\end{table*}")
+
+    tex_content = "\n".join(lines)
+    print(tex_content)
+
+    os.makedirs(TABLES_DIR, exist_ok=True)
+    with open(os.path.join(TABLES_DIR, "table1_femnist.tex"), "w", encoding="utf-8") as f:
+        f.write(tex_content)
+
+
+# ============================================================
 # TABLE II: CIFAR-100 PERSONALIZATION BENCHMARK
 # ============================================================
 def load_personalization_data() -> Dict[Tuple[str, str], Dict[str, float]]:
@@ -457,11 +545,56 @@ def generate_table6_ablation():
         f.write(tex_content)
 
 
+def generate_table5_mobilenet_accuracy():
+    data = load_json("mobilenet_benchmark_results.json")
+    if not data or "accuracy_benchmarks" not in data:
+        return
+    print("\n" + "=" * 75)
+    print("TABLE V-B: MOBILENETV3 PERSONALIZATION ACCURACY BENCHMARK")
+    print("=" * 75)
+    acc_data = data["accuracy_benchmarks"]
+    scenarios = ["Moderate (alpha=0.5)", "Extreme (alpha=0.05)"]
+    methods = ["FedAvg", "Ditto", "HEP"]
+
+    lines = []
+    lines.append(r"\begin{table}[t]")
+    lines.append(r"\centering")
+    lines.append(r"\caption{\textbf{MobileNetV3-Small Personalization Accuracy Benchmark on CIFAR-100.}}")
+    lines.append(r"\label{tab:mobilenet_accuracy}")
+    lines.append(r"\resizebox{\columnwidth}{!}{")
+    lines.append(r"\begin{tabular}{lccc}")
+    lines.append(r"\toprule")
+    lines.append(r"\textbf{Regime} & \textbf{FedAvg} & \textbf{Ditto} & \textbf{Defended HEP-FL (Ours)} \\")
+    lines.append(r"\midrule")
+    for sc in scenarios:
+        row_mean = [sc]
+        row_b10 = [r"\quad \textit{Bottom 10\% Fairness}"]
+        for m in methods:
+            cand = acc_data.get(sc, {}).get(m, {})
+            val_mean = f"{cand.get('mean', 0.0):.2f}\\%" if "mean" in cand else "---"
+            val_b10 = f"{cand.get('bottom10', 0.0):.2f}\\%" if "bottom10" in cand else "---"
+            row_mean.append(val_mean)
+            row_b10.append(val_b10)
+        lines.append(" & ".join(row_mean) + r" \\")
+        lines.append(" & ".join(row_b10) + r" \\")
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    lines.append(r"}")
+    lines.append(r"\end{table}")
+
+    tex_content = "\n".join(lines)
+    print(tex_content)
+    with open(os.path.join(TABLES_DIR, "table5_mobilenet_accuracy.tex"), "w", encoding="utf-8") as f:
+        f.write(tex_content)
+
+
 def main():
+    generate_table1_femnist()
     generate_table2_cifar100()
     generate_table3_byzantine()
     generate_table4_scale50()
     generate_table5_hardware()
+    generate_table5_mobilenet_accuracy()
     generate_table6_ablation()
     print("\nAll LaTeX tables successfully assembled in outputs/tables/!")
 

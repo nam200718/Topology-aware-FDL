@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{\textbf{50-Client Scalability Benchmark with Partial Participation ($N=50, C_p=0.20, 20$ Rounds).}}
+\label{tab:scale_50clients}
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Regime} & \textbf{FedAvg} & \textbf{FedRep} & \textbf{Ditto} & \textbf{Defended HEP-FL (Ours)} \\
+\midrule
+Moderate (alpha=0.5) & 8.31\% & 10.69\% & 12.65\% & 19.63\% \\
+\quad \textit{Bottom 10\% Fairness} & 0.00\% & 0.00\% & 0.00\% & 0.00\% \\
+Severe (alpha=0.1) & 5.08\% & 5.91\% & 20.47\% & 11.03\% \\
+\quad \textit{Bottom 10\% Fairness} & 0.00\% & 0.00\% & 0.00\% & 0.00\% \\
+\bottomrule
+\end{tabular}
+}
+\end{table}

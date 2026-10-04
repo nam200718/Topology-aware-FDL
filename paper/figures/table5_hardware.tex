@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{\textbf{Physical Hardware Profiling on MobileNetV3-Small vs. ResNet-9 (Batch Size $B=32$).}}
+\label{tab:hardware_profiling}
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Architecture} & \textbf{Method} & \textbf{Peak VRAM} & \textbf{Batch Latency} & \textbf{Payload / Round} \\
+\midrule
+ResNet-9 & Ditto & 220.40 MB & 16.95 ms & 13.18 MB \\
+ResNet-9 & \textbf{Defended HEP-FL} & \textbf{114.80 MB} & \textbf{8.42 ms} & \textbf{6.60 MB} \\
+\midrule
+MobileNetV3-Small & Ditto & 298.60 MB & 22.80 ms & 12.24 MB \\
+MobileNetV3-Small & \textbf{Defended HEP-FL} & \textbf{158.80 MB} & \textbf{11.20 ms} & \textbf{6.13 MB} \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
