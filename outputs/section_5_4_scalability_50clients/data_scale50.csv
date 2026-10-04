@@ -1,0 +1,9 @@
+benchmark,dataset,architecture,method,regime,attack,byzantine_rate,num_clients,rounds,mean_acc,std_acc,mean_b10,std_b10,peak_vram_mb,batch_latency_ms,elapsed_s,source_origin
+50-Client Scalability,cifar100,ResNet-9,FedAvg,Moderate (alpha=0.5),none,0.0,50,40,33.97,2.14,20.63,0.91,110.2,8.42,,RunPod-4090
+50-Client Scalability,cifar100,ResNet-9,FedRep,Moderate (alpha=0.5),none,0.0,50,40,24.11,1.63,9.64,0.25,110.2,8.42,,RunPod-4090
+50-Client Scalability,cifar100,ResNet-9,Ditto,Moderate (alpha=0.5),none,0.0,50,40,27.4,1.32,8.6,1.98,220.4,8.42,,RunPod-4090
+50-Client Scalability,cifar100,ResNet-9,Defended FedHEP,Moderate (alpha=0.5),none,0.0,50,40,33.89,2.32,18.11,1.21,114.8,8.42,,RunPod-4090
+50-Client Scalability,cifar100,ResNet-9,FedAvg,Severe (alpha=0.1),none,0.0,50,40,31.87,1.66,12.81,1.29,110.2,8.42,,RunPod-4090
+50-Client Scalability,cifar100,ResNet-9,FedRep,Severe (alpha=0.1),none,0.0,50,40,41.72,1.27,17.41,1.73,110.2,8.42,,RunPod-4090
+50-Client Scalability,cifar100,ResNet-9,Ditto,Severe (alpha=0.1),none,0.0,50,40,37.47,0.75,13.03,0.19,220.4,8.42,,RunPod-4090
+50-Client Scalability,cifar100,ResNet-9,Defended FedHEP,Severe (alpha=0.1),none,0.0,50,40,41.16,1.79,16.88,2.55,114.8,8.42,,RunPod-4090
