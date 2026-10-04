@@ -23,6 +23,13 @@ During inference on client $i$, predictions are produced via an anchored ensembl
 \end{equation}
 where $\sum_m \lambda_m = 1$, dynamically balancing consensus coverage against specialized discrimination.
 
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/architecture.png}
+    \caption{\textbf{Overview of the \fedhep{} Framework.} \textbf{Left (On-Device Client)}: A single forward pass through the shared backbone $\Phi_\theta$ produces embeddings $h \in \mathbb{R}^d$, concurrently evaluated by three heads: (1) Root head $W_r$, (2) Parent head $W_p$ with Active-Class Logit Masking (\textsc{ACLM}), and (3) private on-device Local head $W_l$. Dynamic loss weighting is calibrated by the label skew metric $\Rskew$. Linear head updates are sketched into $\mathbb{R}^{256}$ via random projections. \textbf{Right (Server Aggregation)}: Compressed sketches drive privacy-preserving peer clustering, while updates undergo layered subspace defense (\textsc{SCCF} + \textsc{TTT}).}
+    \label{fig:architecture}
+\end{figure*}
+
 \subsection{Active-Class Logit Masking (ACLM)}
 \label{sec:aclm}
 A severe vulnerability in decoupled head architectures under non-IID skew is negative gradient interference: computing standard cross-entropy over unobserved classes forces unobserved logits toward negative infinity, dragging shared backbone features $\theta$ away from valid representational geometries.
