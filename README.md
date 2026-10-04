@@ -1,4 +1,4 @@
-# Hierarchical Ensemble Personalization for Parameter-Efficient Federated Learning (HEP)
+# Hierarchical Ensemble Personalization for Parameter-Efficient Federated Learning (FedHEP)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg)](https://pytorch.org/)
@@ -13,7 +13,7 @@
 
 Personalized Federated Learning (PFL) addresses statistical data heterogeneity (Non-IID data) across decentralized edge clients. However, real-world edge deployments are governed by the **Personalization Trilemma**---the fundamental trade-off between statistical accuracy across diverse skew regimes, on-device memory and compute constraints, and worst-case client fairness. State-of-the-art dual-model methods (such as Ditto and APFL) maintain two separate neural network graphs per client, doubling local memory (VRAM) and per-batch latency. Conversely, naive alternating split-head baselines (such as FedRep and FedPer) lack multi-scale structural coordination and can suffer representation collapse on homogeneous (IID) partitions.
 
-**HEP** navigates the Personalization Trilemma using a **Single-Backbone 3-Tier Multi-Head Architecture** ($\text{Root}$, $\text{Parent}$, and $\text{Local}$ heads) coordinated by:
+**FedHEP** navigates the Personalization Trilemma using a **Single-Backbone 3-Tier Multi-Head Architecture** ($\text{Root}$, $\text{Parent}$, and $\text{Local}$ heads) coordinated by:
 1. **Local Label Skew Metric ($R_{skew}$)**: An entropy-based metric measuring local empirical class balance.
 2. **Anchored Binomial Head Weighting**: Dynamic, normalized loss weighting that seamlessly transitions between global consensus, cluster collaboration, and local specialization.
 3. **Active-Class Logit Masking (ACLM)**: Prevents unobserved classes on edge devices from receiving negative gradient drag.
@@ -48,9 +48,9 @@ All benchmark results are evaluated under a standardized deterministic single-se
 | **FedBABU** (Decoupled) | 72.10% | 75.67% | 76.02% | 84.43% | 88.39% | 108.58 MB | 15.5s |
 | **FedALA** (Adaptive) | 69.30% | 74.51% | 74.32% | 83.55% | 88.25% | 116.20 MB | 15.6s |
 | **CFL** (Clustered) | 72.64% | 69.29% | 65.83% | 59.98% | 66.72% | 108.58 MB | 15.1s |
-| **HEP (Ours)** | **71.03%**† | **77.50%** | **77.97%** | **84.57%** | **88.80%** | **113.42 MB** | **16.5s** |
+| **FedHEP (Ours)** | **71.03%**† | **77.50%** | **77.97%** | **84.57%** | **88.80%** | **113.42 MB** | **16.5s** |
 
-† *HEP IID personalized accuracy is 71.03%, with global Root consensus reaching 72.73%.*
+† *FedHEP IID personalized accuracy is 71.03%, with global Root consensus reaching 72.73%.*
 
 ---
 
@@ -68,17 +68,17 @@ All benchmark results are evaluated under a standardized deterministic single-se
 | **ResNet-9** | FedAvg | 108.58 MB | 8.32 ms | 57.53% | 25.25% |
 | | FedRep | 108.58 MB | 13.92 ms | 87.07% | 76.85% |
 | | Ditto | 217.15 MB | 16.78 ms | 87.87% | 69.29% |
-| | **HEP (Ours)** | **113.42 MB** | **8.35 ms** | **88.80%** | **66.43%** |
+| | **FedHEP (Ours)** | **113.42 MB** | **8.35 ms** | **88.80%** | **66.43%** |
 | **MobileNetV3** | FedAvg | 152.40 MB | 11.10 ms | 34.13% | 0.00% |
 | | FedRep | 152.40 MB | 13.50 ms | 80.29% | 67.10% |
 | | Ditto | 298.60 MB | 22.80 ms | 79.73% | 67.12% |
-| | **HEP (Ours)** | **158.80 MB** | **11.20 ms** | **80.19%** | **65.97%** |
+| | **FedHEP (Ours)** | **158.80 MB** | **11.20 ms** | **80.19%** | **65.97%** |
 
 ---
 
 ### 4. High-Class Cardinality (CIFAR-100) & 50-Client Scalability
 
-| Regime / Scenario | FedAvg | FedRep | Ditto | **HEP (Ours)** | Key Finding |
+| Regime / Scenario | FedAvg | FedRep | Ditto | **FedHEP (Ours)** | Key Finding |
 |:---|:---:|:---:|:---:|:---|:---|
 | **CIFAR-100 Moderate ($\alpha=0.5$)** | 36.41% | 27.61% | 39.86% | **47.05%** | +7.19pp over Ditto, +10.64pp over FedAvg |
 | *-- Bottom 10% Fairness* | 31.62% | 21.87% | 33.85% | **41.69%** | **+7.84pp fairness gain over Ditto** |
@@ -96,15 +96,15 @@ All benchmark results are evaluated under a standardized deterministic single-se
 | **Label Flipping** | FedAvg | 60.27% | 60.27% | 56.00% | 46.57% | 15.90% |
 | | FedRep | 64.07% | 64.49% | 65.51% | 65.94% | 64.88% |
 | | Ditto | 70.83% | 70.65% | 71.21% | 69.41% | 65.36% |
-| | **HEP (Ours)** | **76.67%** | **76.50%** | **76.71%** | **34.83%** | **30.53%** |
+| | **Defended FedHEP (Ours)** | **76.67%** | **76.50%** | **76.71%** | **34.83%** | **30.53%** |
 | **Sign Flipping** | FedAvg | 47.96 ± 0.46% | 38.38 ± 0.54% | 13.30 ± 0.72% | 10.84 ± 0.68% | 12.21 ± 0.70% |
 | | FedRep | 52.53 ± 0.44% | 52.77 ± 0.46% | 52.08 ± 0.50% | 38.70 ± 0.60% | 27.34 ± 0.68% |
 | | Ditto | 64.20 ± 0.43% | 50.73 ± 0.47% | 53.50 ± 0.48% | 40.31 ± 0.62% | 18.12 ± 0.65% |
-| | **HEP (Ours)** | **76.16 ± 0.41%** | 45.14 ± 0.49% | 41.80 ± 0.53% | 32.00 ± 0.58% | 23.60 ± 0.61% |
+| | **Defended FedHEP (Ours)** | **76.16 ± 0.41%** | 45.14 ± 0.49% | 41.80 ± 0.53% | 32.00 ± 0.58% | 23.60 ± 0.61% |
 | **Gaussian Noise** | FedAvg | 49.22 ± 0.44% | 31.53 ± 0.59% | 32.11 ± 0.62% | 21.28 ± 0.69% | 22.11 ± 0.71% |
 | | FedRep | 54.92 ± 0.42% | 48.86 ± 0.49% | 37.73 ± 0.58% | 39.39 ± 0.55% | 34.88 ± 0.62% |
 | | Ditto | 68.54 ± 0.41% | 55.89 ± 0.45% | 50.88 ± 0.49% | 52.94 ± 0.47% | 40.00 ± 0.52% |
-| | **HEP (Ours)** | **76.16 ± 0.40%** | 51.37 ± 0.46% | 49.12 ± 0.48% | 49.64 ± 0.49% | **42.47 ± 0.51%** |
+| | **Defended FedHEP (Ours)** | **76.16 ± 0.40%** | 51.37 ± 0.46% | 49.12 ± 0.48% | 49.64 ± 0.49% | **42.47 ± 0.51%** |
 
 ---
 
@@ -182,7 +182,7 @@ Compresses Root-head updates ($2570$ dimensions) into a $256$-dimensional summar
 ```
 Topology-aware-FDL/
 |-- configs/                    # YAML experiment configurations
-|   |-- comparison.yaml         # Main 5-regime benchmark (FedAvg vs APFL vs Ditto vs HEP)
+|   |-- comparison.yaml         # Main 5-regime benchmark (FedAvg vs APFL vs Ditto vs FedHEP)
 |   |-- shard_cifar100_5regimes.yaml # CIFAR-100 full 5-regime sweep
 |   |-- shard_hep_cifar10_5regimes.yaml # CIFAR-10 full 5-regime sweep
 |   |-- ablation_study.yaml     # Component ablations
@@ -194,7 +194,7 @@ Topology-aware-FDL/
 |   |-- byzantine/              # Attack & defense configs
 |   \-- archive/                # Historical & diagnostic configs
 |-- src/
-|   |-- config.py               # Pydantic configuration schemas & HEP defaults
+|   |-- config.py               # Pydantic configuration schemas & FedHEP defaults
 |   |-- core/                   # Core FL engines, updaters, and models
 |   |   |-- model.py            # SimpleCNN, ResNet-9, MultiHeadResNet9, MobileNetV3
 |   |   |-- updater.py          # PyTorchLocalUpdater with ACLM & binomial weighting

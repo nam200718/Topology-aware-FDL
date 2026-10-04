@@ -145,7 +145,7 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
         "hardware_profile": {
             "FedAvg": {"params_m": round(fedavg_params/1e6, 2), "latency_ms": round(lat_fedavg, 2), "peak_vram_mb": vram_fedavg},
             "Ditto": {"params_m": round(ditto_params/1e6, 2), "latency_ms": round(lat_ditto, 2), "peak_vram_mb": vram_ditto},
-            "HEP": {"params_m": round(hep_params/1e6, 2), "latency_ms": round(lat_hep, 2), "peak_vram_mb": vram_hep, "vram_reduction_pct": 46.8, "speedup_pct": 48.7}
+            "FedHEP": {"params_m": round(hep_params/1e6, 2), "latency_ms": round(lat_hep, 2), "peak_vram_mb": vram_hep, "vram_reduction_pct": 46.8, "speedup_pct": 48.7}
         },
         "accuracy_benchmarks": {}
     }
@@ -336,12 +336,12 @@ def run_mobilenet_benchmark(num_clients: int = 15, num_rounds: int = 15, batch_s
         res_sc = {
             "FedAvg": {"mean": round(float(np.mean(accs_fedavg)), 2), "bottom10": round(float(np.mean(sorted(accs_fedavg)[:k_b10_fa])), 2)},
             "Ditto": {"mean": round(float(np.mean(accs_ditto)), 2), "bottom10": round(float(np.mean(sorted(accs_ditto)[:k_b10_di])), 2)},
-            "HEP": {"mean": round(float(np.mean(accs_hep)), 2), "bottom10": round(float(np.mean(sorted(accs_hep)[:k_b10_he])), 2)},
+            "FedHEP": {"mean": round(float(np.mean(accs_hep)), 2), "bottom10": round(float(np.mean(sorted(accs_hep)[:k_b10_he])), 2)},
         }
         print(f"Results for {sc_name}:")
         print(f"  FedAvg: Mean = {res_sc['FedAvg']['mean']:.2f}% | Bottom 10% = {res_sc['FedAvg']['bottom10']:.2f}%")
         print(f"  Ditto:  Mean = {res_sc['Ditto']['mean']:.2f}% | Bottom 10% = {res_sc['Ditto']['bottom10']:.2f}%")
-        print(f"  HEP:    Mean = {res_sc['HEP']['mean']:.2f}% | Bottom 10% = {res_sc['HEP']['bottom10']:.2f}%")
+        print(f"  FedHEP: Mean = {res_sc['FedHEP']['mean']:.2f}% | Bottom 10% = {res_sc['FedHEP']['bottom10']:.2f}%")
         benchmark_results["accuracy_benchmarks"][sc_name] = res_sc
 
     out_path = os.path.join(_project_root, "outputs", "mobilenet_benchmark_results.json")

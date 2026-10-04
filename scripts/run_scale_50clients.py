@@ -397,11 +397,11 @@ def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, nu
                     c_total += y.size(0)
                 accs.append((c_corr / c_total * 100.0) if c_total > 0 else 0.0)
 
-        scenario_res["HEP (Ours)"] = {
+        scenario_res["FedHEP (Ours)"] = {
             "mean": round(float(np.mean(accs)), 2),
             "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2)
         }
-        print(f"  HEP w/ S-AFR: Mean = {scenario_res['HEP (Ours)']['mean']:.2f}% | Bottom 10% = {scenario_res['HEP (Ours)']['bottom10']:.2f}%")
+        print(f"  FedHEP w/ S-AFR: Mean = {scenario_res['FedHEP (Ours)']['mean']:.2f}% | Bottom 10% = {scenario_res['FedHEP (Ours)']['bottom10']:.2f}%")
 
         all_results[sc_name] = scenario_res
 

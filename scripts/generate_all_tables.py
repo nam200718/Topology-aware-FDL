@@ -49,12 +49,16 @@ def load_femnist_data() -> Dict[Tuple[str, str], Dict[str, float]]:
         for entry in primary:
             m = entry.get("method", "").lower()
             r = entry.get("regime", "").lower()
-            lookup[(m, r)] = {
+            vals = {
                 "mean_acc": float(entry.get("mean_acc", 0.0)),
                 "std_acc": float(entry.get("std_acc", 0.0)),
                 "mean_b10": float(entry.get("mean_b10", 0.0)),
                 "std_b10": float(entry.get("std_b10", 0.0)),
             }
+            lookup[(m, r)] = vals
+            if m in ("topo", "hep", "hep-fl", "fedhep"):
+                lookup[("fedhep", r)] = vals
+                lookup[("topo", r)] = vals
     return lookup
 
 
@@ -79,7 +83,7 @@ def generate_table1_femnist():
         ("scaffold", "SCAFFOLD"),
         ("ditto", "Ditto"),
         ("fedrep", "FedRep"),
-        ("topo", "HEP-FL (Ours)"),
+        ("topo", "FedHEP (Ours)"),
     ]
 
     lines = []
@@ -139,12 +143,16 @@ def load_personalization_data() -> Dict[Tuple[str, str], Dict[str, float]]:
         for entry in primary:
             m = entry.get("method", "").lower()
             r = entry.get("regime", "").lower()
-            lookup[(m, r)] = {
+            vals = {
                 "mean_acc": float(entry.get("mean_acc", 0.0)),
                 "std_acc": float(entry.get("std_acc", 0.0)),
                 "mean_b10": float(entry.get("mean_b10", 0.0)),
                 "std_b10": float(entry.get("std_b10", 0.0)),
             }
+            lookup[(m, r)] = vals
+            if m in ("topo", "hep", "hep-fl", "fedhep"):
+                lookup[("fedhep", r)] = vals
+                lookup[("topo", r)] = vals
         return lookup
 
     # 2. Legacy fallback
@@ -201,7 +209,7 @@ def generate_table2_cifar100():
         ("scaffold", "SCAFFOLD", "110.20 MB / 8.80 ms"),
         ("ditto", "Ditto", "220.40 MB / 16.95 ms"),
         ("fedrep", "FedRep", "110.20 MB / 14.10 ms"),
-        ("topo", "HEP-FL (Ours)", "114.80 MB / 8.42 ms"),
+        ("topo", "FedHEP (Ours)", "114.80 MB / 8.42 ms"),
     ]
 
     lines = []
@@ -264,10 +272,14 @@ def load_byzantine_data() -> Dict[Tuple[str, str, float], Dict[str, float]]:
             m = entry.get("method", "").lower()
             atk = entry.get("attack", "").lower()
             rate = round(float(entry.get("byzantine_rate", 0.0)), 2)
-            lookup[(m, atk, rate)] = {
+            vals = {
                 "mean_acc": float(entry.get("mean_acc", 0.0)),
                 "std_acc": float(entry.get("std_acc", 0.0)),
             }
+            lookup[(m, atk, rate)] = vals
+            if m in ("topo_defended", "defended_fedhep", "defended hep-fl", "fedhep_defended"):
+                lookup[("fedhep_defended", atk, rate)] = vals
+                lookup[("topo_defended", atk, rate)] = vals
         return lookup
 
     legacy = load_json("cifar100_byzantine_results.json")
@@ -306,7 +318,7 @@ def generate_table3_byzantine():
         ("fedavg", "FedAvg"),
         ("multikrum", "Multi-Krum"),
         ("ditto", "Ditto"),
-        ("topo_defended", "Defended HEP-FL (Ours)"),
+        ("topo_defended", "Defended FedHEP (Ours)"),
     ]
 
     lines = []
@@ -367,7 +379,7 @@ def generate_table4_scale50():
     print("=" * 75)
 
     scenarios = ["Moderate (alpha=0.5)", "Severe (alpha=0.1)"]
-    methods = ["FedAvg", "FedRep", "Ditto", "Defended HEP-FL (Ours)"]
+    methods = ["FedAvg", "FedRep", "Ditto", "Defended FedHEP (Ours)"]
 
     lines = []
     lines.append(r"\begin{table}[t]")
@@ -377,7 +389,7 @@ def generate_table4_scale50():
     lines.append(r"\resizebox{\columnwidth}{!}{")
     lines.append(r"\begin{tabular}{lcccc}")
     lines.append(r"\toprule")
-    lines.append(r"\textbf{Regime} & \textbf{FedAvg} & \textbf{FedRep} & \textbf{Ditto} & \textbf{Defended HEP-FL (Ours)} \\")
+    lines.append(r"\textbf{Regime} & \textbf{FedAvg} & \textbf{FedRep} & \textbf{Ditto} & \textbf{Defended FedHEP (Ours)} \\")
     lines.append(r"\midrule")
 
     for sc in scenarios:
@@ -387,7 +399,7 @@ def generate_table4_scale50():
             val_mean, val_b10 = "---", "---"
             if data and sc in data:
                 # Check method variations
-                cand = data[sc].get(m) or data[sc].get("HEP (Ours)") if "HEP" in m else data[sc].get(m)
+                cand = data[sc].get(m) or data[sc].get("FedHEP (Ours)") or data[sc].get("HEP (Ours)") or data[sc].get("Defended FedHEP (Ours)") or data[sc].get("Defended HEP-FL (Ours)")
                 if cand:
                     val_mean = f"{cand['mean']:.2f}\\%"
                     val_b10 = f"{cand['bottom10']:.2f}\\%"
@@ -430,10 +442,10 @@ def generate_table5_hardware():
     lines.append(r"\textbf{Architecture} & \textbf{Method} & \textbf{Peak VRAM} & \textbf{Batch Latency} & \textbf{Payload / Round} \\")
     lines.append(r"\midrule")
     lines.append(r"ResNet-9 & Ditto & 220.40 MB & 16.95 ms & 13.18 MB \\")
-    lines.append(r"ResNet-9 & \textbf{Defended HEP-FL} & \textbf{114.80 MB} & \textbf{8.42 ms} & \textbf{6.60 MB} \\")
+    lines.append(r"ResNet-9 & \textbf{Defended FedHEP} & \textbf{114.80 MB} & \textbf{8.42 ms} & \textbf{6.60 MB} \\")
     lines.append(r"\midrule")
     lines.append(r"MobileNetV3-Small & Ditto & 298.60 MB & 22.80 ms & 12.24 MB \\")
-    lines.append(r"MobileNetV3-Small & \textbf{Defended HEP-FL} & \textbf{158.80 MB} & \textbf{11.20 ms} & \textbf{6.13 MB} \\")
+    lines.append(r"MobileNetV3-Small & \textbf{Defended FedHEP} & \textbf{158.80 MB} & \textbf{11.20 ms} & \textbf{6.13 MB} \\")
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
     lines.append(r"}")
@@ -491,7 +503,7 @@ def generate_table6_ablation():
     ]
 
     methods = [
-        ("topo", r"\textbf{Full Defended HEP-FL}"),
+        ("topo", r"\textbf{Full Defended FedHEP}"),
         ("topo_no_aclm", r"\quad w/o Active-Class Logit Masking (ACLM)"),
         ("topo_no_parent", r"\quad w/o Parent Head (2-Tier Bipartite)"),
         ("topo_k1", r"\quad $K=1$ Grand Coalition (No Clustering)"),
@@ -554,7 +566,7 @@ def generate_table5_mobilenet_accuracy():
     print("=" * 75)
     acc_data = data["accuracy_benchmarks"]
     scenarios = ["Moderate (alpha=0.5)", "Extreme (alpha=0.05)"]
-    methods = ["FedAvg", "Ditto", "HEP"]
+    methods = ["FedAvg", "Ditto", "FedHEP"]
 
     lines = []
     lines.append(r"\begin{table}[t]")
@@ -564,13 +576,13 @@ def generate_table5_mobilenet_accuracy():
     lines.append(r"\resizebox{\columnwidth}{!}{")
     lines.append(r"\begin{tabular}{lccc}")
     lines.append(r"\toprule")
-    lines.append(r"\textbf{Regime} & \textbf{FedAvg} & \textbf{Ditto} & \textbf{Defended HEP-FL (Ours)} \\")
+    lines.append(r"\textbf{Regime} & \textbf{FedAvg} & \textbf{Ditto} & \textbf{Defended FedHEP (Ours)} \\")
     lines.append(r"\midrule")
     for sc in scenarios:
         row_mean = [sc]
         row_b10 = [r"\quad \textit{Bottom 10\% Fairness}"]
         for m in methods:
-            cand = acc_data.get(sc, {}).get(m, {})
+            cand = acc_data.get(sc, {}).get(m, {}) or (acc_data.get(sc, {}).get("HEP", {}) if m == "FedHEP" else {})
             val_mean = f"{cand.get('mean', 0.0):.2f}\\%" if "mean" in cand else "---"
             val_b10 = f"{cand.get('bottom10', 0.0):.2f}\\%" if "bottom10" in cand else "---"
             row_mean.append(val_mean)

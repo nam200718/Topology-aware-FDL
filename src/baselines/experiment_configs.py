@@ -105,23 +105,23 @@ METHODS = [
     },
     {
         "id": "topo",
-        "label": "Proposed Topo (HEP)",
+        "label": "Proposed Topo (FedHEP)",
         "topo": "hierarchical_ensemble",
         "pers": "none",
         "params": {"num_clusters": 3, "cluster_method": "update_similarity", "defense_mode": "none"},
-        "description": "Topology-aware Hierarchical Ensemble Partitioning (Proposed in Paper)",
+        "description": "Topology-aware Hierarchical Ensemble Partitioning (FedHEP)",
     },
     {
         "id": "topo_defended",
-        "label": "Proposed Topo (Defended HEP-FL)",
+        "label": "Proposed Topo (Defended FedHEP)",
         "topo": "hierarchical_ensemble",
         "pers": "none",
         "params": {"num_clusters": 3, "cluster_method": "update_similarity", "defense_mode": "soft_cosine"},
-        "description": "Topology-aware Hierarchical Ensemble with Byzantine Defense (Proposed)",
+        "description": "Topology-aware Hierarchical Ensemble with Byzantine Defense (Defended FedHEP)",
     },
     {
         "id": "topo_no_aclm",
-        "label": "HEP (w/o ACLM)",
+        "label": "FedHEP (w/o ACLM)",
         "topo": "hierarchical_ensemble",
         "pers": "none",
         "params": {
@@ -130,11 +130,11 @@ METHODS = [
             "active_class_loss_mask": False,
             "active_class_inference_mask": False,
         },
-        "description": "Ablation: HEP-FL without Active-Class Logit Masking",
+        "description": "Ablation: FedHEP without Active-Class Logit Masking",
     },
     {
         "id": "topo_no_parent",
-        "label": "HEP (w/o Parent Head)",
+        "label": "FedHEP (w/o Parent Head)",
         "topo": "hierarchical_ensemble",
         "pers": "none",
         "params": {
@@ -142,11 +142,11 @@ METHODS = [
             "cluster_method": "update_similarity",
             "enable_parent_head": False,
         },
-        "description": "Ablation: 2-tier Bipartite HEP-FL (Root + Local, without Parent Head)",
+        "description": "Ablation: 2-tier Bipartite FedHEP (Root + Local, without Parent Head)",
     },
     {
         "id": "topo_k1",
-        "label": "HEP (K=1 Grand Coalition)",
+        "label": "FedHEP (K=1 Grand Coalition)",
         "topo": "hierarchical_ensemble",
         "pers": "none",
         "params": {
@@ -157,7 +157,7 @@ METHODS = [
     },
     {
         "id": "topo_oracle_k3",
-        "label": "HEP (K=3 Oracle Bound)",
+        "label": "FedHEP (K=3 Oracle Bound)",
         "topo": "hierarchical_ensemble",
         "pers": "none",
         "params": {

@@ -27,6 +27,7 @@ METHOD_STYLE = {
     "FedAvg": dict(color="#616161", linestyle="--", linewidth=2.0),
     "Ditto": dict(color="#1976D2", linestyle="-.", linewidth=2.0),
     "FedRep": dict(color="#388E3C", linestyle=":", linewidth=2.0),
+    "FedHEP": dict(color="#D32F2F", linestyle="-", linewidth=2.5),
     "HEP": dict(color="#D32F2F", linestyle="-", linewidth=2.5),
 }
 
@@ -58,7 +59,7 @@ def fig_convergence():
         print("[skip] convergence: no conv runs found")
         return
 
-    methods = [("Conv Star (FedAvg)", "FedAvg"), ("Conv Star (Ditto)", "Ditto"), ("Conv HEP", "HEP")]
+    methods = [("Conv Star (FedAvg)", "FedAvg"), ("Conv Star (Ditto)", "Ditto"), ("Conv FedHEP", "FedHEP"), ("Conv HEP", "FedHEP")]
     panels = [("iid", "Uniform IID Distribution"), ("non_iid_alpha_0.05", r"Extreme Non-IID Skew ($\alpha=0.05$)")]
 
     def sanitize(label):
