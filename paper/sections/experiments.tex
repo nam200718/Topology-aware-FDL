@@ -3,58 +3,78 @@
 
 \subsection{Experimental Setup}
 \label{sec:exp_setup}
-\paragraph{Datasets and Non-IID Partitions.} We evaluate our framework on \textbf{CIFAR-100}~\cite{kairouz2021advances}, consisting of 60,000 $32 \times 32$ images distributed across 100 fine-grained categories. To evaluate robust personalization under progressive data skew, we partition training samples across $N=10$ (and scaled to $N=50$) clients using symmetric Dirichlet distributions $\mathrm{Dir}(\alpha)$ across five distinct regimes: IID ($\alpha = \infty$), Mild Non-IID ($\alpha = 1.0$), Moderate Non-IID ($\alpha = 0.5$), Severe Non-IID ($\alpha = 0.1$), and Extreme Non-IID ($\alpha = 0.05$). At $\alpha = 0.05$, clients hold data from only 3--6 distinct classes, representing acute real-world edge skew.
+\paragraph{Datasets and Heterogeneous Partitions.} We evaluate \fedhep{} across two distinct image classification benchmarks:
+\begin{itemize}
+    \item \textbf{CIFAR-100}~\cite{kairouz2021advances}: 100 fine-grained categories with 10,000 training and 3,000 test images partitioned across $N=10$ (and scaled to $N=50$) edge clients.
+    \item \textbf{FEMNIST}~\cite{caldas2018leaf}: 62 upper/lowercase and digit categories with 15,000 training and 3,000 test images partitioned across $N=15$ clients.
+\end{itemize}
+To evaluate robust personalization under progressive data skew, we partition training samples using symmetric Dirichlet distributions $\mathrm{Dir}(\alpha)$ across five distinct regimes: IID ($\alpha = \infty$), Mild Non-IID ($\alpha = 1.0$), Moderate Non-IID ($\alpha = 0.5$), Severe Non-IID ($\alpha = 0.1$), and Extreme Non-IID ($\alpha = 0.05$). Under extreme skew ($\alpha = 0.05$), clients hold data from only 3--6 distinct categories, representing acute real-world edge heterogeneity.
 
-\paragraph{Baselines.} We compare \hepfl{} against six prominent FL baselines:
+\paragraph{Baselines.} We compare \fedhep{} against six prominent FL baselines spanning three representative paradigms:
 \begin{itemize}
     \item \textbf{Global Consensus}: \textsc{FedAvg}~\cite{mcmahan2017communication}, \textsc{FedProx}~\cite{li2020federated} ($\mu=0.01$), and \textsc{SCAFFOLD}~\cite{karimireddy2020scaffold}.
-    \item \textbf{Byzantine-Robust Baseline}: \textsc{Multi-Krum}~\cite{blanchard2017machine}.
-    \item \textbf{Personalized Baselines}: \textsc{Ditto}~\cite{li2021ditto} (dual-model with $\lambda=0.1$) and \textsc{FedRep}~\cite{collins2021exploiting} (decoupled local heads).
+    \item \textbf{Byzantine-Robust Defense}: \textsc{Multi-Krum}~\cite{blanchard2017machine}.
+    \item \textbf{Personalized Architectures}: \textsc{Ditto}~\cite{li2021ditto} (dual-model with $\lambda=0.05$) and \textsc{FedRep}~\cite{collins2021exploiting} (decoupled representation with frozen backbone).
 \end{itemize}
 
-\paragraph{Models and Hyperparameters.} For primary evaluations, all methods employ a compact ResNet-9 backbone ($d=512$). For physical edge hardware profiling, we deploy MobileNetV3-Small~\cite{howard2019searching}. Training is executed over $T=100$ communication rounds with local epochs $E=5$, batch size $B=32$, SGD with momentum $0.9$, learning rate $\eta=0.01$, weight decay $5 \times 10^{-4}$, and cosine annealing. Evaluations are conducted across 3 independent seeds ($42, 123, 7$).
+\paragraph{Models, Budget FL Protocols, and Seeds.} For primary evaluations, all methods employ a compact ResNet-9 backbone ($d=512$). For edge resource profiling, we evaluate MobileNetV3-Small~\cite{howard2019searching}. Under a realistic edge budget regime, communication rounds are parameterized as $R=25$ for multi-regime benchmarks, $R=30$ for Byzantine poisoning sweeps, and $R=20$ (and $R=40$) for 50-client scalability. Training utilizes local epochs $E=3$, batch size $B=64$ (ResNet-9) / $B=32$ (MobileNetV3), SGD with momentum $0.9$, learning rate $\eta \in [0.02, 0.05]$, and weight decay $5 \times 10^{-4}$. All benchmarks report Mean $\pm$ Standard Deviation across three independent random seeds ($42, 123, 7$).
 
 \subsection{Personalization Performance Across Non-IID Regimes}
 \label{sec:exp_personalization}
-Table~\ref{tab:personalization} reports mean personalized test accuracy across the five Dirichlet partitions. As data skew intensifies from IID to Extreme ($\alpha=0.05$), standard consensus models (\textsc{FedAvg}, \textsc{FedProx}) degrade substantially due to severe client drift. In contrast, \hepfl{} sustains robust accuracy across all non-IID regimes, matching or exceeding dual-model \textsc{Ditto} while avoiding its dual-network compute and memory footprint.
+Table~\ref{tab:main_benchmark_femnist} and Table~\ref{tab:main_benchmark_cifar100} report personalization accuracy and worst-decile tail fairness (mean accuracy of the bottom 10\% lowest-performing clients) across the five Dirichlet partitions on FEMNIST and CIFAR-100.
 
-\input{figures/table1_personalization}
+\input{figures/table1_femnist}
 \FloatBarrier
+
+\input{figures/table2_cifar100}
+\FloatBarrier
+
+As statistical skew intensifies from IID to Extreme ($\alpha=0.05$), standard consensus models (\textsc{FedAvg}, \textsc{FedProx}) degrade substantially due to acute client drift, dropping to 36.29\% on CIFAR-100. Conversely, \fedhep{} achieves $65.49 \pm 0.61\%$ test accuracy and $53.92\%$ worst-decile fairness on CIFAR-100 under $\alpha=0.05$, consistently outperforming dual-model \textsc{Ditto} ($58.13\% / 47.14\%$) and decoupled \textsc{FedRep} ($60.97\% / 45.62\%$). Under IID settings ($\alpha=\infty$), \fedhep{} avoids negative personalization drift, achieving $40.94\%$ on CIFAR-100 and $83.07\%$ on FEMNIST. Moreover, as detailed in Table~\ref{tab:main_benchmark_cifar100}, \fedhep{} requires only $114.80$\,MB peak VRAM and $8.42$\,ms per batch, delivering nearly $2\times$ memory and computational savings over \textsc{Ditto} ($220.40$\,MB / $16.95$\,ms).
 
 \subsection{Byzantine Robustness Under Heterogeneous Skew}
 \label{sec:exp_byzantine}
-Table~\ref{tab:byzantine} presents test accuracy on CIFAR-100 under four adversarial attack vectors with corruption ratios $q \in [0.0, 0.4]$: label flipping, sign flipping, adversarial gradient ascent, and Gaussian noise injection. 
+Table~\ref{tab:cifar100_byzantine} presents CIFAR-100 test accuracy under four adversarial model-poisoning vectors with corruption fractions $q \in [0.0, 0.4]$: label flipping, sign flipping, adversarial gradient ascent, and Gaussian noise injection.
 
-Standard robust aggregators like \textsc{Multi-Krum} suffer catastrophic accuracy collapse under non-IID skew even in benign settings ($q=0.0$), because legitimate angular skew is misclassified as poisoning. By evaluating update alignment strictly within observed class support (\textbf{SCCF}) and clamping backbone updates, \hepfl{} maintains robust accuracy even under 40\% active adversaries ($q=0.4$).
-
-\input{figures/table2_byzantine}
+\input{figures/table3_byzantine}
 \FloatBarrier
 
-\subsection{Scalability and Tail Fairness (50 Clients)}
+Conventional robust aggregators like \textsc{Multi-Krum} suffer catastrophic degradation under statistical skew even in benign settings ($q=0.0$, achieving only $25.04\%$), because legitimate angular gradients from specialized clients are misdiagnosed as malicious poisoning. Under moderate corruption ($q \le 0.30$), Defended \fedhep{} demonstrates superior resilience: under Gaussian noise ($q=0.3$), \fedhep{} maintains $44.53\%$ accuracy (a drop of only $-3.35$\,pp from $47.88\%$), whereas \textsc{FedAvg} collapses to $1.30\%$ and \textsc{Multi-Krum} achieves $22.96\%$. Under gradient ascent ($q=0.3$), \fedhep{} sustains $28.93\%$ compared to $1.81\%$ for \textsc{Ditto} and $1.06\%$ for \textsc{FedAvg}. When corruption approaches the theoretical multi-round breakdown boundary ($q=0.40$), shared backbone updates incur degradation across all methods, delineating $q \le 0.30$ as the reliable operational threshold under extreme non-IID conditions.
+
+\subsection{Scalability and Tail Fairness in 50-Client Networks}
 \label{sec:exp_scalability}
-To examine behavior in larger multiagent networks, we scale the system to $N=50$ clients with 20\% partial client participation per round ($C_p = 0.20$). We measure both mean accuracy and the \textit{worst-decile tail fairness} (mean accuracy of the bottom 10\% lowest-performing clients). As shown in Table~\ref{tab:scale50}, \hepfl{} significantly lifts the performance floor for resource-poor, highly skewed nodes, demonstrating superior equity across the edge population.
+To examine behavior in larger multiagent edge networks, Table~\ref{tab:scale_50clients} scales the system to $N=50$ clients with 20\% partial client participation per round ($C_p = 0.20$, 10 active clients/round).
 
-\input{figures/table3_scale50}
+\input{figures/table4_scale50}
 \FloatBarrier
 
-\subsection{Edge Hardware Efficiency on MobileNetV3}
+Under partial participation where clients participate only in a fraction of rounds, unparticipating edge nodes rely on robust personalized heads. Using our personalized evaluation protocol with Synthetic Active Feature Replay (S-AFR) fallback, Defended \fedhep{} lifts the bottom-10\% fairness floor to $18.11\%$ under Moderate skew ($\alpha=0.5$) and $16.88\%$ under Severe skew ($\alpha=0.1$). In the Severe regime, \fedhep{} achieves $41.16\%$ mean accuracy, substantially exceeding \textsc{Ditto} ($37.47\%$ / $13.03\%$) and \textsc{FedAvg} ($31.87\%$ / $12.81\%$), validating equitable convergence across scaled multiagent populations.
+
+\subsection{Simulated Edge Resource Profiling on MobileNetV3}
 \label{sec:exp_hardware}
-To validate real-world deployability, Table~\ref{tab:mobilenet} profiles on-device execution metrics on MobileNetV3-Small on embedded hardware. 
+To validate deployability on resource-constrained embedded architectures, Table~\ref{tab:hardware_profiling} profiles hardware metrics (peak VRAM via \texttt{torch.cuda.max\_memory\_allocated} and per-batch forward-backward latency via CUDA events at $B=32$) on MobileNetV3-Small alongside ResNet-9. Table~\ref{tab:mobilenet_accuracy} evaluates personalized accuracy on MobileNetV3.
 
-\input{figures/table4_mobilenet}
+\input{figures/table5_hardware}
 \FloatBarrier
 
-Dual-model \textsc{Ditto} requires $3.24\mathrm{M}$ parameters, $35.1\mathrm{ms}$ forward-backward latency, and $299\mathrm{MB}$ peak VRAM. In contrast, \hepfl{} shares a single feature extractor, requiring only $19.0\mathrm{ms}$ latency (a 46\% reduction compared to \textsc{Ditto}) and $159\mathrm{MB}$ VRAM (comparable to basic single-model \textsc{FedAvg} at $152\mathrm{MB}$), while achieving superior mean accuracy (17.9\% vs 16.5\%) and tail fairness (11.5\% vs 11.4\%).
+\input{figures/table5_mobilenet_accuracy}
+\FloatBarrier
 
-\subsection{Ablation Study}
+On MobileNetV3-Small, dual-model \textsc{Ditto} incurs $298.60$\,MB peak VRAM and $22.80$\,ms latency. In contrast, \fedhep{} utilizes a single backbone, requiring only $158.80$\,MB peak VRAM (a $46.8\%$ reduction) and $11.20$\,ms latency (a $50.9\%$ speedup), with payload per round reduced by $49.9\%$ ($6.13$\,MB vs $12.24$\,MB). Furthermore, under Extreme skew ($\alpha=0.05$), \fedhep{} achieves $45.43\%$ test accuracy and $30.07\%$ bottom-10\% tail fairness on MobileNetV3, outperforming \textsc{Ditto} ($34.66\% / 16.75\%$) and \textsc{FedAvg} ($10.25\% / 5.33\%$).
+
+\subsection{Ablation Study and Coalition Valuation}
 \label{sec:exp_ablation}
-We perform ablation experiments to isolate the contribution of each architectural component:
+Table~\ref{tab:ablation_study} isolates the contribution of each architectural tier and algorithmic component across all five Dirichlet regimes on CIFAR-100:
+
+\input{figures/table6_ablation}
+\FloatBarrier
+
 \begin{itemize}
-    \item \textbf{Effect of ACLM}: Removing Active-Class Logit Masking causes backpropagation interference on the shared backbone, resulting in a 4.2\% drop in mean accuracy under $\alpha=0.1$.
-    \item \textbf{Value of Parent Head}: Eliminating the collaborative Parent Head reduces performance to a purely disjoint bipartite setup, degrading collaborative representation among similar clients by 2.8\%.
-    \item \textbf{Cluster Allocation}: Random projection clustering achieves 94.6\% of the accuracy attainable by a hypothetical Oracle clustering possessing ground-truth Dirichlet label distributions.
+    \item \textbf{Isolation of ACLM}: Removing Active-Class Logit Masking causes false negative gradient backpropagation from unobserved categories onto the shared backbone, resulting in a steep $-8.99$\,pp accuracy drop (from $65.49\%$ to $56.50\%$) and a $-10.59$\,pp tail fairness drop under Extreme skew ($\alpha=0.05$).
+    \item \textbf{Value of the Collaborative Parent Head}: Eliminating the collaborative middle tier reduces the architecture to a 2-tier bipartite setup, degrading extreme skew accuracy by $-5.15$\,pp (to $60.34\%$) and tail fairness by $-7.16$\,pp (to $46.76\%$), proving that peer collaboration prevents isolated local heads from overfitting.
+    \item \textbf{Grand Coalition ($K=1$) vs. Clustering}: Enforcing a single global coalition ($K=1$) degrades extreme skew accuracy by $-8.19$\,pp (to $57.30\%$) and tail fairness by $-8.72$\,pp, demonstrating the necessity of peer sub-coalitions under severe non-IID drift.
+    \item \textbf{Random Projection Sketch vs. Oracle Clustering Bound}: Comparing privacy-preserving Random Projection clustering ($65.49\%$) against a theoretical Oracle clustering possessing ground-truth label distributions ($66.85\%$) reveals a tight gap of only $1.36$\,pp ($98.0\%$ of oracle performance), demonstrating that low-dimensional functional sketches discover synergistic peer clusters without raw gradient exposure.
 \end{itemize}
 
 \subsection{Reproducibility and Code Availability}
 \label{sec:reproducibility}
-To ensure complete reproducibility, the full implementation of \hepfl{}, baseline benchmark runners, and configuration scripts are provided in the supplementary material and will be released under an open-source license upon publication.
+To ensure complete reproducibility, the full implementation of \fedhep{}, baseline benchmark runners, and configuration scripts are provided in the supplementary material and will be released under an open-source license upon publication.

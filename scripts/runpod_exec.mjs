@@ -47,11 +47,12 @@ async function run() {
   }
   const fullCookie = Object.entries(cookieMap).map(([k,v]) => `${k}=${v}`).join("; ");
 
-  const termRes = await fetch(`${BASE_URL}/api/terminals`, {
+  const finalXsrf = cookieMap["_xsrf"] || xsrf;
+  const termRes = await fetch(`${BASE_URL}/api/terminals?_xsrf=${encodeURIComponent(finalXsrf)}`, {
     method: "POST",
     headers: {
       "Cookie": fullCookie,
-      "X-XSRFToken": cookieMap["_xsrf"] || xsrf
+      "X-XSRFToken": finalXsrf
     }
   });
   if (!termRes.ok) {

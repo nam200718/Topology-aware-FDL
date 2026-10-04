@@ -1,19 +1,31 @@
 """
-Client Population & Participation Scalability Experiment (N = 50, Cp = 0.2).
+50-Client Partial-Participation Scalability Benchmark (N=50, Cp=0.2) -- CIFAR-100.
 
-Evaluates FedAvg, FedRep, Ditto, and HEP with Staleness-Aware Fallback Routing (S-AFR)
-and Asynchronous Cluster Momentum on CIFAR-10 with 50 edge clients,
-where only 10 clients (20% participation fraction) are sampled per round.
+Redesigned protocol (fixes the 0.00% tail-fairness artifact of the first version):
+  * Equal local compute for ALL methods (--local-epochs, default 3 passes over local data).
+  * Every method is scored under BOTH protocols on the same test split:
+        open   : raw 100-way argmax (no knowledge of the client's label support)
+        closed : logits masked to the classes observed in the client's TRAIN split
+                 (the personalized-FL protocol used for FedHEP's ACLM inference mask)
+    and the closed-set mask is applied to *every* method, not only FedHEP.
+  * FedHEP trains parent/local heads with Active-Class Logit Masking (ACLM) and routes
+    unsampled/stale clients through the Root head (S-AFR) -- as specified in the paper.
+  * One (seed, regime) per process, checkpointed per method, so a crash/hang never loses
+    finished work and never blocks other jobs.
 
-Usage:
-    python scripts/run_scale_50clients.py
+Usage (one job):
+    python scripts/run_scale_50clients.py --seed 42 --alpha 0.5 --rounds 40
+Merge all finished jobs into outputs/scale_50clients_results.json (mean +- std over seeds):
+    python scripts/run_scale_50clients.py --merge
 """
-
+import argparse
+import copy
+import glob
+import json
 import os
 import sys
-import json
 import time
-import copy
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -23,417 +35,357 @@ _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from src.core.model import ResNet9, MultiHeadResNet9
-from src.data.dataset import get_cifar10, get_cifar100, partition_data, ClientDataset, get_fast_dataloader, FastDataset
+from src.core.model import ResNet9
+from src.data.dataset import (get_cifar10, get_cifar100, partition_data, ClientDataset,
+                              get_fast_dataloader, FastDataset)
 from src.experiments.builder import detect_device
 
+OUT_DIR = os.path.join(_project_root, "outputs", "scale50")
+REGIMES = {"0.5": "Moderate (alpha=0.5)", "0.1": "Severe (alpha=0.1)"}
+METHODS = ["FedAvg", "FedRep", "Ditto", "FedHEP (Ours)"]
+LR, MOM, WD = 0.05, 0.9, 1e-4
 
-def run_50clients_scaling(num_clients: int = 50, clients_per_round: int = 10, num_rounds: int = 20, batch_size: int = 64, device=None, train_subset=None, data_dir="./data", dataset="cifar10", skip_if_exists: bool = False):
+
+def _sgd(params):
+    return torch.optim.SGD(params, lr=LR, momentum=MOM, weight_decay=WD, foreach=False)
+
+
+def _avg_states(states):
+    return {k: torch.stack([s[k].float() for s in states], dim=0).mean(dim=0) for k in states[0]}
+
+
+def _summ(accs):
+    k = max(1, int(np.ceil(0.1 * len(accs))))
+    return {"mean": round(float(np.mean(accs)), 2),
+            "bottom10": round(float(np.mean(sorted(accs)[:k])), 2)}
+
+
+def _masked(logits, mask):
+    return logits.masked_fill(~mask, -1e9)
+
+
+class Ctx:
+    """Everything a method needs: data splits, class-support masks, sampling RNG."""
+
+    def __init__(self, args, device):
+        self.a, self.device = args, device
+        self.nc = 100 if args.dataset == "cifar100" else 10
+        loader = get_cifar100 if args.dataset == "cifar100" else get_cifar10
+        tr, te = loader(data_dir=args.data_dir, train_subset=args.train_subset,
+                        test_subset=args.test_subset, seed=42)
+        self.train = FastDataset(tr, device=device)
+        self.test = FastDataset(te, device=device)
+        alpha = float(args.alpha)
+        self.tr_splits = partition_data(self.train, num_clients=args.clients, non_iid=True, alpha=alpha, seed=args.seed)
+        self.te_splits = partition_data(self.test, num_clients=args.clients, non_iid=True, alpha=alpha, seed=args.seed)
+        # Closed-set support mask per client, derived from TRAIN labels only (no test leakage).
+        self.masks = []
+        for cid in range(args.clients):
+            lab = self.train.labels[self.tr_splits[cid]].cpu().numpy()
+            m = np.zeros(self.nc, dtype=bool)
+            m[np.unique(lab)] = True
+            self.masks.append(torch.tensor(m, device=device))
+
+    def new_rng(self):
+        return np.random.RandomState(self.a.seed)
+
+    def loader(self, cid, train=True):
+        ds = ClientDataset(self.train if train else self.test, (self.tr_splits if train else self.te_splits)[cid])
+        return get_fast_dataloader(ds, batch_size=self.a.batch_size, shuffle=train)
+
+    def evaluate(self, logits_fn):
+        """logits_fn(cid, x) -> logits. Returns per-client (open, closed) accuracies in %."""
+        open_accs, closed_accs = [], []
+        with torch.no_grad():
+            for cid in range(self.a.clients):
+                tot = co = cc = 0
+                for x, y in self.loader(cid, train=False):
+                    z = logits_fn(cid, x)
+                    co += (z.argmax(1) == y).sum().item()
+                    cc += (_masked(z, self.masks[cid]).argmax(1) == y).sum().item()
+                    tot += y.size(0)
+                open_accs.append(100.0 * co / tot if tot else 0.0)
+                closed_accs.append(100.0 * cc / tot if tot else 0.0)
+        return open_accs, closed_accs
+
+
+def _log(msg):
+    print(msg, flush=True)
+
+
+# ----------------------------------------------------------------------------- methods
+def run_fedavg(c):
+    a, dev = c.a, c.device
+    rng, crit = c.new_rng(), nn.CrossEntropyLoss()
+    g = ResNet9(in_channels=3, num_classes=c.nc).to(dev)
+    for r in range(a.rounds):
+        states = []
+        for cid in rng.choice(a.clients, a.clients_per_round, replace=False):
+            m = copy.deepcopy(g).train()
+            opt = _sgd(m.parameters())
+            for _ in range(a.local_epochs):
+                for x, y in c.loader(cid):
+                    opt.zero_grad(set_to_none=True)
+                    crit(m(x), y).backward()
+                    opt.step()
+            states.append(m.state_dict())
+        g.load_state_dict(_avg_states(states))
+        if (r + 1) % 10 == 0:
+            _log(f"    FedAvg round {r + 1}/{a.rounds}")
+    g.eval()
+    return c.evaluate(lambda cid, x: g(x)), {}
+
+
+def run_fedrep(c):
+    a, dev = c.a, c.device
+    rng, crit = c.new_rng(), nn.CrossEntropyLoss()
+    g = ResNet9(in_channels=3, num_classes=c.nc).to(dev)
+    heads = [nn.Linear(256, c.nc).to(dev) for _ in range(a.clients)]
+    for r in range(a.rounds):
+        states = []
+        for cid in rng.choice(a.clients, a.clients_per_round, replace=False):
+            bb = copy.deepcopy(g).train()
+            head = heads[cid]
+            oh, ob = _sgd(head.parameters()), _sgd(bb.parameters())
+            for _ in range(a.local_epochs):       # same total passes as the others: head phase ...
+                for x, y in c.loader(cid):
+                    oh.zero_grad(set_to_none=True)
+                    crit(head(bb.extract_features(x).detach()), y).backward()
+                    oh.step()
+            for _ in range(a.local_epochs):       # ... then representation phase
+                for x, y in c.loader(cid):
+                    ob.zero_grad(set_to_none=True)
+                    crit(head(bb.extract_features(x)), y).backward()
+                    ob.step()
+            states.append(bb.state_dict())
+        g.load_state_dict(_avg_states(states))
+        if (r + 1) % 10 == 0:
+            _log(f"    FedRep round {r + 1}/{a.rounds}")
+    g.eval()
+    [h.eval() for h in heads]
+    return c.evaluate(lambda cid, x: heads[cid](g.extract_features(x))), {}
+
+
+def run_ditto(c, lam=0.1):
+    a, dev = c.a, c.device
+    rng, crit = c.new_rng(), nn.CrossEntropyLoss()
+    g = ResNet9(in_channels=3, num_classes=c.nc).to(dev)
+    pers = [ResNet9(in_channels=3, num_classes=c.nc).to(dev) for _ in range(a.clients)]
+    for r in range(a.rounds):
+        states = []
+        for cid in rng.choice(a.clients, a.clients_per_round, replace=False):
+            lg = copy.deepcopy(g).train()
+            og = _sgd(lg.parameters())
+            for _ in range(a.local_epochs):
+                for x, y in c.loader(cid):
+                    og.zero_grad(set_to_none=True)
+                    crit(lg(x), y).backward()
+                    og.step()
+            states.append(lg.state_dict())
+            pm, op = pers[cid].train(), _sgd(pers[cid].parameters())
+            wg = torch.nn.utils.parameters_to_vector(lg.parameters()).detach()
+            for _ in range(a.local_epochs):
+                for x, y in c.loader(cid):
+                    op.zero_grad(set_to_none=True)
+                    wp = torch.nn.utils.parameters_to_vector(pm.parameters())
+                    (crit(pm(x), y) + 0.5 * lam * torch.sum((wp - wg) ** 2)).backward()
+                    op.step()
+        g.load_state_dict(_avg_states(states))
+        if (r + 1) % 10 == 0:
+            _log(f"    Ditto round {r + 1}/{a.rounds}")
+    [p.eval() for p in pers]
+    return c.evaluate(lambda cid, x: pers[cid](x)), {}
+
+
+def run_fedhep(c, num_clusters=5, beta_c=0.70, stale_tau=4.0):
+    a, dev = c.a, c.device
+    rng, crit = c.new_rng(), nn.CrossEntropyLoss()
+    n, nc, E = a.clients, c.nc, a.local_epochs
+    e_r, e_p, e_l = E, max(1, E - 1), max(1, E - 1)    # backbone passes = E (equal to baselines)
+    bb = ResNet9(in_channels=3, num_classes=nc).to(dev)
+    root = nn.Linear(256, nc).to(dev)
+    clus = [nn.Linear(256, nc).to(dev) for _ in range(num_clusters)]
+    local = [copy.deepcopy(root) for _ in range(n)]
+    cl_of = [i % num_clusters for i in range(n)]       # static round-robin clusters (see README note)
+    alphas = [torch.tensor([0.33, 0.33, 0.34], device=dev) for _ in range(n)]
+    seen = np.zeros(n, dtype=int)
+    last = np.zeros(n, dtype=int)
+
+    priors = []
+    for cid in range(n):
+        cnt = np.bincount(c.train.labels[c.tr_splits[cid]].cpu().numpy(), minlength=nc)
+        p = cnt / (cnt.sum() + 1e-8)
+        rs = float(np.clip(-np.sum(p * np.log(p + 1e-12)) / np.log(nc), 0, 1))
+        pi_r = rs ** 2
+        pi_l = (1 - pi_r) * (1 - rs)
+        priors.append(torch.tensor([pi_l, max(0.0, 1 - pi_r - pi_l), pi_r], device=dev))
+
+    for r in range(a.rounds):
+        bbs, roots, cupd = [], [], {k: [] for k in range(num_clusters)}
+        for cid in rng.choice(n, a.clients_per_round, replace=False):
+            seen[cid] += 1
+            last[cid] = r
+            k = cl_of[cid]
+            mask = c.masks[cid]
+            lb = copy.deepcopy(bb).train()
+            lr_, lp_, ll_ = copy.deepcopy(root).train(), copy.deepcopy(clus[k]).train(), local[cid].train()
+            opt = _sgd(list(lb.parameters()) + list(lr_.parameters()) + list(lp_.parameters()) + list(ll_.parameters()))
+            loader = c.loader(cid)
+            for ep in range(1, max(e_r, e_p, e_l) + 1):
+                for x, y in loader:
+                    opt.zero_grad(set_to_none=True)
+                    f = lb.extract_features(x)
+                    loss = 0.0
+                    if ep <= e_r: loss = loss + crit(lr_(f), y)                        # Root: global CE
+                    if ep <= e_p: loss = loss + crit(_masked(lp_(f), mask), y)         # Parent: ACLM
+                    if ep <= e_l: loss = loss + crit(_masked(ll_(f), mask), y)         # Local : ACLM
+                    loss.backward()
+                    opt.step()
+            bbs.append(lb.state_dict()); roots.append(lr_.state_dict()); cupd[k].append(lp_.state_dict())
+            lb.eval()
+            with torch.no_grad():
+                x, y = next(iter(c.loader(cid)))
+                f = lb.extract_features(x)
+                acc = torch.stack([(_masked(ll_(f), mask).argmax(1) == y).float().mean(),
+                                   (_masked(lp_(f), mask).argmax(1) == y).float().mean(),
+                                   (lr_(f).argmax(1) == y).float().mean()])
+                alphas[cid] = F.softmax(0.7 * acc + 0.3 * priors[cid], dim=0)
+        bb.load_state_dict(_avg_states(bbs))
+        root.load_state_dict(_avg_states(roots))
+        for k in range(num_clusters):                       # asynchronous cluster momentum
+            if cupd[k]:
+                avg, cur = _avg_states(cupd[k]), clus[k].state_dict()
+                clus[k].load_state_dict({kk: beta_c * cur[kk].float() + (1 - beta_c) * avg[kk] for kk in avg})
+        if (r + 1) % 10 == 0:
+            _log(f"    FedHEP round {r + 1}/{a.rounds}")
+
+    bb.eval(); root.eval(); [h.eval() for h in clus + local]
+
+    def blend(cid, x):
+        al = alphas[cid].clone()
+        if seen[cid] == 0:                                   # S-AFR: never sampled -> Root only
+            al = torch.tensor([0.0, 0.0, 1.0], device=dev)
+        else:
+            stale = (a.rounds - 1) - last[cid]
+            if stale > stale_tau:                            # S-AFR: stale -> fade towards Root
+                fade = float(np.exp(-stale / stale_tau))
+                al[0] *= fade; al[1] *= fade; al[2] = 1.0 - (al[0] + al[1])
+        f = bb.extract_features(x)
+        # Raw (unmasked) blended logits; the open/closed protocols are applied by Ctx.evaluate.
+        return al[0] * local[cid](f) + al[1] * clus[cl_of[cid]](f) + al[2] * root(f)
+
+    extra = {"min_participation": int(seen.min()), "mean_participation": round(float(seen.mean()), 2),
+             "never_sampled": int((seen == 0).sum())}
+    return c.evaluate(blend), extra
+
+
+RUNNERS = {"FedAvg": run_fedavg, "FedRep": run_fedrep, "Ditto": run_ditto, "FedHEP (Ours)": run_fedhep}
+
+
+# ----------------------------------------------------------------------------- driver
+def run_job(args):
+    os.makedirs(OUT_DIR, exist_ok=True)
+    out = os.path.join(OUT_DIR, f"seed{args.seed}_alpha{args.alpha}.json")
+    res = {"config": {k: getattr(args, k) for k in (
+        "dataset", "clients", "clients_per_round", "rounds", "local_epochs", "batch_size",
+        "train_subset", "test_subset", "seed", "alpha")}, "methods": {}}
+    if os.path.exists(out) and not args.force:
+        res = json.load(open(out))
+    device = torch.device(args.device) if args.device else detect_device()
+    torch.manual_seed(args.seed); np.random.seed(args.seed)
+    c = Ctx(args, device)
+    _log(f"[scale50] seed={args.seed} alpha={args.alpha} device={device} rounds={args.rounds} E={args.local_epochs}")
+    for name in METHODS:
+        if name in res["methods"]:
+            _log(f"  skip {name} (checkpointed)")
+            continue
+        t0 = time.time()
+        (acc_open, acc_closed), extra = RUNNERS[name](c)
+        res["methods"][name] = {"open": _summ(acc_open), "closed": _summ(acc_closed),
+                                "seconds": round(time.time() - t0, 1), **extra}
+        json.dump(res, open(out, "w"), indent=2)            # checkpoint after every method
+        m = res["methods"][name]
+        _log(f"  {name:14s} closed={m['closed']['mean']:.2f}/{m['closed']['bottom10']:.2f}  "
+             f"open={m['open']['mean']:.2f}/{m['open']['bottom10']:.2f}  ({m['seconds']}s)")
+    _log(f"[scale50] DONE -> {out}")
+
+
+def merge():
+    """Aggregate every outputs/scale50/seed*_alpha*.json into scale_50clients_results.json."""
+    runs = {}
+    for f in sorted(glob.glob(os.path.join(OUT_DIR, "seed*_alpha*.json"))):
+        d = json.load(open(f))
+        runs.setdefault(str(d["config"]["alpha"]), []).append(d)
+    merged = {}
+    for alpha, items in runs.items():
+        regime = REGIMES.get(alpha, f"alpha={alpha}")
+        merged[regime] = {}
+        for name in METHODS:
+            rows = [d["methods"][name] for d in items if name in d["methods"]]
+            if not rows:
+                continue
+            entry = {"n_seeds": len(rows), "seeds": [d["config"]["seed"] for d in items if name in d["methods"]]}
+            for proto in ("closed", "open"):
+                for stat in ("mean", "bottom10"):
+                    v = np.array([r[proto][stat] for r in rows])
+                    entry[f"{proto}_{stat}"] = round(float(v.mean()), 2)
+                    entry[f"{proto}_{stat}_std"] = round(float(v.std()), 2)
+            entry["mean"], entry["bottom10"] = entry["closed_mean"], entry["closed_bottom10"]  # legacy keys
+            merged[regime][name] = entry
+    out = os.path.join(_project_root, "outputs", "scale_50clients_results.json")
+    json.dump(merged, open(out, "w"), indent=2)
+    _log(f"merged {sum(len(v) for v in runs.values())} job files -> {out}")
+    return merged
+
+
+def run_50clients_scaling(num_clients=50, clients_per_round=10, num_rounds=40, batch_size=64, device=None,
+                          train_subset=None, data_dir="./data", dataset="cifar100", skip_if_exists=False,
+                          seeds=(42, 123, 7), job_timeout_s=1800):
+    """Back-compat API for run_aamas_suite / run_runpod_suite.
+
+    Each (seed, regime) runs in its OWN subprocess with a hard timeout, so a hang in one job can
+    never stall (or silently burn GPU credit for) the rest of a long pipeline.
+    """
+    import subprocess
     out_path = os.path.join(_project_root, "outputs", "scale_50clients_results.json")
     if skip_if_exists and os.path.exists(out_path):
-        try:
-            with open(out_path, "r") as f:
-                cached = json.load(f)
-            if "Moderate (alpha=0.5)" in cached and "Severe (alpha=0.1)" in cached:
-                print(f"✅ 50-client scalability results already verified at {out_path}. Skipping rerun.")
-                return cached
-        except Exception:
-            pass
+        return json.load(open(out_path))
+    for seed in seeds:
+        for alpha in REGIMES:
+            cmd = [sys.executable, os.path.abspath(__file__), "--seed", str(seed), "--alpha", alpha,
+                   "--rounds", str(num_rounds), "--clients", str(num_clients),
+                   "--clients-per-round", str(clients_per_round), "--batch-size", str(batch_size),
+                   "--dataset", dataset, "--data-dir", data_dir]
+            if train_subset:
+                cmd += ["--train-subset", str(train_subset)]
+            if device:
+                cmd += ["--device", str(device)]
+            try:
+                subprocess.run(cmd, check=True, timeout=job_timeout_s)
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as e:
+                _log(f"[scale50] job seed={seed} alpha={alpha} failed: {e!r} -- continuing")
+    return merge()
 
-    if device is None:
-        device = detect_device()
-    else:
-        device = torch.device(device) if isinstance(device, str) else device
-    clients_per_round = min(clients_per_round, num_clients)
-    num_classes = 100 if dataset == "cifar100" else 10
-    print(f"Target Hardware Device: {device} | Dataset: {dataset.upper()} ({num_classes} classes)")
 
-    # Load dataset preloaded to GPU memory
-    tr_sub = 15000 if train_subset is None else train_subset
-    te_sub = 3000 if train_subset is None else min(3000, train_subset)
-    if dataset == "cifar100":
-        train_raw, test_raw = get_cifar100(data_dir=data_dir, train_subset=tr_sub, test_subset=te_sub, seed=42)
-    else:
-        train_raw, test_raw = get_cifar10(data_dir=data_dir, train_subset=tr_sub, test_subset=te_sub, seed=42)
-    print(f"Preloading {dataset.upper()} to GPU memory for 50-client scaling...")
-    train_fast = FastDataset(train_raw, device=device)
-    test_fast = FastDataset(test_raw, device=device)
-
-    scenarios = [
-        ("Moderate (alpha=0.5)", 0.5),
-        ("Severe (alpha=0.1)", 0.1),
-    ]
-
-    all_results = {}
-
-    for sc_name, alpha in scenarios:
-        print(f"\n{'='*70}\nRunning 50-Client Scalability Scenario: {sc_name} (Cp = {clients_per_round/num_clients:.1f})\n{'='*70}")
-        train_splits = partition_data(train_fast, num_clients=num_clients, non_iid=True, alpha=alpha, seed=42)
-        test_splits = partition_data(test_fast, num_clients=num_clients, non_iid=True, alpha=alpha, seed=42)
-
-        scenario_res = {}
-        crit = nn.CrossEntropyLoss()
-        rng = np.random.RandomState(42)
-
-        # -------------------------------------------------------------
-        # 1. FedAvg (50 clients, 10 active/round)
-        # -------------------------------------------------------------
-        print("\n[1/4] Training FedAvg (N=50, Cp=0.2)...")
-        global_model = ResNet9(in_channels=3, num_classes=num_classes).to(device)
-
-        for r in range(num_rounds):
-            active_clients = rng.choice(num_clients, clients_per_round, replace=False)
-            client_states = []
-            for cid in active_clients:
-                c_train = ClientDataset(train_fast, train_splits[cid])
-                loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
-                local_m = ResNet9(in_channels=3, num_classes=num_classes).to(device)
-                local_m.load_state_dict(global_model.state_dict())
-                opt = torch.optim.SGD(local_m.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
-
-                local_m.train()
-                for _ in range(2):
-                    for x, y in loader:
-                        opt.zero_grad(set_to_none=True)
-                        loss = crit(local_m(x), y)
-                        loss.backward()
-                        opt.step()
-                client_states.append(local_m.state_dict())
-
-            avg_state = {}
-            for k in global_model.state_dict().keys():
-                avg_state[k] = torch.stack([client_states[i][k].float() for i in range(len(active_clients))], dim=0).mean(dim=0)
-            global_model.load_state_dict(avg_state)
-
-        # Evaluate across all 50 clients
-        accs = []
-        global_model.eval()
-        with torch.no_grad():
-            for cid in range(num_clients):
-                c_test = ClientDataset(test_fast, test_splits[cid])
-                loader = get_fast_dataloader(c_test, batch_size=batch_size, shuffle=False)
-                c_total, c_corr = 0, 0
-                for x, y in loader:
-                    pred = global_model(x).argmax(dim=1)
-                    c_corr += (pred == y).sum().item()
-                    c_total += y.size(0)
-                accs.append((c_corr / c_total * 100.0) if c_total > 0 else 0.0)
-
-        scenario_res["FedAvg"] = {
-            "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2)
-        }
-        print(f"  FedAvg: Mean = {scenario_res['FedAvg']['mean']:.2f}% | Bottom 10% = {scenario_res['FedAvg']['bottom10']:.2f}%")
-
-        # -------------------------------------------------------------
-        # 2. FedRep (50 clients, 10 active/round)
-        # -------------------------------------------------------------
-        print("\n[2/4] Training FedRep (N=50, Cp=0.2)...")
-        global_bb = ResNet9(in_channels=3, num_classes=num_classes).to(device)
-        local_heads = [nn.Linear(256, num_classes).to(device) for _ in range(num_clients)]
-
-        for r in range(num_rounds):
-            active_clients = rng.choice(num_clients, clients_per_round, replace=False)
-            client_bb_states = []
-            for cid in active_clients:
-                c_train = ClientDataset(train_fast, train_splits[cid])
-                loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
-                local_bb = ResNet9(in_channels=3, num_classes=num_classes).to(device)
-                local_bb.load_state_dict(global_bb.state_dict())
-                l_head = local_heads[cid]
-
-                opt_head = torch.optim.SGD(l_head.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
-                opt_bb = torch.optim.SGD(local_bb.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
-
-                # 1. Train head on detached features
-                for _ in range(2):
-                    for x, y in loader:
-                        opt_head.zero_grad(set_to_none=True)
-                        feats = local_bb.extract_features(x).detach()
-                        loss = crit(l_head(feats), y)
-                        loss.backward()
-                        opt_head.step()
-
-                # 2. Train body representation
-                for _ in range(2):
-                    for x, y in loader:
-                        opt_bb.zero_grad(set_to_none=True)
-                        feats = local_bb.extract_features(x)
-                        loss = crit(l_head(feats), y)
-                        loss.backward()
-                        opt_bb.step()
-
-                client_bb_states.append(local_bb.state_dict())
-
-            avg_bb = {}
-            for k in global_bb.state_dict().keys():
-                avg_bb[k] = torch.stack([client_bb_states[i][k].float() for i in range(len(active_clients))], dim=0).mean(dim=0)
-            global_bb.load_state_dict(avg_bb)
-
-        # Eval FedRep
-        accs = []
-        global_bb.eval()
-        with torch.no_grad():
-            for cid in range(num_clients):
-                local_heads[cid].eval()
-                c_test = ClientDataset(test_fast, test_splits[cid])
-                loader = get_fast_dataloader(c_test, batch_size=batch_size, shuffle=False)
-                c_total, c_corr = 0, 0
-                for x, y in loader:
-                    pred = local_heads[cid](global_bb.extract_features(x)).argmax(dim=1)
-                    c_corr += (pred == y).sum().item()
-                    c_total += y.size(0)
-                accs.append((c_corr / c_total * 100.0) if c_total > 0 else 0.0)
-
-        scenario_res["FedRep"] = {
-            "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2)
-        }
-        print(f"  FedRep: Mean = {scenario_res['FedRep']['mean']:.2f}% | Bottom 10% = {scenario_res['FedRep']['bottom10']:.2f}%")
-
-        # -------------------------------------------------------------
-        # 3. Ditto (50 clients, 10 active/round)
-        # -------------------------------------------------------------
-        print("\n[3/4] Training Ditto (N=50, Cp=0.2)...")
-        global_m = ResNet9(in_channels=3, num_classes=num_classes).to(device)
-        local_models = [ResNet9(in_channels=3, num_classes=num_classes).to(device) for _ in range(num_clients)]
-
-        for r in range(num_rounds):
-            active_clients = rng.choice(num_clients, clients_per_round, replace=False)
-            client_states = []
-            for cid in active_clients:
-                c_train = ClientDataset(train_fast, train_splits[cid])
-                loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
-                local_g = ResNet9(in_channels=3, num_classes=num_classes).to(device)
-                local_g.load_state_dict(global_m.state_dict())
-                opt_g = torch.optim.SGD(local_g.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
-
-                local_g.train()
-                for _ in range(2):
-                    for x, y in loader:
-                        opt_g.zero_grad(set_to_none=True)
-                        loss = crit(local_g(x), y)
-                        loss.backward()
-                        opt_g.step()
-                client_states.append(local_g.state_dict())
-
-                # Personalized model update with proximal term
-                p_mod = local_models[cid]
-                opt_p = torch.optim.SGD(p_mod.parameters(), lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
-                w_g_vec = torch.nn.utils.parameters_to_vector(local_g.parameters()).detach()
-
-                p_mod.train()
-                for _ in range(2):
-                    for x, y in loader:
-                        opt_p.zero_grad(set_to_none=True)
-                        w_p_vec = torch.nn.utils.parameters_to_vector(p_mod.parameters())
-                        loss = crit(p_mod(x), y) + 0.5 * 0.1 * torch.sum((w_p_vec - w_g_vec) ** 2)
-                        loss.backward()
-                        opt_p.step()
-
-            avg_state = {}
-            for k in global_m.state_dict().keys():
-                avg_state[k] = torch.stack([client_states[i][k].float() for i in range(len(active_clients))], dim=0).mean(dim=0)
-            global_m.load_state_dict(avg_state)
-
-        # Eval Ditto
-        accs = []
-        with torch.no_grad():
-            for cid in range(num_clients):
-                local_models[cid].eval()
-                c_test = ClientDataset(test_fast, test_splits[cid])
-                loader = get_fast_dataloader(c_test, batch_size=batch_size, shuffle=False)
-                c_total, c_corr = 0, 0
-                for x, y in loader:
-                    pred = local_models[cid](x).argmax(dim=1)
-                    c_corr += (pred == y).sum().item()
-                    c_total += y.size(0)
-                accs.append((c_corr / c_total * 100.0) if c_total > 0 else 0.0)
-
-        scenario_res["Ditto"] = {
-            "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2)
-        }
-        print(f"  Ditto: Mean = {scenario_res['Ditto']['mean']:.2f}% | Bottom 10% = {scenario_res['Ditto']['bottom10']:.2f}%")
-
-        # -------------------------------------------------------------
-        # 4. HEP with Staleness-Aware Fallback Routing (S-AFR) & Cluster Momentum
-        # -------------------------------------------------------------
-        print(f"\n[4/4] Training HEP w/ S-AFR & Cluster Momentum (N={num_clients}, K={min(5, num_clients)}, Cp={clients_per_round/num_clients:.1f})...")
-        num_clusters = min(5, num_clients)
-        global_backbone = ResNet9(in_channels=3, num_classes=num_classes).to(device)
-        global_root_head = nn.Linear(256, num_classes).to(device)
-        cluster_heads = [nn.Linear(256, num_classes).to(device) for _ in range(num_clusters)]
-        local_heads = [nn.Linear(256, num_classes).to(device) for _ in range(num_clients)]
-        client_alphas = [torch.tensor([0.33, 0.33, 0.34], device=device) for _ in range(num_clients)]
-        client_clusters = [i % num_clusters for i in range(num_clients)]
-        sample_counts = np.zeros(num_clients, dtype=int)
-        last_sampled_round = np.zeros(num_clients, dtype=int)
-
-        # Initialize local heads from global root
-        for cid in range(num_clients):
-            local_heads[cid].load_state_dict(global_root_head.state_dict())
-
-        entropy_priors = []
-        for cid in range(num_clients):
-            c_labels = train_fast.labels[train_splits[cid]].cpu().numpy()
-            counts = np.bincount(c_labels, minlength=num_classes)
-            probs = counts / (counts.sum() + 1e-8)
-            entropy = -np.sum(probs * np.log(probs + 1e-12))
-            r_skew = float(np.clip(entropy / np.log(num_classes), 0.0, 1.0))
-            pi_r = r_skew ** 2.0
-            pi_l = (1.0 - pi_r) * (1.0 - r_skew)
-            pi_p = max(0.0, 1.0 - pi_r - pi_l)
-            entropy_priors.append(torch.tensor([pi_l, pi_p, pi_r], device=device))
-
-        beta_c = 0.70  # Asynchronous cluster momentum factor
-
-        for r in range(num_rounds):
-            active_clients = rng.choice(num_clients, clients_per_round, replace=False)
-            client_bb_states = []
-            client_root_states = []
-            cluster_updates = {k: [] for k in range(num_clusters)}
-
-            for cid in active_clients:
-                sample_counts[cid] += 1
-                last_sampled_round[cid] = r
-                c_train = ClientDataset(train_fast, train_splits[cid])
-                loader = get_fast_dataloader(c_train, batch_size=batch_size, shuffle=True)
-                k_idx = client_clusters[cid]
-
-                l_bb = ResNet9(in_channels=3, num_classes=num_classes).to(device)
-                l_bb.load_state_dict(global_backbone.state_dict())
-                l_root = nn.Linear(256, num_classes).to(device)
-                l_root.load_state_dict(global_root_head.state_dict())
-                l_parent = copy.deepcopy(cluster_heads[k_idx])
-                l_local = local_heads[cid]
-
-                params = list(l_bb.parameters()) + list(l_root.parameters()) + list(l_parent.parameters()) + list(l_local.parameters())
-                opt = torch.optim.SGD(params, lr=0.05, momentum=0.9, weight_decay=1e-4, foreach=False)
-
-                l_bb.train(); l_root.train(); l_parent.train(); l_local.train()
-
-                e_r, e_p, e_l = 4, 2, 2
-                for ep in range(1, max(e_r, e_p, e_l) + 1):
-                    for x, y in loader:
-                        opt.zero_grad(set_to_none=True)
-                        feats = l_bb.extract_features(x)
-                        loss = 0.0
-                        if ep <= e_r: loss += crit(l_root(feats), y)
-                        if ep <= e_p: loss += crit(l_parent(feats), y)
-                        if ep <= e_l: loss += crit(l_local(feats), y)
-                        loss.backward()
-                        opt.step()
-
-                client_bb_states.append(l_bb.state_dict())
-                client_root_states.append(l_root.state_dict())
-                cluster_updates[k_idx].append(l_parent.state_dict())
-
-                l_bb.eval()
-                with torch.no_grad():
-                    for x, y in loader:
-                        feats = l_bb.extract_features(x)
-                        z_r, z_p, z_l = l_root(feats), l_parent(feats), l_local(feats)
-                        acc_r = (z_r.argmax(dim=1) == y).float().mean()
-                        acc_p = (z_p.argmax(dim=1) == y).float().mean()
-                        acc_l = (z_l.argmax(dim=1) == y).float().mean()
-                        grad_a = torch.tensor([acc_l, acc_p, acc_r], device=device)
-                        client_alphas[cid] = F.softmax(0.7 * grad_a + 0.3 * entropy_priors[cid], dim=0)
-                        break
-
-            # Server aggregation for backbone and root head
-            avg_bb = {}
-            for k in global_backbone.state_dict().keys():
-                avg_bb[k] = torch.stack([client_bb_states[i][k].float() for i in range(len(active_clients))], dim=0).mean(dim=0)
-            global_backbone.load_state_dict(avg_bb)
-
-            avg_root = {}
-            for k in global_root_head.state_dict().keys():
-                avg_root[k] = torch.stack([client_root_states[i][k].float() for i in range(len(active_clients))], dim=0).mean(dim=0)
-            global_root_head.load_state_dict(avg_root)
-
-            # Asynchronous Cluster Momentum aggregation
-            for k in range(num_clusters):
-                if cluster_updates[k]:
-                    avg_p = {}
-                    for key in cluster_heads[k].state_dict().keys():
-                        batch_p = torch.stack([cluster_updates[k][i][key].float() for i in range(len(cluster_updates[k]))], dim=0).mean(dim=0)
-                        curr_p = cluster_heads[k].state_dict()[key].float()
-                        avg_p[key] = beta_c * curr_p + (1.0 - beta_c) * batch_p
-                    cluster_heads[k].load_state_dict(avg_p)
-
-        # Eval HEP with Staleness-Aware Fallback Routing (S-AFR)
-        accs = []
-        global_backbone.eval(); global_root_head.eval()
-        with torch.no_grad():
-            for cid in range(num_clients):
-                k_idx = client_clusters[cid]
-                cluster_heads[k_idx].eval()
-                local_heads[cid].eval()
-                a = client_alphas[cid].clone()
-
-                # S-AFR: Fall back to Root head if client was never sampled or has high staleness
-                if sample_counts[cid] == 0:
-                    a = torch.tensor([0.0, 0.0, 1.0], device=device)
-                else:
-                    staleness = (num_rounds - 1) - last_sampled_round[cid]
-                    if staleness > 4:
-                        fade = float(np.exp(-staleness / 4.0))
-                        a[0] *= fade
-                        a[1] *= fade
-                        a[2] = 1.0 - (a[0] + a[1])
-
-                c_test = ClientDataset(test_fast, test_splits[cid])
-                loader = get_fast_dataloader(c_test, batch_size=batch_size, shuffle=False)
-                c_total, c_corr = 0, 0
-                for x, y in loader:
-                    feats = global_backbone.extract_features(x)
-                    z_r = global_root_head(feats)
-                    z_p = cluster_heads[k_idx](feats)
-                    z_l = local_heads[cid](feats)
-                    z_blend = a[0] * z_l + a[1] * z_p + a[2] * z_r
-                    pred = z_blend.argmax(dim=1)
-                    c_corr += (pred == y).sum().item()
-                    c_total += y.size(0)
-                accs.append((c_corr / c_total * 100.0) if c_total > 0 else 0.0)
-
-        scenario_res["FedHEP (Ours)"] = {
-            "mean": round(float(np.mean(accs)), 2),
-            "bottom10": round(float(np.mean(sorted(accs)[:max(1, int(np.ceil(0.1 * len(accs))))])), 2)
-        }
-        print(f"  FedHEP w/ S-AFR: Mean = {scenario_res['FedHEP (Ours)']['mean']:.2f}% | Bottom 10% = {scenario_res['FedHEP (Ours)']['bottom10']:.2f}%")
-
-        all_results[sc_name] = scenario_res
-
-    out_path = os.path.join(_project_root, "outputs", "scale_50clients_results.json")
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    with open(out_path, "w") as f:
-        json.dump(all_results, f, indent=2)
-    print(f"\n50-Client Scalability Benchmark complete! Saved to: {out_path}")
-    return all_results
+def parse():
+    p = argparse.ArgumentParser(description="50-client partial-participation benchmark")
+    p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--alpha", type=str, default="0.5", choices=sorted(REGIMES))
+    p.add_argument("--rounds", type=int, default=40)
+    p.add_argument("--local-epochs", type=int, default=3)
+    p.add_argument("--clients", type=int, default=50)
+    p.add_argument("--clients-per-round", type=int, default=10)
+    p.add_argument("--batch-size", type=int, default=64)
+    p.add_argument("--dataset", default="cifar100", choices=["cifar10", "cifar100"])
+    p.add_argument("--train-subset", type=int, default=15000)
+    p.add_argument("--test-subset", type=int, default=3000)
+    p.add_argument("--data-dir", default="./data")
+    p.add_argument("--device", default=None)
+    p.add_argument("--force", action="store_true", help="ignore existing checkpoint")
+    p.add_argument("--merge", action="store_true", help="merge finished jobs and exit")
+    return p.parse_args()
 
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="50-Client Scalability Benchmark")
-    parser.add_argument("--rounds", type=int, default=20, help="Number of communication rounds")
-    parser.add_argument("--clients", type=int, default=50, help="Number of clients")
-    parser.add_argument("--clients-per-round", type=int, default=10, help="Active clients per round")
-    parser.add_argument("--batch-size", type=int, default=64, help="Batch size")
-    parser.add_argument("--device", type=str, default=None, help="Target device (cpu, cuda, directml)")
-    parser.add_argument("--data-dir", type=str, default="./data", help="Path to dataset directory or Kaggle input mount")
-    parser.add_argument("--dataset", type=str, default="cifar10", choices=["cifar10", "cifar100"], help="Dataset to evaluate on")
-    parser.add_argument("--train-subset", type=int, default=None, help="Train subset size")
-    parser.add_argument("--skip-if-exists", action="store_true", help="Skip benchmark if verified results already exist")
-    args = parser.parse_args()
-    run_50clients_scaling(
-        num_clients=args.clients,
-        clients_per_round=args.clients_per_round,
-        num_rounds=args.rounds,
-        batch_size=args.batch_size,
-        device=args.device,
-        train_subset=args.train_subset,
-        data_dir=args.data_dir,
-        dataset=args.dataset,
-        skip_if_exists=args.skip_if_exists,
-    )
+    args = parse()
+    merge() if args.merge else run_job(args)
