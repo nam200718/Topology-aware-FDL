@@ -1,0 +1,9 @@
+benchmark,dataset,architecture,method,regime,attack,byzantine_rate,num_clients,rounds,mean_acc,std_acc,mean_b10,std_b10,peak_vram_mb,batch_latency_ms,elapsed_s,source_origin
+50-Client Scalability,cifar100,ResNet-9,FedAvg,Moderate (alpha=0.5),none,0.0,50,20,8.31,0.0,0.0,0.0,110.2,8.42,,Master
+50-Client Scalability,cifar100,ResNet-9,FedRep,Moderate (alpha=0.5),none,0.0,50,20,10.69,0.0,0.0,0.0,110.2,8.42,,Master
+50-Client Scalability,cifar100,ResNet-9,Ditto,Moderate (alpha=0.5),none,0.0,50,20,12.65,0.0,0.0,0.0,220.4,8.42,,Master
+50-Client Scalability,cifar100,ResNet-9,Defended FedHEP,Moderate (alpha=0.5),none,0.0,50,20,19.63,0.0,0.0,0.0,114.8,8.42,,Master
+50-Client Scalability,cifar100,ResNet-9,FedAvg,Severe (alpha=0.1),none,0.0,50,20,5.08,0.0,0.0,0.0,110.2,8.42,,Master
+50-Client Scalability,cifar100,ResNet-9,FedRep,Severe (alpha=0.1),none,0.0,50,20,5.91,0.0,0.0,0.0,110.2,8.42,,Master
+50-Client Scalability,cifar100,ResNet-9,Ditto,Severe (alpha=0.1),none,0.0,50,20,20.47,0.0,0.0,0.0,220.4,8.42,,Master
+50-Client Scalability,cifar100,ResNet-9,Defended FedHEP,Severe (alpha=0.1),none,0.0,50,20,11.03,0.0,0.0,0.0,114.8,8.42,,Master

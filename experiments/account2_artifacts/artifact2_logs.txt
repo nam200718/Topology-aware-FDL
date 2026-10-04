@@ -1,505 +1,0 @@
-11.7s 1 0.00s - Debugger warning: It seems that frozen modules are being used, which may
-11.7s 2 0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
-11.7s 3 0.00s - to python to disable frozen modules.
-11.7s 4 0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.
-12.5s 5 0.00s - Debugger warning: It seems that frozen modules are being used, which may
-12.5s 6 0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
-12.5s 7 0.00s - to python to disable frozen modules.
-12.5s 8 0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.
-13.9s 9 🚀 Cloning repository from GitHub...
-14.0s 10 Cloning into '/kaggle/working/Topology-aware-FDL'...
-15.5s 11 remote: Enumerating objects: 1380, done.[K
-15.5s 12 remote: Counting objects:   0% (1/102)[Kremote: Counting objects:   1% (2/102)[Kremote: Counting objects:   2% (3/102)[Kremote: Counting objects:   3% (4/102)[Kremote: Counting objects:   4% (5/102)[Kremote: Counting objects:   5% (6/102)[Kremote: Counting objects:   6% (7/102)[Kremote: Counting objects:   7% (8/102)[Kremote: Counting objects:   8% (9/102)[Kremote: Counting objects:   9% (10/102)[Kremote: Counting objects:  10% (11/102)[Kremote: Counting objects:  11% (12/102)[Kremote: Counting objects:  12% (13/102)[Kremote: Counting objects:  13% (14/102)[Kremote: Counting objects:  14% (15/102)[Kremote: Counting objects:  15% (16/102)[Kremote: Counting objects:  16% (17/102)[Kremote: Counting objects:  17% (18/102)[Kremote: Counting objects:  18% (19/102)[Kremote: Counting objects:  19% (20/102)[Kremote: Counting objects:  20% (21/102)[Kremote: Counting objects:  21% (22/102)[Kremote: Counting objects:  22% (23/102)[Kremote: Counting objects:  23% (24/102)[Kremote: Counting objects:  24% (25/102)[Kremote: Counting objects:  25% (26/102)[Kremote: Counting objects:  26% (27/102)[Kremote: Counting objects:  27% (28/102)[Kremote: Counting objects:  28% (29/102)[Kremote: Counting objects:  29% (30/102)[Kremote: Counting objects:  30% (31/102)[Kremote: Counting objects:  31% (32/102)[Kremote: Counting objects:  32% (33/102)[Kremote: Counting objects:  33% (34/102)[Kremote: Counting objects:  34% (35/102)[Kremote: Counting objects:  35% (36/102)[Kremote: Counting objects:  36% (37/102)[Kremote: Counting objects:  37% (38/102)[Kremote: Counting objects:  38% (39/102)[Kremote: Counting objects:  39% (40/102)[Kremote: Counting objects:  40% (41/102)[Kremote: Counting objects:  41% (42/102)[Kremote: Counting objects:  42% (43/102)[Kremote: Counting objects:  43% (44/102)[Kremote: Counting objects:  44% (45/102)[Kremote: Counting objects:  45% (46/102)[Kremote: Counting objects:  46% (47/102)[Kremote: Counting objects:  47% (48/102)[Kremote: Counting objects:  48% (49/102)[Kremote: Counting objects:  49% (50/102)[Kremote: Counting objects:  50% (51/102)[Kremote: Counting objects:  51% (53/102)[Kremote: Counting objects:  52% (54/102)[Kremote: Counting objects:  53% (55/102)[Kremote: Counting objects:  54% (56/102)[Kremote: Counting objects:  55% (57/102)[Kremote: Counting objects:  56% (58/102)[Kremote: Counting objects:  57% (59/102)[Kremote: Counting objects:  58% (60/102)[Kremote: Counting objects:  59% (61/102)[Kremote: Counting objects:  60% (62/102)[Kremote: Counting objects:  61% (63/102)[Kremote: Counting objects:  62% (64/102)[Kremote: Counting objects:  63% (65/102)[Kremote: Counting objects:  64% (66/102)[Kremote: Counting objects:  65% (67/102)[Kremote: Counting objects:  66% (68/102)[Kremote: Counting objects:  67% (69/102)[Kremote: Counting objects:  68% (70/102)[Kremote: Counting objects:  69% (71/102)[Kremote: Counting objects:  70% (72/102)[Kremote: Counting objects:  71% (73/102)[Kremote: Counting objects:  72% (74/102)[Kremote: Counting objects:  73% (75/102)[Kremote: Counting objects:  74% (76/102)[Kremote: Counting objects:  75% (77/102)[Kremote: Counting objects:  76% (78/102)[Kremote: Counting objects:  77% (79/102)[Kremote: Counting objects:  78% (80/102)[Kremote: Counting objects:  79% (81/102)[Kremote: Counting objects:  80% (82/102)[Kremote: Counting objects:  81% (83/102)[Kremote: Counting objects:  82% (84/102)[Kremote: Counting objects:  83% (85/102)[Kremote: Counting objects:  84% (86/102)[Kremote: Counting objects:  85% (87/102)[Kremote: Counting objects:  86% (88/102)[Kremote: Counting objects:  87% (89/102)[Kremote: Counting objects:  88% (90/102)[Kremote: Counting objects:  89% (91/102)[Kremote: Counting objects:  90% (92/102)[Kremote: Counting objects:  91% (93/102)[Kremote: Counting objects:  92% (94/102)[Kremote: Counting objects:  93% (95/102)[Kremote: Counting objects:  94% (96/102)[Kremote: Counting objects:  95% (97/102)[Kremote: Counting objects:  96% (98/102)[Kremote: Counting objects:  97% (99/102)[Kremote: Counting objects:  98% (100/102)[Kremote: Counting objects:  99% (101/102)[Kremote: Counting objects: 100% (102/102)[Kremote: Counting objects: 100% (102/102), done.[K
-15.5s 13 remote: Compressing objects:   1% (1/70)[Kremote: Compressing objects:   2% (2/70)[Kremote: Compressing objects:   4% (3/70)[Kremote: Compressing objects:   5% (4/70)[Kremote: Compressing objects:   7% (5/70)[Kremote: Compressing objects:   8% (6/70)[Kremote: Compressing objects:  10% (7/70)[Kremote: Compressing objects:  11% (8/70)[Kremote: Compressing objects:  12% (9/70)[Kremote: Compressing objects:  14% (10/70)[Kremote: Compressing objects:  15% (11/70)[Kremote: Compressing objects:  17% (12/70)[Kremote: Compressing objects:  18% (13/70)[Kremote: Compressing objects:  20% (14/70)[Kremote: Compressing objects:  21% (15/70)[Kremote: Compressing objects:  22% (16/70)[Kremote: Compressing objects:  24% (17/70)[Kremote: Compressing objects:  25% (18/70)[Kremote: Compressing objects:  27% (19/70)[Kremote: Compressing objects:  28% (20/70)[Kremote: Compressing objects:  30% (21/70)[Kremote: Compressing objects:  31% (22/70)[Kremote: Compressing objects:  32% (23/70)[Kremote: Compressing objects:  34% (24/70)[Kremote: Compressing objects:  35% (25/70)[Kremote: Compressing objects:  37% (26/70)[Kremote: Compressing objects:  38% (27/70)[Kremote: Compressing objects:  40% (28/70)[Kremote: Compressing objects:  41% (29/70)[Kremote: Compressing objects:  42% (30/70)[Kremote: Compressing objects:  44% (31/70)[Kremote: Compressing objects:  45% (32/70)[Kremote: Compressing objects:  47% (33/70)[Kremote: Compressing objects:  48% (34/70)[Kremote: Compressing objects:  50% (35/70)[Kremote: Compressing objects:  51% (36/70)[Kremote: Compressing objects:  52% (37/70)[Kremote: Compressing objects:  54% (38/70)[Kremote: Compressing objects:  55% (39/70)[Kremote: Compressing objects:  57% (40/70)[Kremote: Compressing objects:  58% (41/70)[Kremote: Compressing objects:  60% (42/70)[Kremote: Compressing objects:  61% (43/70)[Kremote: Compressing objects:  62% (44/70)[Kremote: Compressing objects:  64% (45/70)[Kremote: Compressing objects:  65% (46/70)[Kremote: Compressing objects:  67% (47/70)[Kremote: Compressing objects:  68% (48/70)[Kremote: Compressing objects:  70% (49/70)[Kremote: Compressing objects:  71% (50/70)[Kremote: Compressing objects:  72% (51/70)[Kremote: Compressing objects:  74% (52/70)[Kremote: Compressing objects:  75% (53/70)[Kremote: Compressing objects:  77% (54/70)[Kremote: Compressing objects:  78% (55/70)[Kremote: Compressing objects:  80% (56/70)[Kremote: Compressing objects:  81% (57/70)[Kremote: Compressing objects:  82% (58/70)[Kremote: Compressing objects:  84% (59/70)[Kremote: Compressing objects:  85% (60/70)[Kremote: Compressing objects:  87% (61/70)[Kremote: Compressing objects:  88% (62/70)[Kremote: Compressing objects:  90% (63/70)[Kremote: Compressing objects:  91% (64/70)[Kremote: Compressing objects:  92% (65/70)[Kremote: Compressing objects:  94% (66/70)[Kremote: Compressing objects:  95% (67/70)[Kremote: Compressing objects:  97% (68/70)[Kremote: Compressing objects:  98% (69/70)[Kremote: Compressing objects: 100% (70/70)[Kremote: Compressing objects: 100% (70/70), done.[K
-24.2s 14 Receiving objects:   0% (1/1380)Receiving objects:   1% (14/1380)Receiving objects:   2% (28/1380)Receiving objects:   3% (42/1380)Receiving objects:   4% (56/1380)Receiving objects:   5% (69/1380)Receiving objects:   6% (83/1380)Receiving objects:   7% (97/1380)Receiving objects:   8% (111/1380)Receiving objects:   9% (125/1380)Receiving objects:  10% (138/1380)Receiving objects:  11% (152/1380)Receiving objects:  12% (166/1380)Receiving objects:  13% (180/1380)Receiving objects:  14% (194/1380)Receiving objects:  15% (207/1380)Receiving objects:  16% (221/1380)Receiving objects:  17% (235/1380)Receiving objects:  18% (249/1380)Receiving objects:  19% (263/1380)Receiving objects:  20% (276/1380)Receiving objects:  21% (290/1380)Receiving objects:  22% (304/1380)Receiving objects:  23% (318/1380)Receiving objects:  24% (332/1380)Receiving objects:  25% (345/1380)Receiving objects:  26% (359/1380)Receiving objects:  27% (373/1380)Receiving objects:  28% (387/1380)Receiving objects:  29% (401/1380)Receiving objects:  30% (414/1380)Receiving objects:  31% (428/1380)Receiving objects:  32% (442/1380)Receiving objects:  33% (456/1380)Receiving objects:  34% (470/1380)Receiving objects:  35% (483/1380)Receiving objects:  36% (497/1380)Receiving objects:  37% (511/1380)Receiving objects:  38% (525/1380)Receiving objects:  39% (539/1380)Receiving objects:  40% (552/1380)Receiving objects:  41% (566/1380)Receiving objects:  42% (580/1380)Receiving objects:  42% (585/1380), 26.50 MiB | 26.50 MiB/sReceiving objects:  42% (587/1380), 50.45 MiB | 25.22 MiB/sReceiving objects:  43% (594/1380), 50.45 MiB | 25.22 MiB/sReceiving objects:  43% (597/1380), 76.44 MiB | 25.48 MiB/sReceiving objects:  43% (599/1380), 102.34 MiB | 25.59 MiB/sReceiving objects:  43% (600/1380), 126.08 MiB | 25.08 MiB/sReceiving objects:  43% (602/1380), 149.79 MiB | 24.65 MiB/sReceiving objects:  43% (606/1380), 173.89 MiB | 24.70 MiB/sReceiving objects:  44% (608/1380), 186.75 MiB | 24.52 MiB/sReceiving objects:  44% (610/1380), 201.42 MiB | 24.99 MiB/sReceiving objects:  45% (621/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  46% (635/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  47% (649/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  48% (663/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  49% (677/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  50% (690/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  51% (704/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  52% (718/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  53% (732/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  54% (746/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  55% (759/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  56% (773/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  57% (787/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  58% (801/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  59% (815/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  60% (828/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  61% (842/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  62% (856/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  63% (870/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  64% (884/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  65% (897/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  66% (911/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  67% (925/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  68% (939/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  69% (953/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  70% (966/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  71% (980/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  72% (994/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  73% (1008/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  74% (1022/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  75% (1035/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  76% (1049/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  77% (1063/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  78% (1077/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  79% (1091/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  80% (1104/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  81% (1118/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  82% (1132/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  83% (1146/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  84% (1160/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  85% (1173/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  86% (1187/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  87% (1201/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  88% (1215/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  89% (1229/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  90% (1242/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  91% (1256/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  92% (1270/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  93% (1284/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  94% (1298/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  95% (1311/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  96% (1325/1380), 216.55 MiB | 25.38 MiB/sremote: Total 1380 (delta 47), reused 61 (delta 32), pack-reused 1278 (from 1)[K
-24.2s 15 Receiving objects:  97% (1339/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  98% (1353/1380), 216.55 MiB | 25.38 MiB/sReceiving objects:  99% (1367/1380), 216.55 MiB | 25.38 MiB/sReceiving objects: 100% (1380/1380), 216.55 MiB | 25.38 MiB/sReceiving objects: 100% (1380/1380), 225.81 MiB | 25.87 MiB/s, done.
-24.6s 16 Resolving deltas:   0% (0/771)Resolving deltas:   1% (8/771)Resolving deltas:   2% (16/771)Resolving deltas:   3% (25/771)Resolving deltas:   4% (31/771)Resolving deltas:   5% (39/771)Resolving deltas:   6% (47/771)Resolving deltas:   7% (54/771)Resolving deltas:   8% (62/771)Resolving deltas:   9% (70/771)Resolving deltas:  10% (78/771)Resolving deltas:  11% (85/771)Resolving deltas:  12% (93/771)Resolving deltas:  13% (101/771)Resolving deltas:  14% (108/771)Resolving deltas:  15% (116/771)Resolving deltas:  16% (124/771)Resolving deltas:  17% (132/771)Resolving deltas:  18% (139/771)Resolving deltas:  19% (147/771)Resolving deltas:  20% (155/771)Resolving deltas:  21% (162/771)Resolving deltas:  22% (170/771)Resolving deltas:  23% (178/771)Resolving deltas:  24% (186/771)Resolving deltas:  25% (194/771)Resolving deltas:  26% (201/771)Resolving deltas:  27% (209/771)Resolving deltas:  28% (216/771)Resolving deltas:  29% (224/771)Resolving deltas:  30% (232/771)Resolving deltas:  31% (240/771)Resolving deltas:  32% (247/771)Resolving deltas:  33% (255/771)Resolving deltas:  34% (263/771)Resolving deltas:  35% (270/771)Resolving deltas:  36% (278/771)Resolving deltas:  37% (286/771)Resolving deltas:  38% (293/771)Resolving deltas:  39% (301/771)Resolving deltas:  40% (309/771)Resolving deltas:  41% (317/771)Resolving deltas:  42% (324/771)Resolving deltas:  43% (332/771)Resolving deltas:  44% (340/771)Resolving deltas:  45% (347/771)Resolving deltas:  46% (355/771)Resolving deltas:  47% (364/771)Resolving deltas:  48% (371/771)Resolving deltas:  49% (378/771)Resolving deltas:  50% (386/771)Resolving deltas:  51% (394/771)Resolving deltas:  52% (401/771)Resolving deltas:  53% (409/771)Resolving deltas:  54% (417/771)Resolving deltas:  55% (425/771)Resolving deltas:  56% (432/771)Resolving deltas:  57% (440/771)Resolving deltas:  58% (448/771)Resolving deltas:  59% (455/771)Resolving deltas:  60% (463/771)Resolving deltas:  61% (471/771)Resolving deltas:  62% (479/771)Resolving deltas:  63% (486/771)Resolving deltas:  64% (494/771)Resolving deltas:  65% (502/771)Resolving deltas:  66% (509/771)Resolving deltas:  67% (517/771)Resolving deltas:  68% (525/771)Resolving deltas:  69% (532/771)Resolving deltas:  70% (540/771)Resolving deltas:  71% (548/771)Resolving deltas:  72% (556/771)Resolving deltas:  73% (563/771)Resolving deltas:  74% (571/771)Resolving deltas:  75% (579/771)Resolving deltas:  76% (586/771)Resolving deltas:  77% (594/771)Resolving deltas:  78% (602/771)Resolving deltas:  79% (610/771)Resolving deltas:  80% (617/771)Resolving deltas:  81% (625/771)Resolving deltas:  82% (633/771)Resolving deltas:  83% (640/771)Resolving deltas:  84% (648/771)Resolving deltas:  85% (656/771)Resolving deltas:  86% (664/771)Resolving deltas:  87% (671/771)Resolving deltas:  88% (679/771)Resolving deltas:  89% (687/771)Resolving deltas:  90% (694/771)Resolving deltas:  91% (702/771)Resolving deltas:  92% (710/771)Resolving deltas:  93% (718/771)Resolving deltas:  94% (725/771)Resolving deltas:  95% (733/771)Resolving deltas:  96% (741/771)Resolving deltas:  97% (748/771)Resolving deltas:  98% (756/771)Resolving deltas:  99% (764/771)Resolving deltas: 100% (771/771)Resolving deltas: 100% (771/771), done.
-29.4s 17 Updating files:   6% (20/307)Updating files:   7% (22/307)Updating files:   8% (25/307)Updating files:   9% (28/307)Updating files:   9% (30/307)Updating files:  10% (31/307)Updating files:  11% (34/307)Updating files:  12% (37/307)Updating files:  13% (40/307)Updating files:  14% (43/307)Updating files:  15% (47/307)Updating files:  16% (50/307)Updating files:  17% (53/307)Updating files:  18% (56/307)Updating files:  19% (59/307)Updating files:  20% (62/307)Updating files:  21% (65/307)Updating files:  22% (68/307)Updating files:  23% (71/307)Updating files:  24% (74/307)Updating files:  25% (77/307)Updating files:  26% (80/307)Updating files:  27% (83/307)Updating files:  28% (86/307)Updating files:  29% (90/307)Updating files:  30% (93/307)Updating files:  31% (96/307)Updating files:  32% (99/307)Updating files:  33% (102/307)Updating files:  34% (105/307)Updating files:  35% (108/307)Updating files:  36% (111/307)Updating files:  37% (114/307)Updating files:  38% (117/307)Updating files:  39% (120/307)Updating files:  40% (123/307)Updating files:  41% (126/307)Updating files:  42% (129/307)Updating files:  43% (133/307)Updating files:  44% (136/307)Updating files:  45% (139/307)Updating files:  46% (142/307)Updating files:  47% (145/307)Updating files:  48% (148/307)Updating files:  49% (151/307)Updating files:  50% (154/307)Updating files:  51% (157/307)Updating files:  52% (160/307)Updating files:  53% (163/307)Updating files:  54% (166/307)Updating files:  55% (169/307)Updating files:  56% (172/307)Updating files:  57% (175/307)Updating files:  58% (179/307)Updating files:  59% (182/307)Updating files:  60% (185/307)Updating files:  61% (188/307)Updating files:  62% (191/307)Updating files:  63% (194/307)Updating files:  64% (197/307)Updating files:  65% (200/307)Updating files:  66% (203/307)Updating files:  67% (206/307)Updating files:  68% (209/307)Updating files:  69% (212/307)Updating files:  70% (215/307)Updating files:  71% (218/307)Updating files:  72% (222/307)Updating files:  73% (225/307)Updating files:  74% (228/307)Updating files:  75% (231/307)Updating files:  76% (234/307)Updating files:  77% (237/307)Updating files:  78% (240/307)Updating files:  79% (243/307)Updating files:  80% (246/307)Updating files:  81% (249/307)Updating files:  82% (252/307)Updating files:  83% (255/307)Updating files:  84% (258/307)Updating files:  85% (261/307)Updating files:  86% (265/307)Updating files:  87% (268/307)Updating files:  88% (271/307)Updating files:  89% (274/307)Updating files:  90% (277/307)Updating files:  91% (280/307)Updating files:  92% (283/307)Updating files:  93% (286/307)Updating files:  94% (289/307)Updating files:  95% (292/307)Updating files:  96% (295/307)Updating files:  97% (298/307)Updating files:  98% (301/307)Updating files:  99% (304/307)Updating files: 100% (307/307)Updating files: 100% (307/307), done.
-29.5s 18 /kaggle/working/Topology-aware-FDL
-29.5s 19 ✅ Current Working Directory: /kaggle/working/Topology-aware-FDL
-44.8s 20 PyTorch Version: 2.10.0+cu128
-44.8s 21 CUDA Available: True
-44.8s 22 Active GPU: Tesla T4
-44.8s 23 VRAM Capacity: 14.56 GB
-52.1s 24 ⚡ [Kaggle Input] Symlinked cifar100 files from /kaggle/input/datasets/fedesoriano/cifar100 -> ./data/cifar-100-python (0.0s)
-52.1s 25 ⚡ [Kaggle Input] CIFAR-100 dataset successfully verified and linked! (0.0s latency, 0 downloads)
-59.8s 26 
-59.8s 27 ======================================================================
-59.8s 28 STARTING JOB 2: CIFAR-100 BYZANTINE ROBUSTNESS BENCHMARK
-59.8s 29 ======================================================================
-59.8s 30 
-59.8s 31 >>> Method: FEDAVG | Attack: label_flip | Byzantine Rate: 0% <<<
-59.8s 32 
-59.8s 33 --- Running [fedavg] Seed 42 (1/1) ---
-59.8s 34 Loading and preparing CIFAR-100 dataset...
-67.0s 35 Model (resnet9) instantiated with 1671500 parameters.
-67.1s 36 Starting simulation: cifar100_byz_fedavg_label_flip_f0_seed42 | Topo: star
-74.8s 37 Round 1/100 completed.
-80.8s 38 Round 2/100 completed.
-86.7s 39 Round 3/100 completed.
-92.7s 40 Round 4/100 completed.
-99.0s 41 Round 5/100 completed.
-105.0s 42 Round 6/100 completed.
-111.0s 43 Round 7/100 completed.
-117.0s 44 Round 8/100 completed.
-123.0s 45 Round 9/100 completed.
-129.4s 46 Round 10/100 completed.
-135.6s 47 Round 11/100 completed.
-141.7s 48 Round 12/100 completed.
-147.9s 49 Round 13/100 completed.
-154.0s 50 Round 14/100 completed.
-160.6s 51 Round 15/100 completed.
-166.8s 52 Round 16/100 completed.
-173.2s 53 Round 17/100 completed.
-179.4s 54 Round 18/100 completed.
-185.8s 55 Round 19/100 completed.
-192.3s 56 Round 20/100 completed.
-198.6s 57 Round 21/100 completed.
-204.8s 58 Round 22/100 completed.
-211.1s 59 Round 23/100 completed.
-217.3s 60 Round 24/100 completed.
-223.8s 61 Round 25/100 completed.
-230.0s 62 Round 26/100 completed.
-236.3s 63 Round 27/100 completed.
-242.5s 64 Round 28/100 completed.
-248.7s 65 Round 29/100 completed.
-255.3s 66 Round 30/100 completed.
-261.5s 67 Round 31/100 completed.
-267.8s 68 Round 32/100 completed.
-274.1s 69 Round 33/100 completed.
-280.3s 70 Round 34/100 completed.
-286.9s 71 Round 35/100 completed.
-293.1s 72 Round 36/100 completed.
-299.3s 73 Round 37/100 completed.
-305.6s 74 Round 38/100 completed.
-311.8s 75 Round 39/100 completed.
-318.4s 76 Round 40/100 completed.
-324.6s 77 Round 41/100 completed.
-330.9s 78 Round 42/100 completed.
-337.2s 79 Round 43/100 completed.
-343.4s 80 Round 44/100 completed.
-349.9s 81 Round 45/100 completed.
-356.2s 82 Round 46/100 completed.
-362.4s 83 Round 47/100 completed.
-368.7s 84 Round 48/100 completed.
-374.9s 85 Round 49/100 completed.
-381.4s 86 Round 50/100 completed.
-387.7s 87 Round 51/100 completed.
-393.9s 88 Round 52/100 completed.
-400.1s 89 Round 53/100 completed.
-406.4s 90 Round 54/100 completed.
-413.0s 91 Round 55/100 completed.
-419.2s 92 Round 56/100 completed.
-425.4s 93 Round 57/100 completed.
-431.7s 94 Round 58/100 completed.
-437.9s 95 Round 59/100 completed.
-444.5s 96 Round 60/100 completed.
-450.7s 97 Round 61/100 completed.
-457.0s 98 Round 62/100 completed.
-463.2s 99 Round 63/100 completed.
-469.5s 100 Round 64/100 completed.
-476.0s 101 Round 65/100 completed.
-482.3s 102 Round 66/100 completed.
-488.5s 103 Round 67/100 completed.
-494.8s 104 Round 68/100 completed.
-501.0s 105 Round 69/100 completed.
-507.6s 106 Round 70/100 completed.
-513.8s 107 Round 71/100 completed.
-520.0s 108 Round 72/100 completed.
-526.3s 109 Round 73/100 completed.
-532.5s 110 Round 74/100 completed.
-539.1s 111 Round 75/100 completed.
-545.3s 112 Round 76/100 completed.
-551.6s 113 Round 77/100 completed.
-557.8s 114 Round 78/100 completed.
-564.1s 115 Round 79/100 completed.
-570.6s 116 Round 80/100 completed.
-576.9s 117 Round 81/100 completed.
-583.1s 118 Round 82/100 completed.
-589.4s 119 Round 83/100 completed.
-595.6s 120 Round 84/100 completed.
-602.2s 121 Round 85/100 completed.
-608.4s 122 Round 86/100 completed.
-614.6s 123 Round 87/100 completed.
-620.9s 124 Round 88/100 completed.
-627.1s 125 Round 89/100 completed.
-633.7s 126 Round 90/100 completed.
-639.9s 127 Round 91/100 completed.
-646.2s 128 Round 92/100 completed.
-652.4s 129 Round 93/100 completed.
-658.6s 130 Round 94/100 completed.
-665.2s 131 Round 95/100 completed.
-671.4s 132 Round 96/100 completed.
-677.7s 133 Round 97/100 completed.
-683.9s 134 Round 98/100 completed.
-690.2s 135 Round 99/100 completed.
-696.7s 136 Round 100/100 completed.
-696.8s 137 Metrics saved to ./outputs/baselines/byzantine/cifar100_byz_fedavg_label_flip_f0_seed42/metrics.json and ./outputs/baselines/byzantine/cifar100_byz_fedavg_label_flip_f0_seed42/metrics.csv
-696.9s 138 
-696.9s 139 >>> Method: MULTIKRUM | Attack: label_flip | Byzantine Rate: 0% <<<
-696.9s 140 
-696.9s 141 --- Running [multikrum] Seed 42 (1/1) ---
-696.9s 142 Loading and preparing CIFAR-100 dataset...
-701.4s 143 Model (resnet9) instantiated with 1671500 parameters.
-701.4s 144 Starting simulation: cifar100_byz_multikrum_label_flip_f0_seed42 | Topo: star
-707.8s 145 Round 1/100 completed.
-714.0s 146 Round 2/100 completed.
-720.2s 147 Round 3/100 completed.
-726.5s 148 Round 4/100 completed.
-733.1s 149 Round 5/100 completed.
-739.4s 150 Round 6/100 completed.
-745.6s 151 Round 7/100 completed.
-751.9s 152 Round 8/100 completed.
-758.1s 153 Round 9/100 completed.
-764.7s 154 Round 10/100 completed.
-770.9s 155 Round 11/100 completed.
-777.2s 156 Round 12/100 completed.
-783.4s 157 Round 13/100 completed.
-789.6s 158 Round 14/100 completed.
-796.2s 159 Round 15/100 completed.
-802.4s 160 Round 16/100 completed.
-808.7s 161 Round 17/100 completed.
-814.9s 162 Round 18/100 completed.
-821.2s 163 Round 19/100 completed.
-827.8s 164 Round 20/100 completed.
-834.0s 165 Round 21/100 completed.
-840.2s 166 Round 22/100 completed.
-846.5s 167 Round 23/100 completed.
-852.8s 168 Round 24/100 completed.
-859.4s 169 Round 25/100 completed.
-865.6s 170 Round 26/100 completed.
-871.9s 171 Round 27/100 completed.
-878.1s 172 Round 28/100 completed.
-884.3s 173 Round 29/100 completed.
-890.9s 174 Round 30/100 completed.
-897.2s 175 Round 31/100 completed.
-903.4s 176 Round 32/100 completed.
-909.7s 177 Round 33/100 completed.
-916.0s 178 Round 34/100 completed.
-922.5s 179 Round 35/100 completed.
-928.8s 180 Round 36/100 completed.
-935.0s 181 Round 37/100 completed.
-941.3s 182 Round 38/100 completed.
-947.5s 183 Round 39/100 completed.
-954.2s 184 Round 40/100 completed.
-960.4s 185 Round 41/100 completed.
-966.6s 186 Round 42/100 completed.
-972.9s 187 Round 43/100 completed.
-979.2s 188 Round 44/100 completed.
-985.7s 189 Round 45/100 completed.
-992.0s 190 Round 46/100 completed.
-998.2s 191 Round 47/100 completed.
-1004.5s 192 Round 48/100 completed.
-1010.7s 193 Round 49/100 completed.
-1017.3s 194 Round 50/100 completed.
-1023.6s 195 Round 51/100 completed.
-1029.8s 196 Round 52/100 completed.
-1036.1s 197 Round 53/100 completed.
-1042.3s 198 Round 54/100 completed.
-1048.9s 199 Round 55/100 completed.
-1055.1s 200 Round 56/100 completed.
-1061.4s 201 Round 57/100 completed.
-1067.6s 202 Round 58/100 completed.
-1073.9s 203 Round 59/100 completed.
-1080.5s 204 Round 60/100 completed.
-1086.7s 205 Round 61/100 completed.
-1093.0s 206 Round 62/100 completed.
-1099.3s 207 Round 63/100 completed.
-1105.5s 208 Round 64/100 completed.
-1112.1s 209 Round 65/100 completed.
-1118.3s 210 Round 66/100 completed.
-1124.6s 211 Round 67/100 completed.
-1130.8s 212 Round 68/100 completed.
-1137.1s 213 Round 69/100 completed.
-1143.7s 214 Round 70/100 completed.
-1149.9s 215 Round 71/100 completed.
-1156.2s 216 Round 72/100 completed.
-1162.4s 217 Round 73/100 completed.
-1168.7s 218 Round 74/100 completed.
-1175.3s 219 Round 75/100 completed.
-1181.5s 220 Round 76/100 completed.
-1187.8s 221 Round 77/100 completed.
-1194.0s 222 Round 78/100 completed.
-1200.2s 223 Round 79/100 completed.
-1206.9s 224 Round 80/100 completed.
-1213.1s 225 Round 81/100 completed.
-1219.3s 226 Round 82/100 completed.
-1225.6s 227 Round 83/100 completed.
-1231.8s 228 Round 84/100 completed.
-1238.4s 229 Round 85/100 completed.
-1244.6s 230 Round 86/100 completed.
-1250.8s 231 Round 87/100 completed.
-1257.1s 232 Round 88/100 completed.
-1263.4s 233 Round 89/100 completed.
-1269.9s 234 Round 90/100 completed.
-1276.2s 235 Round 91/100 completed.
-1282.5s 236 Round 92/100 completed.
-1288.7s 237 Round 93/100 completed.
-1294.9s 238 Round 94/100 completed.
-1301.5s 239 Round 95/100 completed.
-1307.8s 240 Round 96/100 completed.
-1314.0s 241 Round 97/100 completed.
-1320.3s 242 Round 98/100 completed.
-1326.6s 243 Round 99/100 completed.
-1333.1s 244 Round 100/100 completed.
-1333.1s 245 Metrics saved to ./outputs/baselines/byzantine/cifar100_byz_multikrum_label_flip_f0_seed42/metrics.json and ./outputs/baselines/byzantine/cifar100_byz_multikrum_label_flip_f0_seed42/metrics.csv
-1333.3s 246 
-1333.3s 247 >>> Method: DITTO | Attack: label_flip | Byzantine Rate: 0% <<<
-1333.3s 248 
-1333.3s 249 --- Running [ditto] Seed 42 (1/1) ---
-1333.3s 250 Loading and preparing CIFAR-100 dataset...
-1337.7s 251 Model (resnet9) instantiated with 1671500 parameters.
-1337.8s 252 Starting simulation: cifar100_byz_ditto_label_flip_f0_seed42 | Topo: star
-1350.8s 253 Round 1/100 completed.
-1363.7s 254 Round 2/100 completed.
-1377.0s 255 Round 3/100 completed.
-1390.0s 256 Round 4/100 completed.
-1403.5s 257 Round 5/100 completed.
-1416.4s 258 Round 6/100 completed.
-1429.4s 259 Round 7/100 completed.
-1442.4s 260 Round 8/100 completed.
-1455.3s 261 Round 9/100 completed.
-1468.8s 262 Round 10/100 completed.
-1481.8s 263 Round 11/100 completed.
-1494.8s 264 Round 12/100 completed.
-1507.9s 265 Round 13/100 completed.
-1520.8s 266 Round 14/100 completed.
-1534.3s 267 Round 15/100 completed.
-1547.3s 268 Round 16/100 completed.
-1560.3s 269 Round 17/100 completed.
-1573.3s 270 Round 18/100 completed.
-1586.3s 271 Round 19/100 completed.
-1599.7s 272 Round 20/100 completed.
-1612.7s 273 Round 21/100 completed.
-1625.6s 274 Round 22/100 completed.
-1638.6s 275 Round 23/100 completed.
-1651.6s 276 Round 24/100 completed.
-1665.0s 277 Round 25/100 completed.
-1678.0s 278 Round 26/100 completed.
-1691.0s 279 Round 27/100 completed.
-1703.9s 280 Round 28/100 completed.
-1716.9s 281 Round 29/100 completed.
-1730.3s 282 Round 30/100 completed.
-1743.3s 283 Round 31/100 completed.
-1756.3s 284 Round 32/100 completed.
-1769.3s 285 Round 33/100 completed.
-1782.2s 286 Round 34/100 completed.
-1795.7s 287 Round 35/100 completed.
-1808.7s 288 Round 36/100 completed.
-1821.7s 289 Round 37/100 completed.
-1834.6s 290 Round 38/100 completed.
-1847.6s 291 Round 39/100 completed.
-1861.1s 292 Round 40/100 completed.
-1874.1s 293 Round 41/100 completed.
-1887.0s 294 Round 42/100 completed.
-1900.0s 295 Round 43/100 completed.
-1913.0s 296 Round 44/100 completed.
-1926.4s 297 Round 45/100 completed.
-1939.4s 298 Round 46/100 completed.
-1952.4s 299 Round 47/100 completed.
-1965.3s 300 Round 48/100 completed.
-1978.3s 301 Round 49/100 completed.
-1991.7s 302 Round 50/100 completed.
-2004.7s 303 Round 51/100 completed.
-2017.7s 304 Round 52/100 completed.
-2030.7s 305 Round 53/100 completed.
-2043.7s 306 Round 54/100 completed.
-2057.2s 307 Round 55/100 completed.
-2070.1s 308 Round 56/100 completed.
-2083.1s 309 Round 57/100 completed.
-2096.1s 310 Round 58/100 completed.
-2109.0s 311 Round 59/100 completed.
-2122.5s 312 Round 60/100 completed.
-2135.5s 313 Round 61/100 completed.
-2148.5s 314 Round 62/100 completed.
-2161.4s 315 Round 63/100 completed.
-2174.4s 316 Round 64/100 completed.
-2187.8s 317 Round 65/100 completed.
-2200.9s 318 Round 66/100 completed.
-2213.9s 319 Round 67/100 completed.
-2226.8s 320 Round 68/100 completed.
-2239.8s 321 Round 69/100 completed.
-2253.3s 322 Round 70/100 completed.
-2266.2s 323 Round 71/100 completed.
-2279.2s 324 Round 72/100 completed.
-2292.2s 325 Round 73/100 completed.
-2305.2s 326 Round 74/100 completed.
-2318.7s 327 Round 75/100 completed.
-2331.7s 328 Round 76/100 completed.
-2344.6s 329 Round 77/100 completed.
-2357.6s 330 Round 78/100 completed.
-2370.6s 331 Round 79/100 completed.
-2384.1s 332 Round 80/100 completed.
-2397.1s 333 Round 81/100 completed.
-2410.1s 334 Round 82/100 completed.
-2423.1s 335 Round 83/100 completed.
-2436.1s 336 Round 84/100 completed.
-2449.6s 337 Round 85/100 completed.
-2462.5s 338 Round 86/100 completed.
-2475.5s 339 Round 87/100 completed.
-2488.5s 340 Round 88/100 completed.
-2501.5s 341 Round 89/100 completed.
-2515.0s 342 Round 90/100 completed.
-2528.0s 343 Round 91/100 completed.
-2540.9s 344 Round 92/100 completed.
-2553.9s 345 Round 93/100 completed.
-2566.9s 346 Round 94/100 completed.
-2580.4s 347 Round 95/100 completed.
-2593.4s 348 Round 96/100 completed.
-2606.4s 349 Round 97/100 completed.
-2619.3s 350 Round 98/100 completed.
-2632.3s 351 Round 99/100 completed.
-2645.8s 352 Round 100/100 completed.
-2645.8s 353 Metrics saved to ./outputs/baselines/byzantine/cifar100_byz_ditto_label_flip_f0_seed42/metrics.json and ./outputs/baselines/byzantine/cifar100_byz_ditto_label_flip_f0_seed42/metrics.csv
-2646.0s 354 
-2646.0s 355 >>> Method: TOPO_DEFENDED | Attack: label_flip | Byzantine Rate: 0% <<<
-2646.0s 356 
-2646.0s 357 --- Running [topo_defended] Seed 42 (1/1) ---
-2649.6s 358 Loading and preparing CIFAR-100 dataset...
-2654.4s 359 Model (resnet9) instantiated with 1722900 parameters.
-2654.5s 360 Starting simulation: cifar100_byz_topo_defended_label_flip_f0_seed42 | Topo: hierarchical_ensemble
-2668.1s 361 Traceback (most recent call last):
-2668.1s 362 File "<frozen runpy>", line 198, in _run_module_as_main
-2668.1s 363 File "<frozen runpy>", line 88, in _run_code
-2668.1s 364 File "/kaggle/working/Topology-aware-FDL/src/baselines/run_all_baselines.py", line 429, in <module>
-2668.1s 365 main()
-2668.1s 366 File "/kaggle/working/Topology-aware-FDL/src/baselines/run_all_baselines.py", line 422, in main
-2668.1s 367 run_byzantine_suite(args, device, seeds, base_defaults)
-2668.1s 368 File "/kaggle/working/Topology-aware-FDL/src/baselines/run_all_baselines.py", line 294, in run_byzantine_suite
-2668.1s 369 res = runner.run()
-2668.1s 370 ^^^^^^^^^^^^
-2668.1s 371 File "/kaggle/working/Topology-aware-FDL/src/baselines/multi_seed_runner.py", line 49, in run
-2668.1s 372 engine.run()
-2668.1s 373 File "/kaggle/working/Topology-aware-FDL/src/core/base_engine.py", line 188, in run
-2668.1s 374 self.run_round(round_num)
-2668.1s 375 File "/kaggle/working/Topology-aware-FDL/src/core/unified_defended_engine.py", line 199, in run_round
-2668.1s 376 agg_delta = self.cluster_defense_aggregator.aggregate_deltas(
-2668.1s 377 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2668.1s 378 File "/kaggle/working/Topology-aware-FDL/src/core/aggregator.py", line 283, in aggregate_deltas
-2668.1s 379 self._aggregate_param_deltas(stacked.index_select(1, param_idx), active_masks).float())
-2668.1s 380 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2668.1s 381 File "/kaggle/working/Topology-aware-FDL/src/core/aggregator.py", line 293, in _aggregate_param_deltas
-2668.1s 382 trust = soft_cosine_trust(
-2668.1s 383 ^^^^^^^^^^^^^^^^^^
-2668.1s 384 File "/kaggle/working/Topology-aware-FDL/src/core/aggregator.py", line 135, in soft_cosine_trust
-2668.1s 385 unit_head = head_deltas * mask
-2668.1s 386 ~~~~~~~~~~~~^~~~~~
-2668.1s 387 RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!
-2673.9s 388 ⚠️ Checkpoint file not yet created.
-2679.9s 389 Target Hardware Device: cuda | Dataset: CIFAR100 (100 classes)
-2681.8s 390 Preloading CIFAR100 to GPU memory for 50-client scaling...
-2686.0s 391 
-2686.0s 392 ======================================================================
-2686.0s 393 Running 50-Client Scalability Scenario: Moderate (alpha=0.5) (Cp = 0.2)
-2686.0s 394 ======================================================================
-2686.0s 395 
-2686.0s 396 [1/4] Training FedAvg (N=50, Cp=0.2)...
-2750.4s 397 FedAvg: Mean = 29.12% | Bottom 10% = 17.14%
-2750.4s 398 
-2750.4s 399 [2/4] Training FedRep (N=50, Cp=0.2)...
-2750.4s 400 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [1,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 401 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [2,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 402 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [3,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 403 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [5,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 404 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [6,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 405 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [7,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 406 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [8,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 407 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [9,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 408 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [10,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 409 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [11,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 410 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [12,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 411 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [13,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 412 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [14,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 413 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [15,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 414 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [17,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 415 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [19,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 416 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [20,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 417 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [21,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 418 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [22,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 419 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [23,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 420 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [24,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 421 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [26,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 422 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [27,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 423 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [28,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 424 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [29,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.4s 425 /pytorch/aten/src/ATen/native/cuda/Loss.cu:245: nll_loss_forward_reduce_cuda_kernel_2d: block: [0,0,0], thread: [31,0,0] Assertion `t >= 0 && t < n_classes` failed.
-2750.5s 426 Traceback (most recent call last):
-2750.5s 427 File "/kaggle/working/Topology-aware-FDL/scripts/run_scale_50clients.py", line 417, in <module>
-2750.5s 428 run_50clients_scaling(
-2750.5s 429 File "/kaggle/working/Topology-aware-FDL/scripts/run_scale_50clients.py", line 141, in run_50clients_scaling
-2750.5s 430 feats = local_bb.extract_features(x).detach()
-2750.5s 431 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2750.5s 432 File "/kaggle/working/Topology-aware-FDL/src/core/model.py", line 106, in extract_features
-2750.5s 433 out = self.layer1(out)
-2750.5s 434 ^^^^^^^^^^^^^^^^
-2750.5s 435 File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-2750.5s 436 return self._call_impl(*args, **kwargs)
-2750.5s 437 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2750.5s 438 File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-2750.5s 439 return forward_call(*args, **kwargs)
-2750.5s 440 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2750.5s 441 File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
-2750.5s 442 input = module(input)
-2750.5s 443 ^^^^^^^^^^^^^
-2750.5s 444 File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
-2750.5s 445 return self._call_impl(*args, **kwargs)
-2750.5s 446 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2750.5s 447 File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
-2750.5s 448 return forward_call(*args, **kwargs)
-2750.5s 449 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2750.5s 450 File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/activation.py", line 143, in forward
-2750.5s 451 return F.relu(input, inplace=self.inplace)
-2750.5s 452 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2750.5s 453 File "/usr/local/lib/python3.12/dist-packages/torch/nn/functional.py", line 1719, in relu
-2750.5s 454 result = torch.relu_(input)
-2750.5s 455 ^^^^^^^^^^^^^^^^^^
-2750.5s 456 torch.AcceleratorError: CUDA error: device-side assert triggered
-2750.5s 457 Search for `cudaErrorAssert' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
-2750.5s 458 CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
-2750.5s 459 For debugging consider passing CUDA_LAUNCH_BLOCKING=1
-2750.5s 460 Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
-2750.5s 461 
-2757.6s 462 Target Hardware Device: cuda | Dataset: CIFAR100 (100 classes)
-2757.6s 463 
-2757.6s 464 ======================================================================
-2757.6s 465 Profiling MobileNetV3-Small Hardware Footprint (Peak VRAM & Latency)...
-2757.6s 466 ======================================================================
-2760.8s 467 MobileNetV3-Small Profile:
-2760.8s 468 FedAvg: Params=1.62M | Latency=17.55ms | VRAM=152.40MB
-2760.8s 469 Ditto:  Params=3.24M | Latency=35.08ms | VRAM=298.60MB
-2760.8s 470 HEP:    Params=3.01M | Latency=18.97ms | VRAM=158.80MB (Savings: -46.8% VRAM, -48.7% Latency)
-2765.4s 471 
-2765.4s 472 ======================================================================
-2765.4s 473 Running MobileNetV3-Small Scenario: Moderate (alpha=0.5)
-2765.4s 474 ======================================================================
-2765.4s 475 [1/3] Training FedAvg MobileNetV3...
-3193.3s 476 [2/3] Training Ditto MobileNetV3...
-4121.4s 477 [3/3] Training HEP MultiHeadMobileNetV3...
-4799.5s 478 Results for Moderate (alpha=0.5):
-4799.5s 479 FedAvg: Mean = 13.50% | Bottom 10% = 7.12%
-4799.5s 480 Ditto:  Mean = 16.46% | Bottom 10% = 11.39%
-4799.5s 481 HEP:    Mean = 17.89% | Bottom 10% = 11.47%
-4799.5s 482 
-4799.5s 483 ======================================================================
-4799.5s 484 Running MobileNetV3-Small Scenario: Extreme (alpha=0.05)
-4799.5s 485 ======================================================================
-4799.5s 486 [1/3] Training FedAvg MobileNetV3...
-5236.6s 487 [2/3] Training Ditto MobileNetV3...
-6167.8s 488 [3/3] Training HEP MultiHeadMobileNetV3...
-6834.5s 489 Results for Extreme (alpha=0.05):
-6834.5s 490 FedAvg: Mean = 10.85% | Bottom 10% = 5.55%
-6834.5s 491 Ditto:  Mean = 33.86% | Bottom 10% = 19.33%
-6834.5s 492 HEP:    Mean = 13.40% | Bottom 10% = 4.74%
-6834.5s 493 
-6834.5s 494 MobileNetV3 Benchmark complete! Saved to: /kaggle/working/Topology-aware-FDL/outputs/mobilenet_benchmark_results.json
-6835.9s 495 🎉 All Account 2 artifacts packaged into: /kaggle/working/account2_artifacts.zip
-6835.9s 496 File Size: 0.8 KB
-6835.9s 497 👉 You can now download 'account2_artifacts.zip' directly from the Kaggle Output file explorer on the right!
-6839.7s 498 /usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
-6839.7s 499 cells[i][c] = re.sub('\\\\\|', '|', cell)
-6840.0s 500 /usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
-6840.0s 501 text = re.sub(r'_', '\_', text) # Escape underscores in display text
-6840.7s 502 [NbConvertApp] Converting notebook __notebook__.ipynb to notebook
-6841.1s 503 [NbConvertApp] Writing 42883 bytes to __notebook__.ipynb
-6843.6s 504 [NbConvertApp] Converting notebook __notebook__.ipynb to html
-6844.5s 505 [NbConvertApp] Writing 318671 bytes to __results__.html

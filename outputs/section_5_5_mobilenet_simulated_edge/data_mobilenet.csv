@@ -1,0 +1,7 @@
+benchmark,dataset,architecture,method,regime,attack,byzantine_rate,num_clients,rounds,mean_acc,std_acc,mean_b10,std_b10,peak_vram_mb,batch_latency_ms,elapsed_s,source_origin
+MobileNetV3 Edge Vision,cifar100,MobileNetV3-Small,FedAvg,Moderate (alpha=0.5),none,0.0,15,30,15.37,0.0,10.44,0.0,152.4,5.58,,Master
+MobileNetV3 Edge Vision,cifar100,MobileNetV3-Small,Ditto,Moderate (alpha=0.5),none,0.0,15,30,33.86,0.0,19.33,0.0,298.6,11.36,,1st run
+MobileNetV3 Edge Vision,cifar100,MobileNetV3-Small,Defended FedHEP,Moderate (alpha=0.5),none,0.0,15,30,25.24,0.0,20.16,0.0,158.8,6.29,,Master
+MobileNetV3 Edge Vision,cifar100,MobileNetV3-Small,FedAvg,Extreme (alpha=0.05),none,0.0,15,30,10.85,0.0,5.55,0.0,152.4,5.58,,1st run
+MobileNetV3 Edge Vision,cifar100,MobileNetV3-Small,Ditto,Extreme (alpha=0.05),none,0.0,15,30,34.66,0.0,16.75,0.0,298.6,11.36,,Master
+MobileNetV3 Edge Vision,cifar100,MobileNetV3-Small,Defended FedHEP,Extreme (alpha=0.05),none,0.0,15,30,45.43,0.0,30.07,0.0,158.8,6.29,,Master

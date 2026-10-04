@@ -156,6 +156,10 @@ cython_debug/
 !/outputs/tables/
 !/outputs/master_experimental_data.json
 !/outputs/master_experimental_data.csv
+!/outputs/master_experimental_data_backup.json
+!/outputs/master_experimental_data_backup.csv
+!/outputs/section_*/
+!/outputs/section_*/**
 .gemini/
 .antigravity/
 .understand-anything/
