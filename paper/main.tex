@@ -1,15 +1,9 @@
 \documentclass[sigconf,anonymous]{aamas}
 
 %%% Load required packages
-\usepackage{balance} % for balancing columns on the final page
-\usepackage{amsmath,amssymb}
-\usepackage{booktabs}
-\usepackage{multirow}
-\usepackage{graphicx}
-\usepackage{xcolor}
-\usepackage{algorithm}
-\usepackage{algorithmic}
-\usepackage{subcaption}
+\usepackage{amsmath}
+\let\Bbbk\relax
+\usepackage{amssymb}
 \usepackage{placeins} % Prevents tables/figures from floating past their sections
 
 %%% AAMAS-2027 copyright block (do not change!)
@@ -44,13 +38,16 @@
 %%% Author block (hidden in anonymous mode)
 \author{Anonymous Author(s)}
 
-%%% Custom macros
-\newcommand{\fedhep}{\textsc{FedHEP}}
-\newcommand{\hepfl}{\textsc{FedHEP}}
-\newcommand{\aclm}{\textsc{ACLM}}
-\newcommand{\sccf}{\textsc{SCCF}}
-\newcommand{\ttt}{\textsc{TTT}}
-\newcommand{\Rskew}{R_{\mathrm{skew}}}
+%%% Custom macros (robust against fragile expansions in section titles/captions)
+\DeclareRobustCommand{\fedhep}{FedHEP}
+\DeclareRobustCommand{\hepfl}{FedHEP}
+\DeclareRobustCommand{\aclm}{ACLM}
+\DeclareRobustCommand{\sccf}{SCCF}
+\DeclareRobustCommand{\ttt}{TTT}
+\DeclareRobustCommand{\Rskew}{R_{\mathrm{skew}}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\Softmax}{Softmax}
+\DeclareMathOperator{\coords}{coords}
 
 %%% Abstract and Keywords
 \input{sections/abstract}
@@ -64,7 +61,15 @@
 \input{sections/related_work}
 \input{sections/methodology}
 \input{sections/experiments}
+
+\FloatBarrier
 \input{sections/conclusion}
+
+%%% Acknowledgments (automatically suppressed in anonymous submission mode)
+\begin{acks}
+% Computational resources were supported by the high-performance computing facilities.
+% The authors would like to thank our advisors and lab members for their helpful discussions.
+\end{acks}
 
 %%% Balance columns on last page
 \balance

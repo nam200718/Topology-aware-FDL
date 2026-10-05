@@ -1,40 +1,34 @@
-\section{Methodology: The \fedhep{} Framework}
+\section{The \fedhep{} Framework}
 \label{sec:method}
 
-\subsection{Problem Formulation and Threat Model}
-\label{sec:formulation}
-We consider a distributed federated network composed of $N$ heterogeneous edge clients indexed by $\mathcal{N} = \{1, \dots, N\}$. Each client $i$ possesses a private local dataset $\mathcal{D}_i = \{(x_k, y_k)\}_{k=1}^{n_i}$ drawn from a distinct local distribution $\mathcal{P}_i(x, y)$ over an input space $\mathcal{X}$ and label space $\mathcal{Y} = \{1, \dots, C\}$. The local active class support is denoted by $\mathcal{Y}_i = \{y \in \mathcal{Y} \mid \exists (x, y) \in \mathcal{D}_i\}$. Due to extreme non-IID Dirichlet partitioning, $|\mathcal{Y}_i| \ll C$ for highly skewed nodes.
+\paragraph{Problem Setting and Threat Model.}
+We consider a distributed federated multiagent network of $N$ heterogeneous edge clients $\mathcal{N} = \{1, \dots, N\}$. Each client $i$ possesses a private local dataset $\mathcal{D}_i = \{(x_k, y_k)\}_{k=1}^{n_i}$ sampled from distribution $\mathcal{P}_i(x, y)$ over input space $\mathcal{X}$ and label space $\mathcal{Y} = \{1, \dots, C\}$. The client's observed label support is denoted by $\mathcal{Y}_i = \{y \in \mathcal{Y} \mid \exists (x, y) \in \mathcal{D}_i\}$. Under severe Dirichlet partitioning, $|\mathcal{Y}_i| \ll C$. We assume an omniscient Byzantine adversary controlling up to a fraction $q < 0.5$ of clients $\mathcal{M} \subset \mathcal{N}$ executing coordinated attacks including label flipping ($y \to C - 1 - y$), sign flipping ($\Delta \mathbf{w} \to -\gamma \Delta \mathbf{w}$), gradient ascent, and Gaussian perturbation~\cite{fang2020local}. The server maintains no clean proxy dataset and cannot inspect local telemetry.
 
-\paragraph{Threat Model.} We assume an omniscient Byzantine adversary controlling up to a fraction $q < 0.5$ of clients $\mathcal{M} \subset \mathcal{N}$. Byzantine nodes may execute arbitrary coordinated manipulation, including: (1) \textit{Label Flipping} ($y \to (C - 1 - y)$); (2) \textit{Sign Flipping} ($\Delta \mathbf{w} \to -\gamma \Delta \mathbf{w}$); (3) \textit{Adversarial Gradient Ascent} maximizing client empirical risk; and (4) \textit{Gaussian Noise Injection} adding zero-mean variance $\sigma^2 \mathbf{I}$. Crucially, the server possesses no clean proxy dataset and cannot inspect private edge data.
-
-\subsection{Single-Backbone Three-Tier Architecture}
+\subsection{Hierarchical Architecture and Learning Mechanism}
 \label{sec:architecture}
-Unlike dual-model paradigms that duplicate whole networks~\cite{li2021ditto}, \hepfl{} maintains a single shared convolutional feature extractor $\Phi_\theta: \mathcal{X} \to \mathbb{R}^d$ parameterized by $\theta$. Branched from this shared backbone are three linear classification heads $W \in \mathbb{R}^{d \times C}$:
-\begin{enumerate}
-    \item \textbf{Root Head ($W_r$)}: Aggregated globally across all $N$ clients via Byzantine-resilient consensus, capturing generalized invariant features.
-    \item \textbf{Parent Head ($W_p$)}: Synchronized exclusively within dynamically identified peer clusters $k \in \{1, \dots, K\}$, facilitating collaborative representation among clients sharing complementary label subsets.
-    \item \textbf{Local Head ($W_l$)}: Maintained strictly on-device without communication, fitting idiosyncratic edge distributions.
-\end{enumerate}
 
-During inference on client $i$, predictions are produced via an anchored ensemble of softmax posteriors:
+\paragraph{Single-Backbone Three-Tier Heads.}
+Unlike dual-model paradigms that duplicate whole networks~\cite{li2021ditto}, \fedhep{} maintains a single shared convolutional feature extractor $\Phi_\theta: \mathcal{X} \to \mathbb{R}^d$ parameterized by $\theta$ (Figure~\ref{fig:architecture}). Branched from this shared backbone are three linear classification heads $W \in \mathbb{R}^{d \times C}$:
+(1) \textbf{Root Head ($W_r$)}, aggregated globally across all $N$ clients via Byzantine-resilient consensus for generalized invariant features;
+(2) \textbf{Parent Head ($W_p$)}, synchronized exclusively within peer clusters $k \in \{1, \dots, K\}$ to pool complementary label representations; and
+(3) \textbf{Local Head ($W_l$)}, trained strictly on-device without communication for local specialization.
+
+During on-device inference, predictions are generated via an anchored linear combination of temperature-calibrated logits~\cite{guo2017calibration}:
 \begin{equation}
 \label{eq:ensemble}
-\hat{y} = \arg\max_{c \in \mathcal{Y}} \left( \lambda_r \hat{P}_r(y=c \mid x) + \lambda_p \hat{P}_p(y=c \mid x) + \lambda_l \hat{P}_l(y=c \mid x) \right),
+\mathbf{z}_{\mathrm{ens}} = w_l \frac{\mathbf{z}_{i,l}}{T_l} + w_p \frac{\mathbf{z}_{i,p}}{T_p} + w_r \frac{\mathbf{z}_{i,r}}{T_r}, \quad \hat{y} = \argmax_{c \in \mathcal{Y}} z_{\mathrm{ens}, c},
 \end{equation}
-where $\sum_m \lambda_m = 1$, dynamically balancing consensus coverage against specialized discrimination.
+where $\mathbf{z}_{i,m} = W_m^\top \Phi_\theta(x)$ and $T_m$ denote head-specific calibration temperatures, preserving predictive sharpness without softmax probability dilution.
 
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/architecture.png}
-    \caption{\textbf{Overview of the \fedhep{} Framework.} \textbf{Left (On-Device Client)}: A single forward pass through the shared backbone $\Phi_\theta$ produces embeddings $h \in \mathbb{R}^d$, concurrently evaluated by three heads: (1) Root head $W_r$, (2) Parent head $W_p$ with Active-Class Logit Masking (\textsc{ACLM}), and (3) private on-device Local head $W_l$. Dynamic loss weighting is calibrated by the label skew metric $\Rskew$. Linear head updates are sketched into $\mathbb{R}^{256}$ via random projections. \textbf{Right (Server Aggregation)}: Compressed sketches drive privacy-preserving peer clustering, while updates undergo layered subspace defense (\textsc{SCCF} + \textsc{TTT}).}
+    \caption{\textbf{Overview of FedHEP Architecture.} (Left) On-device client with a single backbone, tripartite head ensemble, and Active-Class Logit Masking (ACLM). (Right) Server-side sketch clustering and layered subspace defense (SCCF + TTT).}
     \label{fig:architecture}
 \end{figure*}
 
-\subsection{Active-Class Logit Masking (ACLM)}
-\label{sec:aclm}
-A severe vulnerability in decoupled head architectures under non-IID skew is negative gradient interference: computing standard cross-entropy over unobserved classes forces unobserved logits toward negative infinity, dragging shared backbone features $\theta$ away from valid representational geometries.
-
-To eliminate this interference, \hepfl{} introduces \textbf{ACLM}. For client $i$ with active class indicator $M_{i,c} = \mathbb{I}(c \in \mathcal{Y}_i)$, the raw logits $z_{i,c} = W_c^\top \Phi_\theta(x)$ are masked prior to softmax:
+\paragraph{Active-Class Logit Masking (ACLM).}
+In decoupled architectures under label skew, evaluating standard cross-entropy over unobserved categories forces unobserved logits toward $-\infty$, injecting damaging negative gradients that pull shared backbone features $\theta$ away from valid geometric representations. To eliminate this interference, \fedhep{} introduces \textbf{ACLM}. For client $i$ with observed support indicator $M_{i,c} = \mathbb{I}(c \in \mathcal{Y}_i)$, logits are masked prior to softmax:
 \begin{equation}
 \label{eq:aclm}
 \tilde{z}_{i,c} = 
@@ -43,62 +37,50 @@ z_{i,c}, & \text{if } c \in \mathcal{Y}_i, \\
 -\infty, & \text{if } c \notin \mathcal{Y}_i.
 \end{cases}
 \end{equation}
-The resulting conditional logit distribution $\tilde{P}(y=c \mid x) = \frac{\exp(\tilde{z}_{i,c})}{\sum_{k \in \mathcal{Y}_i} \exp(\tilde{z}_{i,k})}$ confines the cross-entropy gradient strictly to $\mathcal{Y}_i$:
-\begin{equation}
-\frac{\partial \mathcal{L}_{\mathrm{CE}}}{\partial z_{i,c}} = 0, \quad \forall c \notin \mathcal{Y}_i.
-\end{equation}
-This isolates the shared backbone $\Phi_\theta$ from unobserved category penalties while maintaining full discriminative capacity.
+Confining the active logit support ensures that $\frac{\partial \mathcal{L}_{\mathrm{CE}}}{\partial z_{i,c}} = 0$ for all $c \notin \mathcal{Y}_i$, shielding shared feature representations $\Phi_\theta$ from unobserved category penalties.
 
-\subsection{Skew-Calibrated Loss Weighting}
-\label{sec:skew_weighting}
-To smoothly navigate between global generalization and local specialization, each client computes its normalized empirical label entropy $H(\mathbf{p}_i) = -\sum_{c \in \mathcal{Y}_i} p_{i,c} \ln p_{i,c}$, defining the skew coefficient:
+\paragraph{Skew-Calibrated Loss Weighting.}
+To smoothly balance global consensus and local personalization, each client computes its normalized empirical label entropy $H(\mathbf{p}_i) = -\sum_{c \in \mathcal{Y}_i} p_{i,c} \ln p_{i,c}$, defining skew coefficient:
 \begin{equation}
 \label{eq:rskew}
 \Rskew^{(i)} = 1 - \frac{H(\mathbf{p}_i)}{\ln C} \in [0, 1].
 \end{equation}
-When the client's local distribution is uniform, $\Rskew \to 0$ (IID); under extreme one-class concentration, $\Rskew \to 1$.
-
-We enforce a data-support floor anchor $a_i = \max\left(\frac{1}{2K}, \frac{|\mathcal{Y}_i|}{C}\right)$ to ensure that highly skewed nodes maintain a non-zero anchor to the global model. The joint loss weighting adheres to an exact partition-of-unity ($\alpha_r + \alpha_p + \alpha_l = 1.0$):
-\begin{align}
-\alpha_r &= a_i (1 - \Rskew^{(i)}), \\
-\alpha_p &= 2(1 - a_i) \Rskew^{(i)} (1 - \Rskew^{(i)}), \\
-\alpha_l &= 1 - \alpha_r - \alpha_p.
-\end{align}
-The composite training objective on client $i$ is formulated as:
+Under uniform data, $\Rskew \to 0$ (IID); under acute one-class concentration, $\Rskew \to 1$. We enforce a data-support floor anchor $a_i = \max\left(\frac{1}{2K}, \frac{|\mathcal{Y}_i|}{C}\right)$ and compute unnormalized Bernstein polynomial weights:
+\begin{equation}
+\label{eq:binomial_weights}
+\lambda_r = a_i + (1 - a_i)(\Rskew^{(i)})^2, \quad \lambda_p = 2\Rskew^{(i)}(1 - \Rskew^{(i)}), \quad \lambda_l = (1 - \Rskew^{(i)})^2.
+\end{equation}
+The exact partition-of-unity coefficients are obtained via $\alpha_k = \frac{\lambda_k}{\sum_{j \in \{r, p, l\}} \lambda_j}$, forming the composite objective:
 \begin{equation}
 \mathcal{L}_{\mathrm{total}}(\theta, W_r, W_p, W_l) = \alpha_r \mathcal{L}_r(W_r; \theta) + \alpha_p \mathcal{L}_p^{\mathrm{mask}}(W_p; \theta) + \alpha_l \mathcal{L}_l^{\mathrm{mask}}(W_l; \theta).
 \end{equation}
 
-\subsection{Privacy-Preserving Collaborative Clustering via Random Projections}
-\label{sec:clustering}
-To establish collaborative cluster assignments without revealing raw local gradient deltas, clients project their Parent Head updates $\Delta W_{p,i} \in \mathbb{R}^{d \cdot C}$ into a compact subspace $s_i \in \mathbb{R}^m$ ($m=256$) using a shared random Gaussian projection matrix $\mathbf{R} \in \mathbb{R}^{m \times D}$ where $\mathbf{R}_{jk} \sim \mathcal{N}(0, 1/m)$:
+\paragraph{Privacy-Preserving Collaborative Clustering via Random Projections.}
+To group clients into collaborative peer clusters without exposing raw local parameters, clients project Parent Head updates $\Delta W_{p,i} \in \mathbb{R}^{d \cdot C}$ into a compact subspace using a shared Gaussian projection matrix $\mathbf{R} \in \mathbb{R}^{m \times D}$ ($\mathbf{R}_{jk} \sim \mathcal{N}(0, 1/m), m=256$), followed by $L_2$ normalization:
 \begin{equation}
 \label{eq:sketch}
-\mathbf{s}_i = \mathbf{R} \cdot \mathrm{vec}(\Delta W_{p,i}).
+\mathbf{s}_i = \frac{\mathbf{R} \cdot \mathrm{vec}(\Delta W_{p,i})}{\|\mathbf{R} \cdot \mathrm{vec}(\Delta W_{p,i})\|_2} \in \mathbb{R}^m.
 \end{equation}
-By the Johnson-Lindenstrauss lemma~\cite{johnson1984extensions}, pairwise Euclidean distances are preserved with distortion $\epsilon$:
-\begin{equation}
-(1 - \epsilon) \|\Delta_i - \Delta_j\|_2^2 \le \|\mathbf{s}_i - \mathbf{s}_j\|_2^2 \le (1 + \epsilon) \|\Delta_i - \Delta_j\|_2^2,
-\end{equation}
-provided $m \ge \mathcal{O}(\epsilon^{-2} \log N)$. Because $m=256 \ll D \approx 10^5$, inverting $\mathbf{s}_i$ to reconstruct training samples is mathematically ill-posed, preserving differential privacy while enabling the server to partition clients into $K$ synergistic clusters.
+By the Johnson-Lindenstrauss lemma~\cite{johnson1984extensions}, pairwise Euclidean distances between normalized sketches accurately approximate pairwise cosine geometries within distortion $\epsilon$ whenever $m \ge \mathcal{O}(\epsilon^{-2} \log N)$. Because $m=256 \ll D \approx 10^5$, update reconstruction is mathematically underdetermined, preserving edge privacy while enabling the server to partition clients into $K$ synergistic clusters.
 
 \subsection{Layered Subspace Byzantine Defense}
 \label{sec:defense}
-To defend against Byzantine adversaries in heterogeneous settings, \hepfl{} implements a three-tier defense decoupling head verification from backbone aggregation:
-\begin{enumerate}
-    \item \textbf{Subspace-Constrained Cosine Filtering (SCCF)}: Standard cosine checks fail because non-IID clients have disjoint label supports. For any pair of client head updates $\Delta W_i, \Delta W_j$, SCCF measures cosine similarity strictly across their intersection support $\Omega_{ij} = \mathcal{Y}_i \cap \mathcal{Y}_j$:
+
+To defend against malicious poisoning without penalizing legitimate non-IID angular deviations, \fedhep{} implements a three-tier defense decoupling head verification from backbone aggregation:
+\begin{itemize}
+    \item \textbf{Subspace-Constrained Cosine Filtering (SCCF)}: Conventional Euclidean aggregators fail under non-IID distributions because honest clients with disjoint classes exhibit large natural angular deviations. For each client $i$, the server projects head update deltas $\Delta \mathbf{w}_i$ onto the subspace $\mathcal{S}_i$ spanned by client $i$'s observed coordinates:
     \begin{equation}
     \label{eq:sccf}
-    S_{ij} = \frac{\langle \Delta W_i[\Omega_{ij}], \Delta W_j[\Omega_{ij}] \rangle}{\|\Delta W_i[\Omega_{ij}]\|_2 \cdot \|\Delta W_j[\Omega_{ij}]\|_2 + \xi}.
+    \tau_i^{(t)} = \Softmax\left( \frac{\cos\left(\mathbf{P}_{\mathcal{S}_i} \Delta \mathbf{w}_i, \mathbf{P}_{\mathcal{S}_i} \mathbf{c}^{(t)}\right)}{T_{\mathrm{def}}} \right), \quad \mathcal{S}_i = \operatorname{span}\{\mathbf{e}_k : k \in \coords(\mathcal{Y}_i)\},
     \end{equation}
-    Updates displaying negative support alignment ($S_{ij} < 0$) are filtered as malicious perturbations.
-    \item \textbf{Adaptive Backbone Norm-Bounding}: To prevent scaling attacks on shared features, backbone updates $\Delta \theta_i$ are constrained by an adaptive clipping threshold $\tau$:
+    where $\mathbf{c}^{(t)}$ is the consensus direction and $T_{\mathrm{def}}$ is the defense temperature. By restricting cosine similarity checks strictly to observed active class subspaces $\mathcal{S}_i$, SCCF eliminates false-positive penalization of honest specialized clients.
+    \item \textbf{Adaptive Backbone Norm-Bounding}: To neutralize unbounded scaling attacks on shared features, backbone updates $\Delta \theta_i$ are constrained by an adaptive clipping threshold $\tau$:
     \begin{equation}
     \tilde{\Delta} \theta_i = \Delta \theta_i \cdot \min\left(1, \frac{\tau}{\|\Delta \theta_i\|_2}\right).
     \end{equation}
-    \item \textbf{Temporal Trust Tracking (TTT)}: To neutralize alternating or intermittent adversaries, the server maintains an exponential moving average trust score $T_i^{(t)} \in [0, 1]$:
+    \item \textbf{Temporal Trust Tracking (TTT)}: To suppress intermittent or alternating adversaries, the server updates an exponential moving average trust score $T_i^{(t)} \in [0, 1]$:
     \begin{equation}
-    T_i^{(t)} = \beta T_i^{(t-1)} + (1 - \beta) r_i^{(t)},
+    T_i^{(t)} = \beta T_i^{(t-1)} + (1 - \beta) \cdot \min\left(1.0, |\mathcal{C}_{k(i)}| \cdot \tau_i^{(t)}\right),
     \end{equation}
-    where $r_i^{(t)} \in \{0, 1\}$ indicates single-round acceptance, isolating persistent attackers over time.
-\end{enumerate}
+    where $\mathcal{C}_{k(i)}$ is the peer cluster of client $i$. Clients whose trust decays below threshold $\theta_{\mathrm{iso}}$ are excluded from aggregation, neutralizing stealthy Byzantine drift over multi-round horizons.
+\end{itemize}

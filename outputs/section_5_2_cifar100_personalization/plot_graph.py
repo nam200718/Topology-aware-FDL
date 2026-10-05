@@ -39,13 +39,14 @@ ax1.set_title("CIFAR-100 Personalization Accuracy across Heterogeneity", fontsiz
 ax1.set_xlabel(r"Dirichlet Skew Regime ($\alpha$)", fontsize=11, labelpad=8)
 ax1.set_ylabel("Mean Accuracy (%)", fontsize=11, labelpad=8)
 ax1.set_ylim(10, 75)
-ax1.legend(loc='upper right', frameon=True, framealpha=0.9)
 
 ax2.set_title("CIFAR-100 Bottom 10% Fairness across Heterogeneity", fontsize=13, fontweight='bold', pad=12)
 ax2.set_xlabel(r"Dirichlet Skew Regime ($\alpha$)", fontsize=11, labelpad=8)
 ax2.set_ylabel("Bottom 10% Client Accuracy (%)", fontsize=11, labelpad=8)
 ax2.set_ylim(0, 65)
-ax2.legend(loc='upper right', frameon=True, framealpha=0.9)
+
+handles, labels = ax1.get_legend_handles_labels()
+fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.03), ncol=7, frameon=True, framealpha=0.9, fontsize=10.5)
 
 plt.tight_layout()
 out_png = os.path.join(current_dir, "graph_cifar100_personalization.png")
