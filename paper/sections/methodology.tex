@@ -23,7 +23,7 @@ where $\mathbf{z}_{i,m} = W_m^\top \Phi_\theta(x)$ and $T_m$ denote head-specifi
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.98\textwidth]{figures/architecture.pdf}
-    \caption{\textbf{System Architecture of \fedhep{}.} \textbf{Left}: On-device client execution pipeline with a single shared backbone ($\Phi_\theta$), tripartite classification tiers ($W_r, W_p, W_l$), Active-Class Logit Masking (\aclm{}), skew-calibrated Bernstein loss weighting, and privacy-preserving 256-dim Random Projection (RP) sketching. \textbf{Middle}: Communication bus with strict on-device isolation for private local heads. \textbf{Right}: Federated server orchestrator coordinating layered subspace Byzantine defense (\sccf{} + \ttt{}), robust global consensus aggregation, and privacy-preserving peer cluster routing.}
+    \caption{\textbf{Overview of the \fedhep{} Hierarchical Architecture.} \textbf{Top}: Federated Server coordinating robust consensus aggregation protected by the Subspace Byzantine Defense module (\sccf{} + \ttt{}). \textbf{Middle}: Synergistic Peer Clusters aggregating cluster-specific Parent Head models. \textbf{Bottom}: Heterogeneous Edge Clients operating on private datasets with a single shared backbone, Active-Class Logit Masking (\aclm{}), and fully private on-device Local Heads. Dashed and solid arrows indicate hierarchical model download and update upload flows.}
     \label{fig:architecture}
 \end{figure*}
 
