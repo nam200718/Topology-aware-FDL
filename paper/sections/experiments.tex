@@ -29,8 +29,8 @@ On the high-class-cardinality CIFAR-100 benchmark (Table~\ref{tab:main_benchmark
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.92\textwidth]{figures/graph_cifar100_personalization.png}
-    \caption{\textbf{CIFAR-100 Personalization and Tail Fairness.} Mean test accuracy (left) and bottom-10\% tail fairness (right) across Dirichlet skew regimes on 100-class CIFAR-100.}
+    \includegraphics[width=0.95\textwidth]{figures/fig_cifar100_manuscript.pdf}
+    \caption{\textbf{CIFAR-100 Personalization and Tail Fairness.} Mean test accuracy (left) and worst-decile tail fairness (right) across Dirichlet skew regimes on 100-class CIFAR-100.}
     \label{fig:cifar100_personalization}
 \end{figure*}
 
@@ -78,3 +78,10 @@ To rigorously isolate the contribution of each architectural component, Table~\r
 (4)~\textbf{Random Projection Sketch vs. Oracle Bound}: Privacy-preserving Random Projection sketches ($65.49\%$) closely track the theoretical Oracle label clustering bound ($66.85\%$) within a tight gap of only $1.36$\,pp ($98.0\%$ of oracle performance), verifying that low-dimensional functional sketches discover synergistic peer clusters without exposing private local distributions.
 
 \input{figures/table6_ablation}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/fig_ablation_manuscript.pdf}
+    \caption{\textbf{Ablation Trajectory across Dirichlet Skew Regimes.} Evaluating personalized test accuracy of \fedhep{} against architectural ablations (w/o ACLM, w/o Parent Head, $K=1$ Grand Coalition, and $K=3$ Oracle Bound) across $\alpha \in [\infty, 0.05]$.}
+    \label{fig:ablation_manuscript}
+\end{figure}
