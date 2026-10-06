@@ -22,8 +22,8 @@ where $\mathbf{z}_{i,m} = W_m^\top \Phi_\theta(x)$ and $T_m$ denote head-specifi
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.92\textwidth]{figures/architecture.png}
-    \caption{\textbf{Overview of FedHEP Architecture.} (Left) On-device client with a single backbone, tripartite head ensemble, and Active-Class Logit Masking (ACLM). (Right) Server-side sketch clustering and layered subspace defense (SCCF + TTT).}
+    \includegraphics[width=0.98\textwidth]{figures/architecture.pdf}
+    \caption{\textbf{System Architecture of \fedhep{}.} \textbf{Left}: On-device client execution pipeline with a single shared backbone ($\Phi_\theta$), tripartite classification tiers ($W_r, W_p, W_l$), Active-Class Logit Masking (\aclm{}), skew-calibrated Bernstein loss weighting, and privacy-preserving 256-dim Random Projection (RP) sketching. \textbf{Middle}: Communication bus with strict on-device isolation for private local heads. \textbf{Right}: Federated server orchestrator coordinating layered subspace Byzantine defense (\sccf{} + \ttt{}), robust global consensus aggregation, and privacy-preserving peer cluster routing.}
     \label{fig:architecture}
 \end{figure*}
 
