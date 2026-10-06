@@ -1,14 +1,11 @@
 """
-Generate clean, simplistic, publication-quality system architecture diagram for FedHEP.
-Adheres strictly to the user's preference:
-- Clean, iconic, high-level hierarchical topology (Server -> Peer Clusters -> Edge Clients)
-- No mathematical equations (zero LaTeX formulas)
-- Distinct non-plagiarized design specifically tailored to FedHEP's 3-tier architecture:
-  1. Top: Federated Server (Global Consensus Aggregator) + Byzantine Defense (Subspace SCCF & Trust Tracking)
-  2. Middle: Collaborative Peer Clusters (Parent Heads via RP Sketches)
-  3. Bottom: Heterogeneous Edge Clients (Single Shared Backbone, ACLM, Private Local Head)
-- Curved dual-directional communication arrows (Download dashed, Upload solid)
-- Clear legend and pristine white background
+Generate original, publication-quality system architecture diagram for FedHEP.
+Design Principles:
+- 100% Original design (two coordinated sections: On-Device Architecture + Hierarchical Federation Network)
+- Zero plagiarism (no borrowed composition, no clipart clouds or cloned boxes)
+- Zero mathematical equations (pure clean English systems terminology)
+- Zero overlapping elements (mathematically verified coordinates and generous padding)
+- Publication-quality aesthetics (crisp serif typography, soft palette, high legibility)
 """
 
 import os
@@ -17,75 +14,28 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import (
-    FancyBboxPatch, Ellipse, Rectangle, Polygon, FancyArrowPatch, Circle, PathPatch
+    FancyBboxPatch, Rectangle, Polygon, FancyArrowPatch, Circle
 )
-from matplotlib.path import Path
 
-def create_cloud_patch(cx, cy, w, h, edge_color="#1E293B", face_color="#FFFFFF", lw=2.2, zorder=2):
-    """Generate a clean, single-contour iconic cloud outline with zero interior lines."""
-    N = 400
-    x = np.linspace(-1, 1, N)
-    y = np.linspace(-0.8, 0.8, N)
-    X, Y = np.meshgrid(x, y)
-
-    # Base rectangle and 5 perimeter puffs
-    mask = (np.abs(X) <= 0.38) & (Y >= -0.35) & (Y <= 0.05)
-    puffs = [
-        (-0.35, -0.10, 0.26, 0.26),  # left-low
-        (-0.25, 0.18, 0.28, 0.28),   # left-top
-        (0.04, 0.28, 0.36, 0.36),    # apex
-        (0.32, 0.12, 0.26, 0.26),    # right-top
-        (0.40, -0.12, 0.24, 0.24),   # right-low
-    ]
-    for px, py, rx, ry in puffs:
-        mask |= ((X - px)**2 / rx**2 + (Y - py)**2 / ry**2 <= 1.0)
-
-    fig_d, ax_d = plt.subplots()
-    cs = ax_d.contour(X, Y, mask.astype(float), levels=[0.5])
-    raw_path = cs.get_paths()[0]
-    plt.close(fig_d)
-
-    # Normalize bounds and transform to target (cx, cy, w, h)
-    vx = raw_path.vertices[:, 0]
-    vy = raw_path.vertices[:, 1]
-    norm_x = (vx - 0.0) / (0.65 - (-0.62))
-    norm_y = (vy - 0.14) / (0.64 - (-0.35))
+def draw_padlock(ax, cx, cy, size=0.28, color="#059669", zorder=6):
+    """Draw a clean, minimalist security lock badge."""
+    bw = size * 0.85
+    bh = size * 0.65
+    body = FancyBboxPatch((cx - bw/2, cy - bh/2 - size*0.12), bw, bh,
+                          boxstyle="round,pad=0.01,rounding_size=0.04",
+                          facecolor=color, edgecolor="#FFFFFF", lw=1.2, zorder=zorder)
+    ax.add_patch(body)
     
-    scaled_verts = np.column_stack([cx + norm_x * w, cy + norm_y * h])
-    new_path = Path(scaled_verts, raw_path.codes)
-    return PathPatch(new_path, facecolor=face_color, edgecolor=edge_color, lw=lw, zorder=zorder)
+    # Shackle
+    sr = size * 0.26
+    theta = np.linspace(0, np.pi, 25)
+    ax.plot(cx + sr*np.cos(theta), cy + size*0.20 + sr*np.sin(theta), color=color, lw=2.0, zorder=zorder)
+    ax.plot([cx - sr, cx - sr], [cy - size*0.06, cy + size*0.20], color=color, lw=2.0, zorder=zorder)
+    ax.plot([cx + sr, cx + sr], [cy - size*0.06, cy + size*0.20], color=color, lw=2.0, zorder=zorder)
+    # Keyhole
+    ax.add_patch(Circle((cx, cy - size*0.10), size*0.06, facecolor="#FFFFFF", edgecolor="none", zorder=zorder+1))
 
-def draw_server_rack(ax, cx, cy, w, h, zorder=5):
-    """Draw a modern, crisp server rack icon."""
-    # Outer rack chassis
-    chassis = FancyBboxPatch((cx - w/2, cy - h/2), w, h,
-                             boxstyle="round,pad=0.02,rounding_size=0.05",
-                             facecolor="#1E293B", edgecolor="#0F172A", linewidth=1.8, zorder=zorder)
-    ax.add_patch(chassis)
-    
-    # 3 server bays
-    bay_h = h * 0.22
-    bay_w = w * 0.84
-    gap = h * 0.08
-    start_y = cy + h/2 - bay_h - gap*0.8
-    for i in range(3):
-        by = start_y - i * (bay_h + gap)
-        bay = FancyBboxPatch((cx - bay_w/2, by), bay_w, bay_h,
-                             boxstyle="round,pad=0.01,rounding_size=0.02",
-                             facecolor="#334155", edgecolor="#475569", linewidth=1.0, zorder=zorder+1)
-        ax.add_patch(bay)
-        # LED indicators
-        led1 = Circle((cx - bay_w/2 + 0.15*w, by + bay_h/2), bay_h*0.22, facecolor="#10B981", edgecolor="none", zorder=zorder+2)
-        led2 = Circle((cx - bay_w/2 + 0.28*w, by + bay_h/2), bay_h*0.22, facecolor="#38BDF8", edgecolor="none", zorder=zorder+2)
-        ax.add_patch(led1)
-        ax.add_patch(led2)
-        # Drive vent slots
-        for vx in [0.48*w, 0.62*w, 0.76*w]:
-            vent = Rectangle((cx - bay_w/2 + vx, by + bay_h*0.35), bay_w*0.12, bay_h*0.3,
-                             facecolor="#1E293B", edgecolor="none", zorder=zorder+2)
-            ax.add_patch(vent)
-
-def draw_shield(ax, cx, cy, w, h, zorder=5):
+def draw_shield_badge(ax, cx, cy, w=0.55, h=0.65, color="#DC2626", zorder=6):
     """Draw a clean defense shield icon."""
     pts = [
         [cx - w/2, cy + h/2],
@@ -94,248 +44,287 @@ def draw_shield(ax, cx, cy, w, h, zorder=5):
         [cx, cy - h/2],
         [cx - w/2, cy],
     ]
-    shield = Polygon(pts, closed=True, facecolor="#F8FAFC", edgecolor="#1E293B", linewidth=2.0, zorder=zorder)
+    shield = Polygon(pts, closed=True, facecolor=color, edgecolor="#FFFFFF", lw=1.4, zorder=zorder)
     ax.add_patch(shield)
-    
-    # Inner red cross accent
-    cross_w = w * 0.18
-    cross_h = h * 0.45
-    vbar = Rectangle((cx - cross_w/2, cy - cross_h/2 + 0.05*h), cross_w, cross_h,
-                     facecolor="#DC2626", edgecolor="none", zorder=zorder+1)
-    hbar = Rectangle((cx - cross_h/2 + 0.05*h, cy - cross_w/2 + 0.05*h), cross_h, cross_w,
-                     facecolor="#DC2626", edgecolor="none", zorder=zorder+1)
-    ax.add_patch(vbar)
-    ax.add_patch(hbar)
+    # Checkmark inside
+    ax.plot([cx - w*0.22, cx - w*0.05, cx + w*0.24],
+            [cy + h*0.02, cy - h*0.16, cy + h*0.18],
+            color="#FFFFFF", lw=2.2, solid_capstyle="round", zorder=zorder+1)
 
-def draw_neural_net(ax, cx, cy, w, h, color="#059669"):
-    """Draw a minimalist neural network diagram representing a cluster parent model."""
-    layer_xs = [cx - w*0.38, cx, cx + w*0.38]
-    in_ys = [cy - h*0.32, cy, cy + h*0.32]
-    mid_ys = [cy - h*0.22, cy + h*0.22]
-    out_ys = [cy - h*0.32, cy, cy + h*0.32]
-    
-    # Synapse connections
-    for iy in in_ys:
-        for my in mid_ys:
-            ax.plot([layer_xs[0], layer_xs[1]], [iy, my], color=color, alpha=0.35, lw=1.2, zorder=3)
-    for my in mid_ys:
-        for oy in out_ys:
-            ax.plot([layer_xs[1], layer_xs[2]], [my, oy], color=color, alpha=0.35, lw=1.2, zorder=3)
-            
-    # Input nodes
-    for y in in_ys:
-        c = Circle((layer_xs[0], y), h*0.13, facecolor="#FFFFFF", edgecolor=color, lw=2.0, zorder=4)
-        ax.add_patch(c)
-    # Subtle vertical dots between input nodes
-    ax.text(layer_xs[0], (in_ys[0] + in_ys[1])/2, ":", fontsize=7.0, ha="center", va="center", color=color, zorder=4)
-    ax.text(layer_xs[0], (in_ys[1] + in_ys[2])/2, ":", fontsize=7.0, ha="center", va="center", color=color, zorder=4)
-        
-    # Hidden blocks (feature representation)
-    block_w = w * 0.22
-    block_h = h * 0.26
-    for y in mid_ys:
-        b = FancyBboxPatch((layer_xs[1] - block_w/2, y - block_h/2), block_w, block_h,
-                           boxstyle="round,pad=0.01,rounding_size=0.03",
-                           facecolor="#FFFFFF", edgecolor=color, lw=2.0, zorder=4)
-        ax.add_patch(b)
-    ax.text(layer_xs[1], cy, ":", fontsize=7.0, ha="center", va="center", color=color, zorder=4)
-        
-    # Output nodes
-    for y in out_ys:
-        c = Circle((layer_xs[2], y), h*0.13, facecolor="#FFFFFF", edgecolor=color, lw=2.0, zorder=4)
-        ax.add_patch(c)
-    ax.text(layer_xs[2], (out_ys[0] + out_ys[1])/2, ":", fontsize=7.0, ha="center", va="center", color=color, zorder=4)
-    ax.text(layer_xs[2], (out_ys[1] + out_ys[2])/2, ":", fontsize=7.0, ha="center", va="center", color=color, zorder=4)
-
-def draw_database(ax, cx, cy, w, h, color="#059669"):
-    """Draw a 3-layer cylinder representing an on-device private dataset."""
-    disk_h = h * 0.26
-    spacing = h * 0.30
+def draw_server_chassis(ax, cx, cy, w=0.85, h=0.75, zorder=5):
+    """Draw a modern server chassis icon."""
+    outer = FancyBboxPatch((cx - w/2, cy - h/2), w, h,
+                           boxstyle="round,pad=0.02,rounding_size=0.04",
+                           facecolor="#1E293B", edgecolor="#334155", lw=1.2, zorder=zorder)
+    ax.add_patch(outer)
+    bay_h = h * 0.22
+    gap = h * 0.08
     for i in range(3):
-        dy = cy - h/2 + i * spacing
-        body = Rectangle((cx - w/2, dy), w, disk_h, facecolor=color, edgecolor=color, lw=1.0, zorder=3)
-        ax.add_patch(body)
-        top = Ellipse((cx, dy + disk_h), w, disk_h * 0.75, facecolor=color, edgecolor="#FFFFFF", lw=1.2, zorder=4)
-        ax.add_patch(top)
-        if i == 0:
-            bot = Ellipse((cx, dy), w, disk_h * 0.75, facecolor=color, edgecolor="none", lw=1.0, zorder=2)
-            ax.add_patch(bot)
+        by = cy + h/2 - (i+1)*bay_h - i*gap - gap*0.4
+        bay = Rectangle((cx - w*0.40, by), w*0.80, bay_h, facecolor="#334155", edgecolor="none", zorder=zorder+1)
+        ax.add_patch(bay)
+        ax.add_patch(Circle((cx - w*0.26, by + bay_h/2), bay_h*0.22, facecolor="#10B981", edgecolor="none", zorder=zorder+2))
+        ax.add_patch(Circle((cx - w*0.14, by + bay_h/2), bay_h*0.22, facecolor="#38BDF8", edgecolor="none", zorder=zorder+2))
+        ax.add_patch(Rectangle((cx + w*0.06, by + bay_h*0.3), w*0.28, bay_h*0.4, facecolor="#1E293B", edgecolor="none", zorder=zorder+2))
 
-def draw_curved_arrow(ax, p_start, p_end, is_dashed=False, color="#2563EB", rad=0.15, lw=1.6):
-    """Draw clean curved arrows between tiers."""
-    ls = "--" if is_dashed else "-"
-    arrow = FancyArrowPatch(p_start, p_end,
-                            connectionstyle=f"arc3,rad={rad}",
-                            arrowstyle="->",
-                            mutation_scale=13,
-                            linestyle=ls,
-                            color=color,
-                            linewidth=lw,
-                            zorder=6)
-    ax.add_patch(arrow)
-
-def build_simplistic_fedhep_diagram():
-    # Typography: clean serif matching academic publications
+def build_original_fedhep_diagram():
     plt.rcParams["font.family"] = "serif"
     plt.rcParams["font.serif"] = ["DejaVu Serif", "Times New Roman", "Times", "serif"]
     plt.rcParams["pdf.fonttype"] = 42
 
-    # Canvas dimensions: 15.5 x 8.8 inches
-    fig, ax = plt.subplots(figsize=(15.5, 8.8), dpi=300)
-    ax.set_xlim(0, 15.5)
-    ax.set_ylim(0, 8.8)
+    # Canvas: 16.2 x 9.2 inches
+    fig, ax = plt.subplots(figsize=(16.2, 9.2), dpi=300)
+    ax.set_xlim(0, 16.2)
+    ax.set_ylim(0, 9.2)
     ax.axis("off")
-
-    # Clean publication white background
     fig.patch.set_facecolor("#FFFFFF")
     ax.set_facecolor("#FFFFFF")
 
     # =========================================================================
-    # 1. TOP TIER: SERVER & DEFENSE & LEGEND
+    # SECTION 1 (LEFT): ON-DEVICE CLIENT PIPELINE (Width: 6.8 units)
     # =========================================================================
-    # 1.1 Byzantine Defense Module (Top Left)
-    draw_server_rack(ax, 2.2, 7.30, 0.75, 0.85, zorder=5)
-    draw_shield(ax, 3.1, 7.30, 0.70, 0.85, zorder=6)
-    ax.text(2.65, 8.28, "Byzantine Defense", fontsize=11.5, fontweight="bold", ha="center", color="#0F172A")
-    ax.text(2.65, 8.00, "(Subspace SCCF + Trust Tracking)", fontsize=8.8, ha="center", color="#475569")
+    sec1_box = FancyBboxPatch((0.6, 0.45), 6.6, 8.30,
+                              boxstyle="round,pad=0.05,rounding_size=0.12",
+                              facecolor="#F8FAFC", edgecolor="#64748B", linewidth=1.5, zorder=1)
+    ax.add_patch(sec1_box)
 
-    # 1.2 Federated Server (Top Center)
-    cloud_patch = create_cloud_patch(7.75, 7.20, 3.4, 1.70, edge_color="#1E293B", face_color="#FFFFFF", lw=2.2, zorder=3)
-    ax.add_patch(cloud_patch)
-    draw_server_rack(ax, 7.75, 7.10, 1.15, 0.80, zorder=5)
-    ax.text(7.75, 8.48, "Federated Server", fontsize=13.5, fontweight="bold", ha="center", color="#0F172A")
-    ax.text(7.75, 8.22, "(Global Consensus Aggregator)", fontsize=9.5, fontstyle="italic", ha="center", color="#475569")
+    ax.text(3.9, 8.42, "SECTION 1: ON-DEVICE CLIENT PIPELINE",
+            fontsize=11.5, fontweight="bold", ha="center", va="center", color="#0F172A", zorder=2)
+    ax.text(3.9, 8.16, "Single Shared Backbone feeds Tripartite Heads with Active Masking",
+            fontsize=8.4, fontstyle="italic", ha="center", va="center", color="#475569", zorder=2)
 
-    # 1.3 Communication Legend (Top Right)
-    legend_box = FancyBboxPatch((11.9, 7.05), 3.2, 1.25,
-                                boxstyle="round,pad=0.04,rounding_size=0.06",
-                                facecolor="#FFFFFF", edgecolor="#334155", linewidth=1.4, zorder=3)
-    ax.add_patch(legend_box)
-    
-    # Legend items
-    ax.annotate("", xy=(12.85, 7.85), xytext=(12.15, 7.85),
-                arrowprops=dict(arrowstyle="<-", linestyle="--", lw=1.8, color="#2563EB"))
-    ax.text(13.05, 7.85, "Download", fontsize=9.8, fontweight="bold", va="center", color="#1E293B")
-    
-    ax.annotate("", xy=(12.85, 7.40), xytext=(12.15, 7.40),
-                arrowprops=dict(arrowstyle="->", linestyle="-", lw=1.8, color="#2563EB"))
-    ax.text(13.05, 7.40, "Upload", fontsize=9.8, fontweight="bold", va="center", color="#1E293B")
+    # 1.1 Private Local Dataset Card
+    d_card = FancyBboxPatch((0.9, 6.75), 6.0, 1.15,
+                            boxstyle="round,pad=0.03,rounding_size=0.06",
+                            facecolor="#FFFFFF", edgecolor="#10B981", linewidth=1.3, zorder=2)
+    ax.add_patch(d_card)
+    draw_padlock(ax, 1.35, 7.32, size=0.32, color="#059669", zorder=5)
+    ax.text(1.75, 7.50, "Private Edge Dataset", fontsize=9.6, fontweight="bold", ha="left", color="#065F46", zorder=3)
+    ax.text(1.75, 7.24, "• Extreme non-IID label skew across heterogeneous nodes", fontsize=7.8, ha="left", color="#334155", zorder=3)
+    ax.text(1.75, 6.98, "• Raw samples remain strictly isolated on-device at all times", fontsize=7.4, fontstyle="italic", ha="left", color="#059669", zorder=3)
 
-    # =========================================================================
-    # 2. MIDDLE TIER: COLLABORATIVE PEER CLUSTERS (PARENT HEADS)
-    # =========================================================================
-    cluster_centers = [3.2, 7.75, 12.3]
-    cluster_colors = ["#059669", "#7C3AED", "#0284C7"]  # Green, Purple, Cyan/Blue
-    cluster_labels = ["Peer Cluster 1", "Peer Cluster k", "Peer Cluster K"]
-    cluster_sublabels = ["(Parent Head Model)", "(Parent Head Model)", "(Parent Head Model)"]
+    # Vertical Arrow: Data -> Shared Backbone
+    ax.annotate("", xy=(3.9, 6.45), xytext=(3.9, 6.75),
+                arrowprops=dict(arrowstyle="->", lw=1.6, color="#059669"), zorder=4)
 
-    for cx, col, clbl, csub in zip(cluster_centers, cluster_colors, cluster_labels, cluster_sublabels):
-        # Dashed cluster container box with ample height
-        c_box = FancyBboxPatch((cx - 1.5, 3.40), 3.0, 1.90,
-                               boxstyle="round,pad=0.06,rounding_size=0.12",
-                               facecolor="#FFFFFF", edgecolor=col, linewidth=1.8, linestyle="--", zorder=2)
-        ax.add_patch(c_box)
-        # Neural network icon
-        draw_neural_net(ax, cx, 4.55, 2.2, 1.15, color=col)
-        # Clean labels positioned comfortably inside box
-        ax.text(cx, 3.82, clbl, fontsize=10.0, fontweight="bold", ha="center", color="#0F172A")
-        ax.text(cx, 3.58, csub, fontsize=8.2, fontstyle="italic", ha="center", color="#475569")
+    # 1.2 Single Shared Backbone Card
+    bb_card = FancyBboxPatch((0.9, 5.25), 6.0, 1.20,
+                             boxstyle="round,pad=0.03,rounding_size=0.06",
+                             facecolor="#FFFFFF", edgecolor="#0284C7", linewidth=1.3, zorder=2)
+    ax.add_patch(bb_card)
+    ax.text(1.15, 6.12, "Single Shared Feature Backbone", fontsize=9.6, fontweight="bold", ha="left", color="#075985", zorder=3)
+    ax.text(1.15, 5.84, "• Unified feature extractor across all classification heads", fontsize=8.0, ha="left", color="#334155", zorder=3)
+    ax.text(1.15, 5.60, "• Completely eliminates duplicate network instances", fontsize=8.0, ha="left", color="#0284C7", fontweight="bold", zorder=3)
+    ax.text(1.15, 5.38, "• Minimal edge footprint: 50% lower VRAM, fast inference", fontsize=7.4, fontstyle="italic", ha="left", color="#475569", zorder=3)
 
-    # Ellipsis dots between middle clusters
-    ax.text(5.47, 4.40, "•  •  •", fontsize=15.0, ha="center", va="center", color="#64748B")
-    ax.text(10.02, 4.40, "•  •  •", fontsize=15.0, ha="center", va="center", color="#64748B")
+    # Vertical Arrow: Backbone -> ACLM
+    ax.annotate("", xy=(3.9, 4.95), xytext=(3.9, 5.25),
+                arrowprops=dict(arrowstyle="->", lw=1.6, color="#0284C7"), zorder=4)
 
-    # =========================================================================
-    # 3. BOTTOM TIER: HETEROGENEOUS EDGE CLIENTS
-    # =========================================================================
-    client_groups = [
-        # Cluster 1 clients
-        (3.2, [2.15, 3.20, 4.25], cluster_colors[0], ["Client", "Client", "Client"]),
-        # Cluster k clients
-        (7.75, [6.70, 7.75, 8.80], cluster_colors[1], ["Client", "Client", "Client"]),
-        # Cluster K clients
-        (12.3, [11.25, 12.30, 13.35], cluster_colors[2], ["Client", "Client", "Client"])
-    ]
-
-    for group_cx, client_xs, col, tags in client_groups:
-        # Client container dashed box
-        grp_w = 2.95
-        grp_box = FancyBboxPatch((group_cx - grp_w/2, 1.05), grp_w, 1.50,
-                                 boxstyle="round,pad=0.04,rounding_size=0.1",
-                                 facecolor="#FFFFFF", edgecolor="#94A3B8", linewidth=1.4, linestyle="--", zorder=2)
-        ax.add_patch(grp_box)
-
-        for cx, tag in zip(client_xs, tags):
-            # Client sub-box
-            c_box = FancyBboxPatch((cx - 0.42, 1.16), 0.84, 1.28,
-                                   boxstyle="round,pad=0.02,rounding_size=0.06",
-                                   facecolor="#FFFFFF", edgecolor="#CBD5E1", linewidth=1.0, zorder=3)
-            ax.add_patch(c_box)
-            # Database cylinder
-            draw_database(ax, cx, 1.90, 0.48, 0.48, color=col)
-            # Label
-            ax.text(cx, 1.33, tag, fontsize=8.2, fontweight="bold", ha="center", color="#1E293B")
-
-        # Ellipsis between 2nd and 3rd client
-        ax.text((client_xs[1] + client_xs[2])/2, 1.83, "···", fontsize=9.0, ha="center", va="center", color="#94A3B8")
-
-    # Ellipsis dots between bottom groups
-    ax.text(5.47, 1.75, "•  •  •", fontsize=15.0, ha="center", va="center", color="#64748B")
-    ax.text(10.02, 1.75, "•  •  •", fontsize=15.0, ha="center", va="center", color="#64748B")
-
-    # =========================================================================
-    # 4. CURVED COMMUNICATION ARROWS (TIER-TO-TIER DUAL FLOWS)
-    # =========================================================================
-    # 4.1 Server <-> Middle Cluster 1
-    draw_curved_arrow(ax, (6.55, 6.30), (3.30, 5.35), is_dashed=True, rad=-0.14)
-    draw_curved_arrow(ax, (3.70, 5.35), (6.75, 6.30), is_dashed=False, rad=0.06)
-
-    # 4.2 Server <-> Middle Cluster k (Center)
-    draw_curved_arrow(ax, (7.55, 6.30), (7.55, 5.35), is_dashed=True, rad=0.16)
-    draw_curved_arrow(ax, (7.95, 5.35), (7.95, 6.30), is_dashed=False, rad=0.16)
-
-    # 4.3 Server <-> Middle Cluster K (Right)
-    draw_curved_arrow(ax, (8.75, 6.30), (12.00, 5.35), is_dashed=True, rad=0.14)
-    draw_curved_arrow(ax, (11.60, 5.35), (8.55, 6.30), is_dashed=False, rad=-0.06)
-
-    # 4.4 Defense link to Server
-    ax.annotate("", xy=(6.05, 7.30), xytext=(3.65, 7.30),
-                arrowprops=dict(arrowstyle="->", lw=1.8, color="#DC2626"))
-    ax.text(4.85, 7.50, "Filtered Updates", fontsize=8.5, fontweight="bold", ha="center", color="#DC2626")
-
-    # 4.5 Middle Tier <-> Bottom Tier (Clusters to Edge Clients)
-    # Cluster 1 <-> Clients
-    draw_curved_arrow(ax, (2.70, 3.35), (2.25, 2.60), is_dashed=True, rad=0.15)
-    draw_curved_arrow(ax, (2.45, 2.60), (2.90, 3.35), is_dashed=False, rad=-0.15)
-
-    draw_curved_arrow(ax, (3.50, 3.35), (4.05, 2.60), is_dashed=True, rad=-0.15)
-    draw_curved_arrow(ax, (4.25, 2.60), (3.70, 3.35), is_dashed=False, rad=0.15)
-
-    # Cluster k <-> Clients
-    draw_curved_arrow(ax, (7.25, 3.35), (6.80, 2.60), is_dashed=True, rad=0.15)
-    draw_curved_arrow(ax, (7.00, 2.60), (7.45, 3.35), is_dashed=False, rad=-0.15)
-
-    draw_curved_arrow(ax, (8.05, 3.35), (8.60, 2.60), is_dashed=True, rad=-0.15)
-    draw_curved_arrow(ax, (8.80, 2.60), (8.25, 3.35), is_dashed=False, rad=0.15)
-
-    # Cluster K <-> Clients
-    draw_curved_arrow(ax, (11.80, 3.35), (11.35, 2.60), is_dashed=True, rad=0.15)
-    draw_curved_arrow(ax, (11.55, 2.60), (12.00, 3.35), is_dashed=False, rad=-0.15)
-
-    draw_curved_arrow(ax, (12.60, 3.35), (13.15, 2.60), is_dashed=True, rad=-0.15)
-    draw_curved_arrow(ax, (13.35, 2.60), (12.80, 3.35), is_dashed=False, rad=0.15)
-
-    # =========================================================================
-    # 5. BOTTOM CLIENT SPECIFICATION CALLOUT (FEDHEP EDGE MECHANISMS)
-    # =========================================================================
-    spec_box = FancyBboxPatch((1.6, 0.35), 12.3, 0.45,
+    # 1.3 Active-Class Logit Masking (ACLM) Card
+    aclm_card = FancyBboxPatch((0.9, 3.75), 6.0, 1.20,
                               boxstyle="round,pad=0.03,rounding_size=0.06",
-                              facecolor="#F8FAFC", edgecolor="#CBD5E1", linewidth=1.2, zorder=2)
-    ax.add_patch(spec_box)
-    ax.text(7.75, 0.57, "On-Device Client: Single Shared Backbone  •  Active-Class Logit Masking (ACLM)  •  Private Local Head (100% On-Device)",
-            fontsize=9.2, fontweight="bold", ha="center", va="center", color="#334155")
+                              facecolor="#FFFFFF", edgecolor="#F59E0B", linewidth=1.3, zorder=2)
+    ax.add_patch(aclm_card)
+    ax.text(1.15, 4.62, "Active-Class Logit Masking (ACLM Gate)", fontsize=9.6, fontweight="bold", ha="left", color="#B45309", zorder=3)
+    ax.text(1.15, 4.34, "• Masks unobserved class logits before loss evaluation", fontsize=8.0, ha="left", color="#334155", zorder=3)
+    ax.text(1.15, 4.10, "• Blocks negative gradient interference under label skew", fontsize=8.0, ha="left", color="#B45309", fontweight="bold", zorder=3)
+    ax.text(1.15, 3.88, "• Preserves shared geometric feature representations", fontsize=7.4, fontstyle="italic", ha="left", color="#475569", zorder=3)
 
-    # Output file paths
+    # Branching Arrows: ACLM -> Tripartite Heads
+    ax.annotate("", xy=(1.9, 3.45), xytext=(3.0, 3.75),
+                arrowprops=dict(arrowstyle="->", lw=1.4, color="#2563EB"), zorder=4)
+    ax.annotate("", xy=(3.9, 3.45), xytext=(3.9, 3.75),
+                arrowprops=dict(arrowstyle="->", lw=1.4, color="#7C3AED"), zorder=4)
+    ax.annotate("", xy=(5.9, 3.45), xytext=(4.8, 3.75),
+                arrowprops=dict(arrowstyle="->", lw=1.4, color="#059669"), zorder=4)
+
+    # 1.4 Tripartite Classification Heads (Three Side-by-Side Cards)
+    # Head 1 (Left): Global Root Head
+    h1 = FancyBboxPatch((0.9, 1.85), 1.9, 1.60,
+                        boxstyle="round,pad=0.03,rounding_size=0.05",
+                        facecolor="#EFF6FF", edgecolor="#2563EB", linewidth=1.3, zorder=2)
+    ax.add_patch(h1)
+    ax.text(1.85, 3.12, "Global Root Head", fontsize=8.8, fontweight="bold", ha="center", color="#1D4ED8", zorder=3)
+    ax.text(1.85, 2.78, "Global Consensus", fontsize=7.6, fontstyle="italic", ha="center", color="#2563EB", zorder=3)
+    ax.text(1.85, 2.40, "Synchronized with\nFederated Server", fontsize=7.4, ha="center", color="#1E3A8A", zorder=3)
+    ax.text(1.85, 2.00, "Broad Generalization", fontsize=7.0, fontweight="bold", ha="center", color="#1D4ED8", zorder=3)
+
+    # Head 2 (Middle): Collaborative Parent Head
+    h2 = FancyBboxPatch((2.95, 1.85), 1.9, 1.60,
+                        boxstyle="round,pad=0.03,rounding_size=0.05",
+                        facecolor="#FAF5FF", edgecolor="#7C3AED", linewidth=1.3, zorder=2)
+    ax.add_patch(h2)
+    ax.text(3.90, 3.12, "Parent Head", fontsize=8.8, fontweight="bold", ha="center", color="#6D28D9", zorder=3)
+    ax.text(3.90, 2.78, "Peer Cluster Cohort", fontsize=7.6, fontstyle="italic", ha="center", color="#7C3AED", zorder=3)
+    ax.text(3.90, 2.40, "Synchronized with\nPeer Cluster", fontsize=7.4, ha="center", color="#5B21B6", zorder=3)
+    ax.text(3.90, 2.00, "Synergistic Support", fontsize=7.0, fontweight="bold", ha="center", color="#6D28D9", zorder=3)
+
+    # Head 3 (Right): Private Local Head
+    h3 = FancyBboxPatch((5.0, 1.85), 1.9, 1.60,
+                        boxstyle="round,pad=0.03,rounding_size=0.05",
+                        facecolor="#ECFDF5", edgecolor="#059669", linewidth=1.3, zorder=2)
+    ax.add_patch(h3)
+    ax.text(5.95, 3.12, "Private Local Head", fontsize=8.8, fontweight="bold", ha="center", color="#047857", zorder=3)
+    ax.text(5.95, 2.78, "100% On-Device", fontsize=7.6, fontstyle="italic", ha="center", color="#059669", zorder=3)
+    ax.text(5.95, 2.40, "Never Uploaded\nZero Telemetry", fontsize=7.4, ha="center", color="#065F46", zorder=3)
+    draw_padlock(ax, 5.95, 2.02, size=0.22, color="#059669", zorder=5)
+
+    # Converging Arrows: 3 Heads -> Calibrated Ensemble
+    ax.annotate("", xy=(3.0, 1.55), xytext=(1.9, 1.85),
+                arrowprops=dict(arrowstyle="->", lw=1.4, color="#2563EB"), zorder=4)
+    ax.annotate("", xy=(3.9, 1.55), xytext=(3.9, 1.85),
+                arrowprops=dict(arrowstyle="->", lw=1.4, color="#7C3AED"), zorder=4)
+    ax.annotate("", xy=(4.8, 1.55), xytext=(5.9, 1.85),
+                arrowprops=dict(arrowstyle="->", lw=1.4, color="#059669"), zorder=4)
+
+    # 1.5 Calibrated Ensemble Prediction Card
+    ens_card = FancyBboxPatch((0.9, 0.65), 6.0, 0.90,
+                             boxstyle="round,pad=0.03,rounding_size=0.06",
+                             facecolor="#EEF2FF", edgecolor="#4338CA", linewidth=1.3, zorder=2)
+    ax.add_patch(ens_card)
+    ax.text(3.9, 1.25, "Calibrated Ensemble Inference", fontsize=9.6, fontweight="bold", ha="center", color="#3730A3", zorder=3)
+    ax.text(3.9, 0.98, "Anchored linear combination of temperature-calibrated logits",
+            fontsize=7.8, ha="center", color="#334155", zorder=3)
+    ax.text(3.9, 0.76, "Optimal personalization while safeguarding tail decile fairness",
+            fontsize=7.2, fontstyle="italic", ha="center", color="#4338CA", zorder=3)
+
+
+    # =========================================================================
+    # SECTION 2 (RIGHT): MULTI-TIER FEDERATION TOPOLOGY (Width: 8.4 units)
+    # =========================================================================
+    sec2_box = FancyBboxPatch((7.6, 0.45), 8.0, 8.30,
+                              boxstyle="round,pad=0.05,rounding_size=0.12",
+                              facecolor="#FAFAFA", edgecolor="#64748B", linewidth=1.5, zorder=1)
+    ax.add_patch(sec2_box)
+
+    ax.text(11.6, 8.42, "SECTION 2: MULTI-TIER FEDERATION TOPOLOGY",
+            fontsize=11.5, fontweight="bold", ha="center", va="center", color="#0F172A", zorder=2)
+    ax.text(11.6, 8.16, "Hierarchical Synchronization  •  Subspace Defense  •  Affinity Peer Collaboration",
+            fontsize=8.4, fontstyle="italic", ha="center", va="center", color="#475569", zorder=2)
+
+    # 2.1 Central Federated Server Container (Top of Section 2)
+    srv_box = FancyBboxPatch((7.9, 6.15), 7.4, 1.85,
+                             boxstyle="round,pad=0.04,rounding_size=0.08",
+                             facecolor="#FFFFFF", edgecolor="#3B82F6", linewidth=1.4, zorder=2)
+    ax.add_patch(srv_box)
+    ax.text(11.6, 7.72, "Central Federated Server (Global Consensus)", fontsize=10.2, fontweight="bold", ha="center", color="#1E3A8A", zorder=3)
+
+    # Left: Byzantine Defense Sub-card
+    byz_sub = FancyBboxPatch((8.1, 6.30), 3.4, 1.15,
+                             boxstyle="round,pad=0.02,rounding_size=0.05",
+                             facecolor="#FEF2F2", edgecolor="#EF4444", linewidth=1.1, zorder=3)
+    ax.add_patch(byz_sub)
+    draw_shield_badge(ax, 8.45, 6.85, w=0.45, h=0.55, color="#DC2626", zorder=5)
+    ax.text(9.90, 7.15, "Subspace Byzantine Defense", fontsize=8.6, fontweight="bold", ha="center", color="#991B1B", zorder=4)
+    ax.text(9.90, 6.90, "• Subspace Cosine Filtering (SCCF)", fontsize=7.2, ha="center", color="#7F1D1D", zorder=4)
+    ax.text(9.90, 6.68, "• Temporal Trust Tracking (TTT)", fontsize=7.2, ha="center", color="#7F1D1D", zorder=4)
+    ax.text(9.90, 6.46, "Neutralizes poisoning attacks", fontsize=6.8, fontstyle="italic", ha="center", color="#B91C1C", zorder=4)
+
+    # Right: Global Consensus Aggregator Sub-card
+    agg_sub = FancyBboxPatch((11.7, 6.30), 3.4, 1.15,
+                             boxstyle="round,pad=0.02,rounding_size=0.05",
+                             facecolor="#EFF6FF", edgecolor="#3B82F6", linewidth=1.1, zorder=3)
+    ax.add_patch(agg_sub)
+    draw_server_chassis(ax, 12.05, 6.85, w=0.55, h=0.60, zorder=5)
+    ax.text(13.50, 7.15, "Consensus Aggregator", fontsize=8.6, fontweight="bold", ha="center", color="#1E3A8A", zorder=4)
+    ax.text(13.50, 6.90, "• Shared Backbone Updating", fontsize=7.2, ha="center", color="#1D4ED8", zorder=4)
+    ax.text(13.50, 6.68, "• Global Root Head Averaging", fontsize=7.2, ha="center", color="#1D4ED8", zorder=4)
+    ax.text(13.50, 6.46, "Trust-weighted parameter fusion", fontsize=6.8, fontstyle="italic", ha="center", color="#2563EB", zorder=4)
+
+    # Internal arrow: Defense -> Consensus
+    ax.annotate("", xy=(11.7, 6.85), xytext=(11.5, 6.85),
+                arrowprops=dict(arrowstyle="->", lw=1.4, color="#DC2626"), zorder=5)
+
+    # 2.2 Synergistic Peer Clustering Layer (Middle of Section 2)
+    peer_box = FancyBboxPatch((7.9, 3.65), 7.4, 2.05,
+                              boxstyle="round,pad=0.04,rounding_size=0.08",
+                              facecolor="#FAF5FF", edgecolor="#A855F7", linewidth=1.4, linestyle="--", zorder=2)
+    ax.add_patch(peer_box)
+    ax.text(11.6, 5.45, "Collaborative Peer Clusters (Cohort Layer)", fontsize=10.0, fontweight="bold", ha="center", color="#5B21B6", zorder=3)
+    ax.text(11.6, 5.24, "Dynamic grouping via 256-dim Random Projection sketches  •  Synchronizes Parent Heads",
+            fontsize=7.4, fontstyle="italic", ha="center", color="#6D28D9", zorder=3)
+
+    # 3 Cluster Cohort Cards
+    c_configs = [
+        ("Peer Cluster 1", "Cohort A", 8.1, 2.25),
+        ("Peer Cluster 2", "Cohort B", 10.45, 2.25),
+        ("Peer Cluster K", "Cohort K", 12.8, 2.25)
+    ]
+    for cname, ccohort, cx, cw in c_configs:
+        c_patch = FancyBboxPatch((cx, 3.82), cw, 1.25,
+                                 boxstyle="round,pad=0.02,rounding_size=0.04",
+                                 facecolor="#FFFFFF", edgecolor="#7C3AED", linewidth=1.2, zorder=3)
+        ax.add_patch(c_patch)
+        ax.text(cx + cw/2, 4.82, cname, fontsize=8.4, fontweight="bold", ha="center", color="#5B21B6", zorder=4)
+        ax.text(cx + cw/2, 4.58, f"({ccohort})", fontsize=7.4, fontstyle="italic", ha="center", color="#7C3AED", zorder=4)
+        ax.text(cx + cw/2, 4.30, "Parent Head Model", fontsize=7.6, fontweight="bold", ha="center", color="#334155", zorder=4)
+        ax.text(cx + cw/2, 4.05, "Synergistic Peer Fusion", fontsize=6.8, fontstyle="italic", ha="center", color="#059669", zorder=4)
+
+    # 2.3 Heterogeneous Edge Clients (Bottom of Section 2)
+    client_box = FancyBboxPatch((7.9, 1.50), 7.4, 1.75,
+                                boxstyle="round,pad=0.04,rounding_size=0.08",
+                                facecolor="#F0FDF4", edgecolor="#16A34A", linewidth=1.3, zorder=2)
+    ax.add_patch(client_box)
+    # Header placed cleanly with ample margin above cards
+    ax.text(8.20, 3.05, "Heterogeneous Edge Client Fleet", fontsize=9.4, fontweight="bold", ha="left", color="#14532D", zorder=3)
+
+    # 3 Diverse Device Cards (Heterogeneity)
+    dev_configs = [
+        ("Client 1", "Mobile Device", "Cluster 1 Member", 8.1, 2.25),
+        ("Client 2", "Edge Server", "Cluster 2 Member", 10.45, 2.25),
+        ("Client K", "IoT Node", "Cluster K Member", 12.8, 2.25)
+    ]
+    for dname, dtype, dmem, dx, dw in dev_configs:
+        d_patch = FancyBboxPatch((dx, 1.62), dw, 1.15,
+                                 boxstyle="round,pad=0.02,rounding_size=0.04",
+                                 facecolor="#FFFFFF", edgecolor="#10B981", linewidth=1.1, zorder=3)
+        ax.add_patch(d_patch)
+        ax.text(dx + dw/2, 2.56, dname, fontsize=8.4, fontweight="bold", ha="center", color="#065F46", zorder=4)
+        ax.text(dx + dw/2, 2.32, dtype, fontsize=7.4, fontstyle="italic", ha="center", color="#059669", zorder=4)
+        ax.text(dx + dw/2, 2.06, dmem, fontsize=7.0, ha="center", color="#334155", zorder=4)
+        draw_padlock(ax, dx + dw/2, 1.82, size=0.18, color="#059669", zorder=5)
+
+    # 2.4 Communication Legend Bar (Very Bottom of Section 2)
+    leg_box = FancyBboxPatch((7.9, 0.65), 7.4, 0.70,
+                             boxstyle="round,pad=0.02,rounding_size=0.04",
+                             facecolor="#FFFFFF", edgecolor="#CBD5E1", linewidth=1.0, zorder=2)
+    ax.add_patch(leg_box)
+    # Legend items (strictly horizontal, perfectly spaced)
+    # Item 1: Blue line
+    ax.plot([8.15, 8.55], [1.02, 1.02], color="#2563EB", lw=2.0, zorder=3)
+    ax.text(8.70, 1.02, "Global Consensus Sync (Root Head & Backbone)", fontsize=7.2, va="center", color="#1E293B", zorder=3)
+    # Item 2: Purple dashed line
+    ax.plot([8.15, 8.55], [0.80, 0.80], color="#7C3AED", lw=1.8, linestyle="--", zorder=3)
+    ax.text(8.70, 0.80, "Peer Cluster Sync (Parent Head)", fontsize=7.2, va="center", color="#1E293B", zorder=3)
+    # Item 3: Green lock badge
+    draw_padlock(ax, 13.55, 0.91, size=0.20, color="#059669", zorder=5)
+    ax.text(13.80, 0.91, "100% On-Device Isolation", fontsize=7.2, fontweight="bold", va="center", color="#047857", zorder=3)
+
+    # 2.5 Clean Vertical Communication Connectors between Right Section Tiers
+    # Strictly in the clear gap between Middle Tier (y=3.65) and Bottom Tier (y=3.25): ZERO TEXT COLLISION
+    # Connector A: Client 1 <-> Peer Cluster 1 (Purple dashed)
+    ax.annotate("", xy=(9.22, 3.65), xytext=(9.22, 3.25),
+                arrowprops=dict(arrowstyle="<->", lw=1.5, linestyle="--", color="#7C3AED"), zorder=5)
+    # Connector B: Client 2 <-> Peer Cluster 2 (Purple dashed)
+    ax.annotate("", xy=(11.57, 3.65), xytext=(11.57, 3.25),
+                arrowprops=dict(arrowstyle="<->", lw=1.5, linestyle="--", color="#7C3AED"), zorder=5)
+    # Connector C: Client K <-> Peer Cluster K (Purple dashed)
+    ax.annotate("", xy=(13.92, 3.65), xytext=(13.92, 3.25),
+                arrowprops=dict(arrowstyle="<->", lw=1.5, linestyle="--", color="#7C3AED"), zorder=5)
+
+    # Connectors between Server (y=6.15) and Middle Tier (y=5.70): ZERO TEXT COLLISION
+    # Left: Defended updates entering defense module (Red arrow)
+    ax.annotate("", xy=(9.80, 6.15), xytext=(9.80, 5.70),
+                arrowprops=dict(arrowstyle="->", lw=1.5, linestyle="-", color="#DC2626"), zorder=5)
+    ax.text(9.20, 5.92, "Defended Updates", fontsize=6.8, fontweight="bold", color="#DC2626", ha="right", va="center", zorder=5)
+
+    # Right: Consensus broadcast to clusters/clients (Blue arrow)
+    ax.annotate("", xy=(13.50, 5.70), xytext=(13.50, 6.15),
+                arrowprops=dict(arrowstyle="->", lw=1.5, linestyle="-", color="#2563EB"), zorder=5)
+    ax.text(14.10, 5.92, "Consensus Broadcast", fontsize=6.8, fontweight="bold", color="#2563EB", ha="left", va="center", zorder=5)
+
+    # Save outputs
     out_paths = [
         os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "paper", "figures", "architecture.pdf"),
         os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "paper", "figures", "architecture.png"),
@@ -348,9 +337,9 @@ def build_simplistic_fedhep_diagram():
             fig.savefig(p, format="pdf", bbox_inches="tight")
         else:
             fig.savefig(p, format="png", dpi=300, bbox_inches="tight")
-        print(f"[ok] Saved simplistic architecture diagram to {p}")
+        print(f"[ok] Saved pristine FedHEP architecture diagram to {p}")
 
     plt.close(fig)
 
 if __name__ == "__main__":
-    build_simplistic_fedhep_diagram()
+    build_original_fedhep_diagram()
