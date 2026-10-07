@@ -1,21 +1,21 @@
 """
-Generate comprehensive yet simple, highly symbolic, publication-quality system architecture diagram for FedHEP.
+Generate comprehensive, highly symbolic, minimalist publication-quality system architecture diagram for FedHEP.
 
 Includes EVERY core component of FedHEP:
 1. Private Local Dataset & Label Skew Profiling (R_skew)
 2. Single Shared Feature Backbone (Phi_theta)
 3. Active-Class Logit Masking (ACLM)
 4. Tripartite Classification Heads (Global Root W_r, Cluster Parent W_p, Private Local W_l)
-5. Calibrated Ensemble Inference (Temperature Scaling, Adaptive Weights, Prediction)
-6. Heterogeneous Edge Fleet (Mobile, Edge Server, IoT)
-7. Privacy-Preserving Random Projection Sketching (JL Lemma dimension reduction s_i)
-8. Collaborative Peer Clustering (Cohort Parent Head sharing)
+5. Calibrated Ensemble Inference (Temperature Scaling, Anchored Logit Fusion)
+6. Heterogeneous Edge Fleet (Mobile, Edge Server, IoT) with local Sketch Generators (s_i)
+7. Privacy-Preserving Random Projection Sketch Updates (JL Lemma, D -> m=256) for Adaptive Reclustering
+8. Collaborative Peer Clusters & Dynamic Reclustering on Misalignment Drift
 9. Layered Subspace Byzantine Defense (Subspace SCCF, Adaptive Norm-Bounding, Temporal Trust TTT)
 10. Global Consensus Aggregation (Trust-weighted Backbone & Root updates)
 
 Design Principles:
 - Symbolic, iconic visual representations
-- Ultra-low text density (punchy titles, concise tags, zero paragraphs)
+- Ultra-low text density: punchy titles, concise tags, zero paragraphs
 - Zero mathematical equations
 - Mathematically verified geometry: zero overlapping text or icons
 """
@@ -94,13 +94,11 @@ def draw_database_symbol(ax, cx, cy, w=0.75, h=0.55, color="#059669", zorder=4):
             bot = Ellipse((cx, dy), w, layer_h * 0.70, facecolor=color, edgecolor="none", zorder=zorder)
             ax.add_patch(bot)
 
-def draw_skew_gauge(ax, cx, cy, size=0.36, color="#059669", zorder=5):
+def draw_skew_gauge(ax, cx, cy, size=0.28, color="#059669", zorder=5):
     """Draw a clean label entropy skew dial/gauge icon."""
-    # Semi-circle gauge
     theta = np.linspace(0, np.pi, 30)
     r = size
     ax.plot(cx + r*np.cos(theta), cy + r*np.sin(theta), color=color, lw=1.6, zorder=zorder)
-    # Dial needle pointing towards high-skew
     ax.plot([cx, cx + r*0.65*np.cos(np.pi*0.72)], [cy, cy + r*0.65*np.sin(np.pi*0.72)],
             color="#D97706", lw=1.8, solid_capstyle="round", zorder=zorder+1)
     ax.add_patch(Circle((cx, cy), size*0.14, facecolor=color, edgecolor="none", zorder=zorder+2))
@@ -178,27 +176,6 @@ def draw_cohort_symbol(ax, cx, cy, r=0.25, color="#7C3AED", zorder=4):
     ax.add_patch(Circle(p1, nr, facecolor=color, edgecolor="none", zorder=zorder+2))
     ax.add_patch(Circle(p2, nr, facecolor=color, edgecolor="none", zorder=zorder+2))
     ax.add_patch(Circle(p3, nr, facecolor=color, edgecolor="none", zorder=zorder+2))
-
-def draw_sketch_matrix(ax, cx, cy, w=0.68, h=0.48, zorder=4):
-    """Draw a random projection matrix / sketch compression icon."""
-    # Projection matrix grid
-    mat = FancyBboxPatch((cx - w/2, cy - h/2), w*0.48, h,
-                         boxstyle="round,pad=0.01,rounding_size=0.02",
-                         facecolor="#FAF5FF", edgecolor="#7C3AED", lw=1.1, zorder=zorder)
-    ax.add_patch(mat)
-    # Grid lines inside matrix
-    ax.plot([cx - w*0.24, cx], [cy, cy], color="#A855F7", lw=0.8, zorder=zorder+1)
-    ax.plot([cx - w*0.12, cx - w*0.12], [cy - h*0.4, cy + h*0.4], color="#A855F7", lw=0.8, zorder=zorder+1)
-    
-    # Arrow R -> sketch
-    ax.annotate("", xy=(cx + w*0.16, cy), xytext=(cx + w*0.02, cy),
-                arrowprops=dict(arrowstyle="->", lw=1.2, color="#7C3AED"), zorder=zorder+1)
-    
-    # Compressed sketch vector s_i
-    vec = FancyBboxPatch((cx + w*0.22, cy - h*0.42), w*0.20, h*0.84,
-                         boxstyle="round,pad=0.01,rounding_size=0.02",
-                         facecolor="#7C3AED", edgecolor="#5B21B6", lw=1.0, zorder=zorder)
-    ax.add_patch(vec)
 
 def draw_device_icon(ax, cx, cy, dev_type="phone", color="#059669", zorder=4):
     """Draw iconic edge device silhouettes."""
@@ -317,7 +294,7 @@ def build_symbolic_fedhep_diagram():
     ax.text(1.85, 2.30, "Global Consensus", fontsize=7.6, fontstyle="italic", ha="center", color="#2563EB", zorder=3)
     ax.text(1.85, 2.10, "Skew-Weighted Loss", fontsize=7.2, ha="center", color="#1E40AF", zorder=3)
 
-    # Head 2 (Middle): Collaborative Parent Head
+    # Head 2 (Middle): Collaborative Parent Head (Source of Privacy Sketch s_i)
     h2 = FancyBboxPatch((2.95, 1.95), 1.9, 1.55,
                         boxstyle="round,pad=0.03,rounding_size=0.05",
                         facecolor="#FAF5FF", edgecolor="#7C3AED", linewidth=1.3, zorder=2)
@@ -325,7 +302,7 @@ def build_symbolic_fedhep_diagram():
     draw_cohort_symbol(ax, 3.90, 2.95, r=0.25, color="#7C3AED", zorder=4)
     ax.text(3.90, 2.50, "Parent Head", fontsize=8.8, fontweight="bold", ha="center", color="#6D28D9", zorder=3)
     ax.text(3.90, 2.30, "Cluster Cohort", fontsize=7.6, fontstyle="italic", ha="center", color="#7C3AED", zorder=3)
-    ax.text(3.90, 2.10, "Skew-Weighted Loss", fontsize=7.2, ha="center", color="#5B21B6", zorder=3)
+    ax.text(3.90, 2.10, "Yields RP Sketch s_i", fontsize=7.2, fontweight="bold", ha="center", color="#5B21B6", zorder=3)
 
     # Head 3 (Right): Private Local Head
     h3 = FancyBboxPatch((5.0, 1.95), 1.9, 1.55,
@@ -375,7 +352,7 @@ def build_symbolic_fedhep_diagram():
 
     ax.text(11.6, 8.78, "SECTION 2: MULTI-TIER FEDERATION TOPOLOGY",
             fontsize=11.5, fontweight="bold", ha="center", va="center", color="#0F172A", zorder=2)
-    ax.text(11.6, 8.52, "Hierarchical Consensus • Layered Defense • Privacy-Preserving Clustering",
+    ax.text(11.6, 8.52, "Hierarchical Consensus • Layered Defense • Dynamic Reclustering",
             fontsize=8.5, fontstyle="italic", ha="center", va="center", color="#475569", zorder=2)
 
     # 2.1 Central Federated Server Container
@@ -416,8 +393,8 @@ def build_symbolic_fedhep_diagram():
                               boxstyle="round,pad=0.03,rounding_size=0.08",
                               facecolor="#FAF5FF", edgecolor="#A855F7", linewidth=1.4, linestyle="--", zorder=2)
     ax.add_patch(peer_box)
-    ax.text(11.6, 5.66, "Collaborative Peer Clusters", fontsize=10.2, fontweight="bold", ha="center", color="#5B21B6", zorder=3)
-    ax.text(11.6, 5.42, "Privacy Sketches (Random Projections) • Synchronizes Parent Heads",
+    ax.text(11.6, 5.66, "Collaborative Peer Clusters & Reclustering", fontsize=10.2, fontweight="bold", ha="center", color="#5B21B6", zorder=3)
+    ax.text(11.6, 5.42, "Privacy Sketches s_i (Random Projections) • Adaptive Reclustering on Drift",
             fontsize=7.8, fontstyle="italic", ha="center", color="#6D28D9", zorder=3)
 
     # 3 Cluster Cohort Cards
@@ -447,30 +424,33 @@ def build_symbolic_fedhep_diagram():
         ax.text(mid_x, 4.04, "Parent Head Sync", fontsize=7.4, fontstyle="italic", ha="center", color="#7C3AED", zorder=4)
 
     # 2.3 Heterogeneous Edge Clients (Bottom of Section 2)
-    client_box = FancyBboxPatch((7.9, 1.65), 7.4, 1.70,
+    client_box = FancyBboxPatch((7.9, 1.62), 7.4, 1.73,
                                 boxstyle="round,pad=0.03,rounding_size=0.08",
                                 facecolor="#F0FDF4", edgecolor="#16A34A", linewidth=1.3, zorder=2)
     ax.add_patch(client_box)
     ax.text(8.15, 3.12, "Heterogeneous Edge Client Fleet", fontsize=9.6, fontweight="bold", ha="left", color="#14532D", zorder=3)
 
-    # 3 Diverse Device Cards with Projection Sketch Indicator
+    # 3 Diverse Device Cards with Sketch Generator Badge s_i
     dev_configs = [
-        ("Mobile Client", "phone", 8.1, 2.25),
-        ("Edge Server", "server", 10.45, 2.25),
-        ("IoT Device", "iot", 12.8, 2.25)
+        ("Mobile Client", "phone", "s_1", 8.1, 2.25),
+        ("Edge Server", "server", "s_2", 10.45, 2.25),
+        ("IoT Device", "iot", "s_K", 12.8, 2.25)
     ]
-    for dtitle, dev_kind, dx, dw in dev_configs:
-        d_patch = FancyBboxPatch((dx, 1.78), dw, 1.18,
+    for dtitle, dev_kind, sk_tag, dx, dw in dev_configs:
+        d_patch = FancyBboxPatch((dx, 1.72), dw, 1.24,
                                  boxstyle="round,pad=0.02,rounding_size=0.04",
                                  facecolor="#FFFFFF", edgecolor="#10B981", linewidth=1.1, zorder=3)
         ax.add_patch(d_patch)
         
         # 1. Top Title (cleanly above icon)
-        ax.text(dx + dw/2, 2.74, dtitle, fontsize=8.4, fontweight="bold", ha="center", color="#065F46", zorder=4)
+        ax.text(dx + dw/2, 2.78, dtitle, fontsize=8.4, fontweight="bold", ha="center", color="#065F46", zorder=4)
         
-        # 2. Device silhouette + Padlock centered in the lower area (cy = 2.20)
-        draw_device_icon(ax, dx + dw*0.32, 2.20, dev_type=dev_kind, color="#059669", zorder=4)
-        draw_padlock(ax, dx + dw*0.74, 2.20, size=0.22, color="#059669", zorder=5)
+        # 2. Device silhouette + Padlock centered in the middle area (cy = 2.28)
+        draw_device_icon(ax, dx + dw*0.30, 2.28, dev_type=dev_kind, color="#059669", zorder=4)
+        draw_padlock(ax, dx + dw*0.72, 2.28, size=0.22, color="#059669", zorder=5)
+        
+        # 3. Sketch Generator Tag at bottom of card
+        ax.text(dx + dw/2, 1.86, f"Yields Privacy Sketch {sk_tag}", fontsize=7.2, fontstyle="italic", ha="center", color="#047857", zorder=4)
 
     # 2.4 Communication Legend Bar (Very Bottom of Section 2)
     leg_box = FancyBboxPatch((7.9, 0.65), 7.4, 0.78,
@@ -481,9 +461,9 @@ def build_symbolic_fedhep_diagram():
     # Item 1: Blue line (Global Sync)
     ax.plot([8.15, 8.55], [1.16, 1.16], color="#2563EB", lw=2.0, zorder=3)
     ax.text(8.65, 1.16, "Global Consensus Sync (Root & Backbone)", fontsize=7.4, va="center", color="#1E293B", zorder=3)
-    # Item 2: Purple dashed line (Cluster Sync)
+    # Item 2: Purple dashed line (Privacy Sketch Update & Cluster Sync)
     ax.plot([8.15, 8.55], [0.88, 0.88], color="#7C3AED", lw=1.8, linestyle="--", zorder=3)
-    ax.text(8.65, 0.88, "Cluster Peer Sync (Parent Head & Sketches)", fontsize=7.4, va="center", color="#1E293B", zorder=3)
+    ax.text(8.65, 0.88, "Privacy Sketch Update (Reclustering) & Parent Head Sync", fontsize=7.4, va="center", color="#1E293B", zorder=3)
     # Item 3: Green lock badge (Private Isolation)
     draw_padlock(ax, 13.0, 1.02, size=0.20, color="#059669", zorder=5)
     ax.text(13.25, 1.02, "Strict On-Device Isolation", fontsize=7.4, fontweight="bold", va="center", color="#047857", zorder=3)
@@ -496,6 +476,10 @@ def build_symbolic_fedhep_diagram():
                 arrowprops=dict(arrowstyle="<->", lw=1.5, linestyle="--", color="#7C3AED"), zorder=5)
     ax.annotate("", xy=(13.92, 3.75), xytext=(13.92, 3.35),
                 arrowprops=dict(arrowstyle="<->", lw=1.5, linestyle="--", color="#7C3AED"), zorder=5)
+
+    # Connector channel labels cleanly centered in whitespace between arrows (Zero collisions)
+    ax.text(10.40, 3.55, "Privacy Sketch (s_i) ↑", fontsize=7.2, fontweight="bold", color="#7C3AED", ha="center", va="center", zorder=5)
+    ax.text(12.75, 3.55, "↓ Parent Head Sync", fontsize=7.2, fontweight="bold", color="#7C3AED", ha="center", va="center", zorder=5)
 
     # Cluster <-> Server connectors
     # Left: Defended updates entering defense module (Red arrow)
