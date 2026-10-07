@@ -21,7 +21,7 @@ where $\mathbf{z}_{i,m} = W_m^\top \Phi_\theta(x)$ and $T_m$ denote head-specifi
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.98\textwidth]{figures/architecture.pdf}
-    \caption{\textbf{Overview of the \fedhep{} Architecture.} \textbf{Left (Section 1)}: On-device client execution pipeline with a single shared feature backbone ($\Phi_\theta$), Active-Class Logit Masking (\aclm{}), tripartite classification heads ($W_r, W_p, W_l$), and calibrated ensemble inference. The private Local Head remains 100\% isolated on-device. \textbf{Right (Section 2)}: Multi-tier federation topology illustrating the Central Federated Server protected by Subspace Byzantine Defense (\sccf{} + \ttt{}), collaborative peer clusters sharing cohort Parent Heads, and heterogeneous edge devices participating in hierarchical consensus and peer synchronization.}
+    \caption{\textbf{Overview of the \fedhep{} Architecture.} \textbf{Left (Section 1)}: On-device client execution pipeline featuring local label entropy skew profiling ($\Rskew$), a single shared convolutional feature backbone ($\Phi_\theta$), Active-Class Logit Masking (\aclm{}), skew-weighted tripartite classification heads ($W_r, W_p, W_l$), and temperature-calibrated ensemble inference. The Local Head remains strictly isolated on-device. \textbf{Right (Section 2)}: Multi-tier federation topology illustrating the Central Federated Server secured by a layered Byzantine defense (\sccf{}, adaptive norm-bounding, and temporal trust tracking \ttt{}), privacy-preserving peer clustering via random projection sketches ($\mathbf{s}_i$), and a heterogeneous edge client fleet participating in hierarchical consensus and peer synchronization.}
     \label{fig:architecture}
 \end{figure*}
 
