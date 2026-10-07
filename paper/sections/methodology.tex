@@ -1,13 +1,11 @@
 \section{The \fedhep{} Framework}
 \label{sec:method}
 
-\paragraph{Problem Setting and Threat Model.}
-We consider a distributed federated multiagent network of $N$ heterogeneous edge clients $\mathcal{N} = \{1, \dots, N\}$. Each client $i$ possesses a private local dataset $\mathcal{D}_i = \{(x_k, y_k)\}_{k=1}^{n_i}$ sampled from distribution $\mathcal{P}_i(x, y)$ over input space $\mathcal{X}$ and label space $\mathcal{Y} = \{1, \dots, C\}$. The client's observed label support is denoted by $\mathcal{Y}_i = \{y \in \mathcal{Y} \mid \exists (x, y) \in \mathcal{D}_i\}$. Under severe Dirichlet partitioning, $|\mathcal{Y}_i| \ll C$. We assume an omniscient Byzantine adversary controlling up to a fraction $q < 0.5$ of clients $\mathcal{M} \subset \mathcal{N}$ executing coordinated attacks including label flipping ($y \to C - 1 - y$), sign flipping ($\Delta \mathbf{w} \to -\gamma \Delta \mathbf{w}$), gradient ascent, and Gaussian perturbation~\cite{fang2020local}. The server maintains no clean proxy dataset and cannot inspect local telemetry.
+We consider a distributed federated multiagent network of $N$ heterogeneous edge clients $\mathcal{N} = \{1, \dots, N\}$. Each client $i$ possesses a private local dataset $\mathcal{D}_i = \{(x_k, y_k)\}_{k=1}^{n_i}$ sampled from distribution $\mathcal{P}_i(x, y)$ over input space $\mathcal{X}$ and label space $\mathcal{Y} = \{1, \dots, C\}$. The client's observed label support is denoted by $\mathcal{Y}_i = \{y \in \mathcal{Y} \mid \exists (x, y) \in \mathcal{D}_i\}$. Under severe Dirichlet partitioning, $|\mathcal{Y}_i| \ll C$. We assume an omniscient Byzantine adversary controlling up to a fraction $q < 0.5$ of clients $\mathcal{M} \subset \mathcal{N}$ executing coordinated attacks including label flipping ($y \to C - 1 - y$), sign flipping ($\Delta \mathbf{w} \to -\gamma \Delta \mathbf{w}$), gradient ascent, and Gaussian perturbation~\cite{fang2020local}. The server maintains no clean proxy dataset and cannot inspect local data.
 
 \subsection{Hierarchical Architecture and Learning Mechanism}
 \label{sec:architecture}
 
-\paragraph{Single-Backbone Three-Tier Heads.}
 Unlike dual-model paradigms that duplicate whole networks~\cite{li2021ditto}, \fedhep{} maintains a single shared convolutional feature extractor $\Phi_\theta: \mathcal{X} \to \mathbb{R}^d$ parameterized by $\theta$ (Figure~\ref{fig:architecture}). Branched from this shared backbone are three linear classification heads $W \in \mathbb{R}^{d \times C}$:
 (1) \textbf{Root Head ($W_r$)}, aggregated globally across all $N$ clients via Byzantine-resilient consensus for generalized invariant features;
 (2) \textbf{Parent Head ($W_p$)}, synchronized exclusively within peer clusters $k \in \{1, \dots, K\}$ to pool complementary label representations; and
@@ -27,7 +25,6 @@ where $\mathbf{z}_{i,m} = W_m^\top \Phi_\theta(x)$ and $T_m$ denote head-specifi
     \label{fig:architecture}
 \end{figure*}
 
-\paragraph{Active-Class Logit Masking (ACLM).}
 In decoupled architectures under label skew, evaluating standard cross-entropy over unobserved categories forces unobserved logits toward $-\infty$, injecting damaging negative gradients that pull shared backbone features $\theta$ away from valid geometric representations. To eliminate this interference, \fedhep{} introduces \textbf{ACLM}. For client $i$ with observed support indicator $M_{i,c} = \mathbb{I}(c \in \mathcal{Y}_i)$, logits are masked prior to softmax:
 \begin{equation}
 \label{eq:aclm}
@@ -39,7 +36,6 @@ z_{i,c}, & \text{if } c \in \mathcal{Y}_i, \\
 \end{equation}
 Confining the active logit support ensures that $\frac{\partial \mathcal{L}_{\mathrm{CE}}}{\partial z_{i,c}} = 0$ for all $c \notin \mathcal{Y}_i$, shielding shared feature representations $\Phi_\theta$ from unobserved category penalties.
 
-\paragraph{Skew-Calibrated Loss Weighting.}
 To smoothly balance global consensus and local personalization, each client computes its normalized empirical label entropy $H(\mathbf{p}_i) = -\sum_{c \in \mathcal{Y}_i} p_{i,c} \ln p_{i,c}$, defining skew coefficient:
 \begin{equation}
 \label{eq:rskew}
@@ -55,7 +51,6 @@ The exact partition-of-unity coefficients are obtained via $\alpha_k = \frac{\la
 \mathcal{L}_{\mathrm{total}}(\theta, W_r, W_p, W_l) = \alpha_r \mathcal{L}_r(W_r; \theta) + \alpha_p \mathcal{L}_p^{\mathrm{mask}}(W_p; \theta) + \alpha_l \mathcal{L}_l^{\mathrm{mask}}(W_l; \theta).
 \end{equation}
 
-\paragraph{Privacy-Preserving Collaborative Clustering via Random Projections.}
 To group clients into collaborative peer clusters without exposing raw local parameters, clients project Parent Head updates $\Delta W_{p,i} \in \mathbb{R}^{d \cdot C}$ into a compact subspace using a shared Gaussian projection matrix $\mathbf{R} \in \mathbb{R}^{m \times D}$ ($\mathbf{R}_{jk} \sim \mathcal{N}(0, 1/m), m=256$), followed by $L_2$ normalization:
 \begin{equation}
 \label{eq:sketch}

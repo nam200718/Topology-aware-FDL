@@ -15,7 +15,6 @@ All benchmark runs report mean and standard deviation across three deterministic
 
 \input{figures/table1_personalization_master}
 
-\paragraph{Multi-Scale Personalization under Statistical Heterogeneity.}
 Table~\ref{tab:main_benchmark} and Figures~\ref{fig:femnist_personalization}--\ref{fig:cifar100_personalization} report personalization performance on FEMNIST and CIFAR-100 across five Dirichlet skew regimes. In benign IID settings, global consensus models (FedAvg, FedProx, SCAFFOLD) achieve solid accuracy ($\approx 84\%$ on FEMNIST, $\approx 41\%$ on CIFAR-100), but degrade steadily as skew intensifies. In contrast, on FEMNIST, \fedhep{} achieves $94.73\%$ accuracy and $83.91\%$ bottom-10\% fairness under extreme skew ($\alpha=0.05$), outperforming FedAvg by $+16.52$\,pp and $+38.89$\,pp in accuracy and tail fairness, while matching heavy dual-model baselines.
 
 \begin{figure}[t]
@@ -34,7 +33,6 @@ On the high-class-cardinality CIFAR-100 benchmark (Table~\ref{tab:main_benchmark
     \label{fig:cifar100_personalization}
 \end{figure*}
 
-\paragraph{Byzantine Multi-Attack Robustness under Heterogeneous Skew.}
 Table~\ref{tab:cifar100_byzantine} and Figure~\ref{fig:byzantine_robustness} assess resilience under four coordinated adversarial vectors on CIFAR-100: Label Flipping, Sign Flipping, Adversarial Gradient Ascent, and Gaussian Noise Injection, across attacker fractions $q \in [0.0, 0.4]$. A key empirical finding is the failure mode of classical robust aggregation under non-IID data: Multi-Krum~\cite{blanchard2017machine} collapses even in benign settings without attackers ($q=0.0$, achieving only $25.04\%$), because legitimate label divergence is conflated with poisoning. By evaluating update alignment strictly within observed label support (\sccf{}), bounding backbone gradient norms, and tracking temporal trust (\ttt{}), \fedhep{} sustains high accuracy in benign environments (\textbf{47.88\%}) and maintains robust performance up to $q=0.30$. Under Gaussian noise ($q=0.3$), \fedhep{} maintains \textbf{44.53\%} accuracy (a drop of only $-3.35$\,pp), whereas FedAvg collapses to $1.30\%$ and Multi-Krum achieves $22.96\%$. Under gradient ascent ($q=0.3$), \fedhep{} sustains \textbf{28.93\%} compared to $1.81\%$ for Ditto and $1.06\%$ for FedAvg.
 
 \input{figures/table3_byzantine}
@@ -46,7 +44,6 @@ Table~\ref{tab:cifar100_byzantine} and Figure~\ref{fig:byzantine_robustness} ass
     \label{fig:byzantine_robustness}
 \end{figure*}
 
-\paragraph{Multiagent Scalability and Tail Fairness (50 Clients).}
 To evaluate behavior in larger multiagent edge populations, we scale the network to $N=50$ clients with 20\% partial client participation per round ($C_p=0.20$, Table~\ref{tab:scale_50clients} and Figure~\ref{fig:scalability_50clients}). Using our personalized evaluation protocol with Synthetic Active Feature Replay (S-AFR) fallback, \fedhep{} lifts the bottom-10\% fairness floor to $18.11\%$ under Moderate skew ($\alpha=0.5$) and $16.88\%$ under Severe skew ($\alpha=0.1$). In the Severe regime, \fedhep{} achieves $41.16\%$ mean accuracy, substantially outperforming Ditto ($37.47\%$ / $13.03\%$) and FedAvg ($31.87\%$ / $12.81\%$), validating equitable convergence across scaled multiagent systems.
 
 \input{figures/table4_scale50}
@@ -58,7 +55,6 @@ To evaluate behavior in larger multiagent edge populations, we scale the network
     \label{fig:scalability_50clients}
 \end{figure}
 
-\paragraph{Simulated On-Device Execution Footprint on MobileNetV3.}
 To evaluate edge resource feasibility without overclaiming physical microcontroller deployment, we profile simulated runtime metrics (peak VRAM via \texttt{torch.cuda.max\_memory\_allocated} and batch latency via CUDA events at $B=32$) on MobileNetV3-Small and ResNet-9 (Table~\ref{tab:mobilenet_edge} and Figure~\ref{fig:mobilenet_edge}). Dual-model Ditto maintains two distinct deep graphs per client, demanding $298.60$\,MB peak VRAM and $22.80$\,ms batch latency on MobileNetV3-Small. In contrast, \fedhep{} trains a single shared feature extractor, reducing peak VRAM to \textbf{158.80\,MB} (a 46.8\% reduction) and batch latency to \textbf{11.20\,ms} (a 50.9\% speedup), while achieving superior downstream personalization on CIFAR-100 (\textbf{45.43\%} vs $34.66\%$ for Ditto and $10.85\%$ for FedAvg under extreme skew).
 
 \input{figures/table5_mobilenet_edge}
@@ -70,7 +66,6 @@ To evaluate edge resource feasibility without overclaiming physical microcontrol
     \label{fig:mobilenet_edge}
 \end{figure}
 
-\paragraph{Ablation Study and Coalition Valuation.}
 To rigorously isolate the contribution of each architectural component, Table~\ref{tab:ablation_study} summarizes our ablation matrix across all five Dirichlet regimes on CIFAR-100 ($C=100$, ResNet-9):
 (1)~\textbf{Active-Class Logit Masking (ACLM)}: Disabling ACLM forces cross-entropy over unobserved classes to penalize missing labels, inducing an acute $-8.99$\,pp accuracy drop (from $65.49\%$ to $56.50\%$) and $-10.59$\,pp tail fairness drop under Extreme skew ($\alpha=0.05$);
 (2)~\textbf{Collaborative Parent Head}: Eliminating the cluster-level Parent head reduces the architecture to a 2-tier bipartite setup ($\text{Root} + \text{Local}$), degrading extreme skew accuracy by $-5.15$\,pp (to $60.34\%$) and tail fairness by $-7.16$\,pp (to $46.76\%$), proving that peer collaboration across clients with overlapping label subsets prevents isolated local heads from overfitting;
