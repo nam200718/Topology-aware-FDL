@@ -4,15 +4,16 @@ import matplotlib.pyplot as plt
 
 plt.style.use('seaborn-v0_8-whitegrid')
 plt.rcParams['font.family'] = 'DejaVu Sans'
-plt.rcParams['font.size'] = 11
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 df = pd.read_csv(os.path.join(current_dir, "data_femnist.csv"))
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6), dpi=300)
+# Native 1-column canvas: 3.33 x 1.75 inches for AAMAS format
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(3.33, 1.75), dpi=300)
 
 regime_order = ['iid', 'mild', 'moderate', 'severe', 'extreme']
-regime_labels = [r'IID ($\alpha=\infty$)', r'Mild ($\alpha=1.0$)', r'Moderate ($\alpha=0.5$)', r'Severe ($\alpha=0.1$)', r'Extreme ($\alpha=0.05$)']
+# Multiline x-axis labels to maximize readability
+regime_labels = [r'IID' + '\n' + r'($\infty$)', 'Mild\n(1.0)', 'Mod\n(0.5)', 'Sev\n(0.1)', 'Ext\n(0.05)']
 
 palette = {
     'FedAvg': '#7f7f7f',
@@ -26,28 +27,35 @@ palette = {
 
 for method in df['method'].unique():
     m_data = df[df['method'] == method].set_index('regime').reindex(regime_order)
-    lw = 2.8 if 'FedHEP' in method else 1.8
-    ms = 8 if 'FedHEP' in method else 6
-    alpha = 1.0 if 'FedHEP' in method else 0.8
+    lw = 1.3 if 'FedHEP' in method else 0.85
+    ms = 3.5 if 'FedHEP' in method else 2.5
+    alpha = 1.0 if 'FedHEP' in method else 0.85
     zorder = 10 if 'FedHEP' in method else 3
     ax1.plot(regime_labels, m_data['mean_acc'], marker='o', lw=lw, markersize=ms,
              label=method, color=palette.get(method, '#333333'), alpha=alpha, zorder=zorder)
     ax2.plot(regime_labels, m_data['mean_b10'], marker='s', lw=lw, markersize=ms,
              label=method, color=palette.get(method, '#333333'), alpha=alpha, zorder=zorder)
 
-ax1.set_title("FEMNIST Average Test Accuracy across Heterogeneity", fontsize=13, fontweight='bold', pad=12)
-ax1.set_xlabel(r"Dirichlet Skew Regime ($\alpha$)", fontsize=11, labelpad=8)
-ax1.set_ylabel("Mean Accuracy (%)", fontsize=11, labelpad=8)
-ax1.set_ylim(60, 95)
-ax1.legend(loc='lower left', frameon=True, framealpha=0.9)
+# Zero top titles: rely on LaTeX caption
+ax1.set_ylabel('Mean Acc (%)', fontsize=7.2, labelpad=1.5)
+ax1.set_ylim(48, 97)
+ax1.tick_params(axis='both', which='major', labelsize=6.2, pad=1)
 
-ax2.set_title("FEMNIST Bottom 10% Fairness across Heterogeneity", fontsize=13, fontweight='bold', pad=12)
-ax2.set_xlabel(r"Dirichlet Skew Regime ($\alpha$)", fontsize=11, labelpad=8)
-ax2.set_ylabel("Bottom 10% Client Accuracy (%)", fontsize=11, labelpad=8)
-ax2.set_ylim(40, 90)
-ax2.legend(loc='lower left', frameon=True, framealpha=0.9)
+ax2.set_ylabel('Bottom 10% (%)', fontsize=7.2, labelpad=1.5)
+ax2.set_ylim(18, 92)
+ax2.tick_params(axis='both', which='major', labelsize=6.2, pad=1)
 
-plt.tight_layout()
+# Single shared top legend
+handles, labels = ax1.get_legend_handles_labels()
+fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.88),
+           ncol=4, frameon=True, framealpha=0.95, edgecolor='#dddddd',
+           fontsize=5.6, handlelength=1.1, handletextpad=0.25, columnspacing=0.6)
+
+plt.subplots_adjust(left=0.13, right=0.98, bottom=0.23, top=0.84, wspace=0.34)
+
 out_png = os.path.join(current_dir, "graph_femnist_personalization.png")
-plt.savefig(out_png, dpi=300)
+plt.savefig(out_png, dpi=300, bbox_inches='tight', pad_inches=0.02)
+paper_png = os.path.join(current_dir, "../../paper/figures/graph_femnist_personalization.png")
+if os.path.exists(os.path.dirname(paper_png)):
+    plt.savefig(paper_png, dpi=300, bbox_inches='tight', pad_inches=0.02)
 print(f"Graph generated: {out_png}")

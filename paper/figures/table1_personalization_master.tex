@@ -1,11 +1,11 @@
 \begin{table*}[t]
 \centering
-\caption{\textbf{Personalization Benchmark across Five Heterogeneity Regimes on FEMNIST and CIFAR-100 (ResNet-9).} Mean $\pm$ std across 3 independent random seeds evaluated over Dirichlet skew $\alpha \in [\infty, 0.05]$. Winning metrics in \textbf{bold}.}
+\caption{\textbf{Performance across 5 Heterogeneity Regimes on FEMNIST and CIFAR-100 (ResNet-9).} Mean $\pm$ std across 3 independent random seeds evaluated over Dirichlet skew $\alpha \in [\infty, 0.05]$. Winning metrics in \textbf{bold}.}
 \label{tab:main_benchmark}
 \resizebox{\textwidth}{!}{
 \begin{tabular}{lccccccccccc}
 \toprule
-\multicolumn{12}{c}{\textbf{A. FEMNIST PERSONALIZATION BENCHMARK ($C=62, N=15$)}} \\
+\multicolumn{12}{c}{\textbf{A. FEMNIST ($C=62, N=15$)}} \\
 \midrule
  & \multicolumn{2}{c}{\textbf{IID ($\alpha=\infty$)}} & \multicolumn{2}{c}{\textbf{Mild ($\alpha=1.0$)}} & \multicolumn{2}{c}{\textbf{Moderate ($\alpha=0.5$)}} & \multicolumn{2}{c}{\textbf{Severe ($\alpha=0.1$)}} & \multicolumn{2}{c}{\textbf{Extreme ($\alpha=0.05$)}} & \textbf{Resource Profile} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-11} \cmidrule(lr){12-12}
@@ -19,7 +19,7 @@ Ditto & 82.64 $\pm$ 0.62\% & 78.58\% & \textbf{86.77 $\pm$ 0.25\%} & \textbf{80.
 FedRep & 81.30 $\pm$ 0.20\% & 76.00\% & 85.36 $\pm$ 0.49\% & 78.31\% & 87.33 $\pm$ 1.02\% & 78.95\% & 93.52 $\pm$ 0.85\% & 85.47\% & 94.27 $\pm$ 0.60\% & 81.57\% & \textbf{110.20 MB} / 14.10 ms \\
 FedHEP & 83.07 $\pm$ 0.10\% & 78.67\% & 86.33 $\pm$ 0.56\% & 79.84\% & 88.06 $\pm$ 1.25\% & 80.34\% & 93.96 $\pm$ 0.79\% & 87.15\% & 94.73 $\pm$ 0.58\% & 83.91\% & 114.80 MB / 8.42 ms \\
 \midrule
-\multicolumn{12}{c}{\textbf{B. CIFAR-100 HIGH-CARDINALITY BENCHMARK ($C=100, N=10$)}} \\
+\multicolumn{12}{c}{\textbf{B. CIFAR-100 ($C=100, N=10$)}} \\
 \midrule
 FedAvg & 41.46 $\pm$ 0.36\% & 35.42\% & 40.78 $\pm$ 0.35\% & 33.26\% & 39.80 $\pm$ 0.16\% & 35.19\% & 37.49 $\pm$ 0.63\% & 30.39\% & 36.29 $\pm$ 0.48\% & 24.87\% & \textbf{110.20 MB} / \textbf{8.40 ms} \\
 FedProx & 42.33 $\pm$ 0.31\% & 35.42\% & 41.12 $\pm$ 0.86\% & 32.07\% & 40.17 $\pm$ 0.37\% & 34.87\% & 37.51 $\pm$ 0.87\% & 29.62\% & 36.80 $\pm$ 0.45\% & 26.47\% & \textbf{110.20 MB} / 8.52 ms \\

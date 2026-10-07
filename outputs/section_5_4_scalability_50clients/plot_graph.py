@@ -5,58 +5,67 @@ import matplotlib.pyplot as plt
 
 plt.style.use('seaborn-v0_8-whitegrid')
 plt.rcParams['font.family'] = 'DejaVu Sans'
-plt.rcParams['font.size'] = 11
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 df = pd.read_csv(os.path.join(current_dir, "data_scale50.csv"))
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5), dpi=300)
+# Native 1-column canvas: 3.33 x 1.75 inches for AAMAS format
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(3.33, 1.75), dpi=300)
 
 scenarios = ['Moderate (alpha=0.5)', 'Severe (alpha=0.1)']
-scen_labels = [r'Moderate ($\alpha=0.5$)', r'Severe ($\alpha=0.1$)']
-methods = ['FedAvg', 'FedRep', 'Ditto', 'Defended FedHEP']
+scen_labels = ['Moderate\n($\\alpha=0.5$)', 'Severe\n($\\alpha=0.1$)']
+methods_orig = ['FedAvg', 'FedRep', 'Ditto', 'Defended FedHEP']
+methods_disp = ['FedAvg', 'FedRep', 'Ditto', 'FedHEP']
 
 palette = {
     'FedAvg': '#7f7f7f',
     'FedRep': '#17becf',
     'Ditto': '#ff7f0e',
-    'Defended FedHEP': '#d62728'
+    'FedHEP': '#d62728'
 }
 
 x = np.arange(len(scenarios))
-width = 0.18
+width = 0.19
 
-for idx, m in enumerate(methods):
-    m_data = df[df['method'] == m].set_index('regime').reindex(scenarios)
+for idx, (m_orig, m_disp) in enumerate(zip(methods_orig, methods_disp)):
+    m_data = df[df['method'] == m_orig].set_index('regime').reindex(scenarios)
     offset = (idx - 1.5) * width
-    bars1 = ax1.bar(x + offset, m_data['mean_acc'], width, label=m, color=palette.get(m, '#333333'), alpha=0.9)
-    bars2 = ax2.bar(x + offset, m_data['mean_b10'], width, label=m, color=palette.get(m, '#333333'), alpha=0.9)
+    bars1 = ax1.bar(x + offset, m_data['mean_acc'], width, label=m_disp, color=palette[m_disp], alpha=0.9)
+    bars2 = ax2.bar(x + offset, m_data['mean_b10'], width, label=m_disp, color=palette[m_disp], alpha=0.9)
 
     for bar in bars1:
         yval = bar.get_height()
         if yval > 0:
-            ax1.text(bar.get_x() + bar.get_width()/2.0, yval + 0.5, f"{yval:.1f}%", ha='center', va='bottom', fontsize=8.5)
+            ax1.text(bar.get_x() + bar.get_width()/2.0, yval + 0.4, f"{yval:.1f}", ha='center', va='bottom', fontsize=4.8, fontweight='bold')
     for bar in bars2:
         yval = bar.get_height()
         if yval > 0:
-            ax2.text(bar.get_x() + bar.get_width()/2.0, yval + 0.3, f"{yval:.1f}%", ha='center', va='bottom', fontsize=8.5)
+            ax2.text(bar.get_x() + bar.get_width()/2.0, yval + 0.3, f"{yval:.1f}", ha='center', va='bottom', fontsize=4.8, fontweight='bold')
 
-ax1.set_title("50-Client Scalability: Mean Accuracy ($C_p=0.20$)", fontsize=12, fontweight='bold', pad=12)
+# Zero titles: rely on LaTeX caption
 ax1.set_xticks(x)
-ax1.set_xticklabels(scen_labels, fontsize=11)
-ax1.set_ylabel("Mean Accuracy (%)", fontsize=11)
-ax1.set_ylim(0, 45)
-ax1.legend(loc='upper right', frameon=True, framealpha=0.9)
+ax1.set_xticklabels(scen_labels, fontsize=6.2)
+ax1.set_ylabel('Mean Acc (%)', fontsize=7.2, labelpad=1.5)
+ax1.set_ylim(0, 48)
+ax1.tick_params(axis='both', which='major', labelsize=6.0, pad=1)
 
-ax2.set_title("50-Client Scalability: Bottom 10% Fairness ($C_p=0.20$)", fontsize=12, fontweight='bold', pad=12)
 ax2.set_xticks(x)
-ax2.set_xticklabels(scen_labels, fontsize=11)
-ax2.set_ylabel("Bottom 10% Fairness (%)", fontsize=11)
-ax2.set_ylim(0, 30)
-ax2.legend(loc='upper right', frameon=True, framealpha=0.9)
+ax2.set_xticklabels(scen_labels, fontsize=6.2)
+ax2.set_ylabel('Bottom 10% (%)', fontsize=7.2, labelpad=1.5)
+ax2.set_ylim(0, 26)
+ax2.tick_params(axis='both', which='major', labelsize=6.0, pad=1)
 
-plt.suptitle("50-Client Partial Participation Scalability & Fairness on CIFAR-100", fontsize=14, fontweight='bold', y=0.98)
-plt.tight_layout()
+# Single shared top legend
+handles, labels = ax1.get_legend_handles_labels()
+fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.88),
+           ncol=4, frameon=True, framealpha=0.95, edgecolor='#dddddd',
+           fontsize=5.6, handlelength=1.1, handletextpad=0.25, columnspacing=0.6)
+
+plt.subplots_adjust(left=0.13, right=0.98, bottom=0.23, top=0.84, wspace=0.34)
+
 out_png = os.path.join(current_dir, "graph_scalability_50clients.png")
-plt.savefig(out_png, dpi=300)
+plt.savefig(out_png, dpi=300, bbox_inches='tight', pad_inches=0.02)
+paper_png = os.path.join(current_dir, "../../paper/figures/graph_scalability_50clients.png")
+if os.path.exists(os.path.dirname(paper_png)):
+    plt.savefig(paper_png, dpi=300, bbox_inches='tight', pad_inches=0.02)
 print(f"Graph generated: {out_png}")
