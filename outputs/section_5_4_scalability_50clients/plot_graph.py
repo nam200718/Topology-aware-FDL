@@ -27,20 +27,32 @@ palette = {
 x = np.arange(len(scenarios))
 width = 0.19
 
+bars_dict1 = {s: [] for s in range(len(scenarios))}
+bars_dict2 = {s: [] for s in range(len(scenarios))}
+
 for idx, (m_orig, m_disp) in enumerate(zip(methods_orig, methods_disp)):
     m_data = df[df['method'] == m_orig].set_index('regime').reindex(scenarios)
     offset = (idx - 1.5) * width
     bars1 = ax1.bar(x + offset, m_data['mean_acc'], width, label=m_disp, color=palette[m_disp], alpha=0.9)
     bars2 = ax2.bar(x + offset, m_data['mean_b10'], width, label=m_disp, color=palette[m_disp], alpha=0.9)
 
-    for bar in bars1:
-        yval = bar.get_height()
-        if yval > 0:
-            ax1.text(bar.get_x() + bar.get_width()/2.0, yval + 0.4, f"{yval:.1f}", ha='center', va='bottom', fontsize=4.8, fontweight='bold')
-    for bar in bars2:
-        yval = bar.get_height()
-        if yval > 0:
-            ax2.text(bar.get_x() + bar.get_width()/2.0, yval + 0.3, f"{yval:.1f}", ha='center', va='bottom', fontsize=4.8, fontweight='bold')
+    for s_idx in range(len(scenarios)):
+        bars_dict1[s_idx].append((m_disp, bars1[s_idx]))
+        bars_dict2[s_idx].append((m_disp, bars2[s_idx]))
+
+# Only highlight the number of FedHEP data and the highest one (if it is not FedHEP)
+for s_idx in range(len(scenarios)):
+    max_b1 = max(bars_dict1[s_idx], key=lambda t: t[1].get_height())
+    for m_disp, bar in bars_dict1[s_idx]:
+        if m_disp == 'FedHEP' or bar == max_b1[1]:
+            yval = bar.get_height()
+            ax1.text(bar.get_x() + bar.get_width()/2.0, yval + 0.4, f"{yval:.1f}", ha='center', va='bottom', fontsize=5.0, fontweight='bold')
+
+    max_b2 = max(bars_dict2[s_idx], key=lambda t: t[1].get_height())
+    for m_disp, bar in bars_dict2[s_idx]:
+        if m_disp == 'FedHEP' or bar == max_b2[1]:
+            yval = bar.get_height()
+            ax2.text(bar.get_x() + bar.get_width()/2.0, yval + 0.3, f"{yval:.1f}", ha='center', va='bottom', fontsize=5.0, fontweight='bold')
 
 # Zero titles: rely on LaTeX caption
 ax1.set_xticks(x)

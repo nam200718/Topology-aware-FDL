@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FedHEP: Purpose-Driven System Architecture & Interactive Training Workflow</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        },
+                        tier: {
+                            root: '#2dd4bf',    // teal-400
+                            parent: '#fb923c',  // orange-400
+                            local: '#c084fc',   // purple-400
+                            backbone: '#38bdf8',// sky-400
+                            attacker: '#f87171' // red-400
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['"Fira Code"', 'Consolas', 'monospace'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #070a13;
+            color: #f1f5f9;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(56, 189, 248, 0.14);
+        }
+        .pulse-indicator {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 selection:bg-sky-500 selection:text-white">
+
+    <!-- TOP HEADER -->
+    <header class="sticky top-0 z-50 bg-[#070a13]/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-sky-500 via-teal-400 to-orange-400 flex items-center justify-center font-black text-slate-950 text-base shadow-lg shadow-sky-500/20">
+                    HEP
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-white tracking-wide">FedHEP: Interactive Systems & Algorithmic Workflow</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-500/10 text-sky-400 border border-sky-500/30">AAMAS 2027</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Strict Fidelity to Paper & Companion Codebase &bull; Purpose-Driven Breakdown &bull; CIFAR-100</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Jump Links -->
+            <nav class="flex items-center gap-2 text-xs font-medium">
+                <a href="#client-mechanics" class="px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/30 hover:bg-purple-500/20 transition">Client & Tier Sync</a>
+                <a href="#stepper-section" class="px-3 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition">Round Stepper</a>
+                <a href="#dataset-demo" class="px-3 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition">CIFAR-100 Demo</a>
+                <a href="#algorithm-inspector" class="px-3 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition">Core Algorithms</a>
+                <a href="#results-matrix" class="px-3 py-1.5 rounded-lg bg-sky-500/10 text-sky-300 border border-sky-500/30 hover:bg-sky-500/20 transition">Paper Benchmarks</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-12">
+
+        <!-- INTRO HERO: THE CORE INTUITION -->
+        <section class="glass-panel rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+            <div class="absolute -right-20 -top-20 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="relative z-10 max-w-4xl space-y-3">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs text-slate-300">
+                    <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                    <span>Single Shared Backbone &bull; Three Representation Tiers &bull; Zero Duplicate Memory</span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    Why FedHEP? The Single-Backbone Multi-Tier Architecture
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Personalized Federated Learning on edge devices faces an acute dilemma: <strong>dual-model frameworks (like Ditto)</strong> maintain two separate deep neural networks on each device (roughly doubling peak VRAM and latency), while <strong>decoupled split-head approaches (like FedRep)</strong> completely isolate edge clients from their peers, causing severe overfitting when local data is scarce.
+                </p>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    <strong>FedHEP</strong> resolves this by training a <strong>single shared feature extractor</strong> feeding three linear classification heads: 
+                    <span class="text-teal-300 font-semibold">Root ($W_r$)</span> for global consensus, 
+                    <span class="text-orange-300 font-semibold">Parent ($W_p$)</span> for collaborative peer clusters, and 
+                    <span class="text-purple-300 font-semibold">Local ($W_l$)</span> for private on-device adaptation.
+                </p>
+            </div>
+        </section>
+
+        <!-- DEDICATED DEEP-DIVE: WHAT HAPPENS INSIDE EACH CLIENT & HOW TIERS SYNCHRONIZE -->
+        <section id="client-mechanics" class="space-y-6">
+            <div class="border-b border-slate-800 pb-4">
+                <h2 class="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/20 text-purple-400 font-mono text-sm font-bold">★</span>
+                    Deep Dive: What Happens Inside Each Client & How the 3 Heads Are Synchronized
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">
+                    Answering the core questions: Why 3 heads on 1 backbone, how weights optimize on-device, and how the cluster tier and global server synchronize them compared to SOTA.
+                </p>
+            </div>
+
+            <!-- Tabbed Explorer Card for Client Mechanics -->
+            <div class="glass-panel rounded-2xl p-6 sm:p-8 space-y-6">
+                <!-- Tab Selector Buttons -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button onclick="setMechanicTab('why3heads')" id="mech-btn-why3heads" class="mech-tab-btn p-3 rounded-xl border text-left transition bg-purple-500/20 border-purple-400 text-purple-300">
+                        <div class="text-[10px] font-mono text-purple-400 font-bold mb-0.5">Core Question 1</div>
+                        <div class="text-xs font-bold truncate">Why 3 Heads on 1 Backbone?</div>
+                    </button>
+                    <button onclick="setMechanicTab('gradientflow')" id="mech-btn-gradientflow" class="mech-tab-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                        <div class="text-[10px] font-mono text-slate-500 font-bold mb-0.5">Core Question 2</div>
+                        <div class="text-xs font-bold truncate">How Weights Optimize On-Device</div>
+                    </button>
+                    <button onclick="setMechanicTab('tiersync')" id="mech-btn-tiersync" class="mech-tab-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                        <div class="text-[10px] font-mono text-slate-500 font-bold mb-0.5">Core Question 3</div>
+                        <div class="text-xs font-bold truncate">How Clusters & Server Update Them</div>
+                    </button>
+                    <button onclick="setMechanicTab('sotacompare')" id="mech-btn-sotacompare" class="mech-tab-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                        <div class="text-[10px] font-mono text-slate-500 font-bold mb-0.5">Core Question 4</div>
+                        <div class="text-xs font-bold truncate">Direct Comparison vs SOTA</div>
+                    </button>
+                </div>
+
+                <!-- Dynamic Content Container -->
+                <div id="mechanic-tab-content">
+                    <!-- Populated dynamically via JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 1: INTERACTIVE COMMUNICATION ROUND STEPPER & LIVE TENSOR FLOW -->
+        <section id="stepper-section" class="space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400 font-mono text-sm font-bold">1</span>
+                        End-to-End Communication Round Stepper ($t \to t+1$)
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">
+                        Step-by-step walkthrough of what data and models move between the Cloud Server, Cluster Heads, and Edge Clients.
+                    </p>
+                </div>
+
+                <!-- Interactive Stepper Controls -->
+                <div class="flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800">
+                    <button onclick="stepperPrev()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+                        &larr; Previous Step
+                    </button>
+                    <button onclick="toggleAutoPlay()" id="btn-autoplay" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white transition flex items-center gap-1.5">
+                        <span id="autoplay-icon">▶</span> <span id="autoplay-text">Auto-Play</span>
+                    </button>
+                    <button onclick="stepperNext()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+                        Next Step &rarr;
+                    </button>
+                    <button onclick="stepperReset()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stepper Progress Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <button onclick="jumpToStep(1)" id="step-nav-1" class="step-nav-card p-3 rounded-xl border text-left transition bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/10">
+                    <div class="text-[10px] font-mono uppercase text-sky-400 font-bold mb-0.5">Step 1 &bull; Downlink</div>
+                    <div class="text-xs font-bold truncate">Broadcast & Dispatch</div>
+                    <div class="text-[10px] text-slate-300 mt-1 truncate">Server &rarr; Clusters &rarr; Clients</div>
+                </button>
+
+                <button onclick="jumpToStep(2)" id="step-nav-2" class="step-nav-card p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700">
+                    <div class="text-[10px] font-mono uppercase text-slate-500 font-bold mb-0.5">Step 2 &bull; Edge SGD</div>
+                    <div class="text-xs font-bold truncate">1 Pass + ACLM Shield</div>
+                    <div class="text-[10px] text-slate-400 mt-1 truncate">Zero-gradient on missing classes</div>
+                </button>
+
+                <button onclick="jumpToStep(3)" id="step-nav-3" class="step-nav-card p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700">
+                    <div class="text-[10px] font-mono uppercase text-slate-500 font-bold mb-0.5">Step 3 &bull; Uplink Prep</div>
+                    <div class="text-xs font-bold truncate">Random Sketching</div>
+                    <div class="text-[10px] text-slate-400 mt-1 truncate">Compress Parent update (256 dims)</div>
+                </button>
+
+                <button onclick="jumpToStep(4)" id="step-nav-4" class="step-nav-card p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700">
+                    <div class="text-[10px] font-mono uppercase text-slate-500 font-bold mb-0.5">Step 4 &bull; Aggregation</div>
+                    <div class="text-xs font-bold truncate">Subspace Defense (SCCF)</div>
+                    <div class="text-[10px] text-slate-400 mt-1 truncate">Filter attacks without penalizing non-IID</div>
+                </button>
+
+                <button onclick="jumpToStep(5)" id="step-nav-5" class="step-nav-card p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700">
+                    <div class="text-[10px] font-mono uppercase text-slate-500 font-bold mb-0.5">Step 5 &bull; Inference</div>
+                    <div class="text-xs font-bold truncate">Ensemble & S-AFR</div>
+                    <div class="text-[10px] text-slate-400 mt-1 truncate">Calibrated blend + Staleness fallback</div>
+                </button>
+            </div>
+
+            <!-- Dynamic Workspace: Canvas Diagram on Left, Live Explanation on Right -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                <!-- Visual Topology & Animated Tensor Flow Canvas -->
+                <div class="lg:col-span-7 glass-panel rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden min-h-[420px]">
+                    <div class="flex items-center justify-between text-xs mb-2">
+                        <span class="font-mono text-slate-300 font-bold flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            Live System Entities & Tensor Highway
+                        </span>
+                        <span id="canvas-phase-indicator" class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                            Phase 1 Active: Downlink Transmission
+                        </span>
+                    </div>
+
+                    <!-- Main HTML5 Canvas Component -->
+                    <div class="relative w-full flex-1 flex items-center justify-center">
+                        <canvas id="workflowCanvas" class="w-full h-full block max-h-[360px]"></canvas>
+                    </div>
+
+                    <!-- Bottom Canvas Status Legend -->
+                    <div class="text-[11px] text-slate-400 border-t border-slate-800 pt-3 flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-3">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-teal-400"></span> Global Consensus</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span> Peer Cluster</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span> Private Local</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-400"></span> Byzantine Attacker</span>
+                        </div>
+                        <span id="canvas-payload-tracker" class="font-mono text-sky-400 text-xs font-semibold">Transmission: Downlink Active</span>
+                    </div>
+                </div>
+
+                <!-- Step Live Explanation Card -->
+                <div class="lg:col-span-5 glass-panel rounded-2xl p-6 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <span id="step-chip" class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold uppercase">
+                                Downlink Phase
+                            </span>
+                            <span id="step-code-file" class="text-[11px] font-mono text-slate-400">
+                                src/core/hierarchical_ensemble_engine.py:L164-178
+                            </span>
+                        </div>
+                        <h3 id="step-headline" class="text-lg font-bold text-white mb-2">
+                            Step 1: Broadcast & Model Dispatch (Downlink)
+                        </h3>
+                        <p id="step-detail-text" class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4">
+                            The central server broadcasts the shared convolutional backbone $\Phi_\theta$ and Root head $W_r$ to all participating clients. Concurrently, Cluster Heads send their collaborative Parent head $W_p$ exclusively to clients in their assigned peer cluster. 
+                            <strong>Key Invariant:</strong> The client's Local head $W_l$ is <em>never</em> broadcast or received; it stays saved in the client's local memory from the previous round!
+                        </p>
+
+                        <!-- What Moves Table -->
+                        <div class="rounded-xl bg-slate-900 border border-slate-800 p-3.5 space-y-2 text-xs">
+                            <div class="font-bold text-slate-300 text-[11px] uppercase tracking-wider font-mono">Tensor Movement In This Step:</div>
+                            <div class="space-y-1.5 text-[11px]">
+                                <div class="flex items-center justify-between p-1.5 rounded bg-slate-950/60 border border-slate-800/80">
+                                    <span class="text-slate-400">Central Server &rarr; Clients:</span>
+                                    <span class="font-mono text-teal-300 font-semibold" id="tensor-server-client">Backbone $\Phi_\theta$, Root Head $W_r$</span>
+                                </div>
+                                <div class="flex items-center justify-between p-1.5 rounded bg-slate-950/60 border border-slate-800/80">
+                                    <span class="text-slate-400">Cluster Head &rarr; Clients:</span>
+                                    <span class="font-mono text-orange-300 font-semibold" id="tensor-cluster-client">Parent Head $W_p$</span>
+                                </div>
+                                <div class="flex items-center justify-between p-1.5 rounded bg-slate-950/60 border border-slate-800/80">
+                                    <span class="text-slate-400">On-Device Cache:</span>
+                                    <span class="font-mono text-purple-300 font-semibold" id="tensor-device-cache">Local Head $W_l$ restored privately</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Code Snippet Box -->
+                    <div class="bg-[#080c16] rounded-xl p-3 border border-slate-800 text-xs">
+                        <div class="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                            <span>Exact Training Loop Code</span>
+                            <span class="text-emerald-400 font-bold">100% Fidelity</span>
+                        </div>
+                        <pre class="code-font text-[11px] text-sky-300 overflow-x-auto p-1 leading-relaxed" id="step-code-preview"><code>for client_id in participants:
+    self.clients_state[client_id].weights = self.server_weights.clone()
+    head_id = self.topology.get_neighbors(client_id)[0]
+    self.clients_state[client_id].parent_weights = self.cluster_heads_state[head_id].weights.clone()
+    # Local head fc2_local is kept safely in client memory!</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: CONCRETE DEMONSTRATION ON CIFAR-100 DIRICHLET SKEW -->
+        <section id="dataset-demo" class="space-y-6">
+            <div class="border-b border-slate-800 pb-4">
+                <h2 class="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500/20 text-teal-400 font-mono text-sm font-bold">2</span>
+                    Concrete Demonstration on the Paper's Actual CIFAR-100 Benchmark
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">
+                    Grounded on CIFAR-100 ($C=100$ classes) partitioned under Dirichlet distribution $\text{Dir}(\alpha)$ to simulate edge sample scarcity.
+                </p>
+            </div>
+
+            <!-- Interactive Dirichlet Skew Switcher -->
+            <div class="glass-panel rounded-2xl p-6 space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <div class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Select Dirichlet Partitioning Regime:</div>
+                        <p class="text-xs text-slate-400 mt-0.5">Toggle between the 5 Dirichlet skew regimes evaluated in the paper to observe how edge client data changes.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setDirichletRegime('ext')" id="regime-btn-ext" class="regime-btn px-3 py-1.5 rounded-lg text-xs font-bold border transition bg-sky-500/20 border-sky-400 text-sky-300">
+                            Extreme ($\alpha=0.05$)
+                        </button>
+                        <button onclick="setDirichletRegime('sev')" id="regime-btn-sev" class="regime-btn px-3 py-1.5 rounded-lg text-xs font-bold border transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                            Severe ($\alpha=0.1$)
+                        </button>
+                        <button onclick="setDirichletRegime('mod')" id="regime-btn-mod" class="regime-btn px-3 py-1.5 rounded-lg text-xs font-bold border transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                            Moderate ($\alpha=0.5$)
+                        </button>
+                        <button onclick="setDirichletRegime('mild')" id="regime-btn-mild" class="regime-btn px-3 py-1.5 rounded-lg text-xs font-bold border transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                            Mild ($\alpha=1.0$)
+                        </button>
+                        <button onclick="setDirichletRegime('iid')" id="regime-btn-iid" class="regime-btn px-3 py-1.5 rounded-lg text-xs font-bold border transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                            Uniform IID ($\alpha=\infty$)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 6 Simulated Clients Cards Grid -->
+                <div>
+                    <div class="flex items-center justify-between text-xs text-slate-400 mb-3">
+                        <span>Toy Sample of 6 Heterogeneous Edge Clients (Simulated CIFAR-100 Partitions):</span>
+                        <span class="font-mono text-teal-400">Total CIFAR-100 Classes: 100</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="clients-sample-grid">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Explanation of what happens to the weights -->
+                <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 space-y-2">
+                    <div class="font-bold text-white flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-teal-400"></span>
+                        How Local Class Scarcity Dynamically Dictates Head Weights:
+                    </div>
+                    <p class="leading-relaxed text-slate-400">
+                        When $\alpha=0.05$ (Extreme Skew), an honest client possesses only 2-5 classes out of 100. Its label entropy drops to near zero, driving its skew metric $R_{\text{skew}} \to 0$. Under FedHEP's degree-2 Bernstein weighting, this shifts over <strong>70% of model capacity into the Local and Parent heads</strong> to fit the client's narrow specialty, while the anchor floor $a_i = \max(1/(2K), |\mathcal{Y}_i|/C)$ preserves a guaranteed tie to global consensus. 
+                        Under balanced IID ($\alpha=\infty$), $R_{\text{skew}} = 1.0$, seamlessly shifting <strong>100% capacity into the Root head (Pure FedAvg)</strong>!
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: PURPOSE-DRIVEN ALGORITHMIC BREAKDOWN (NO RIGID MATH) -->
+        <section id="algorithm-inspector" class="space-y-6">
+            <div class="border-b border-slate-800 pb-4">
+                <h2 class="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/20 text-orange-400 font-mono text-sm font-bold">3</span>
+                    Purpose-Driven Algorithmic Breakdown
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">
+                    Plain, intuitive concepts explaining the problem, the operation, why it works, and exact codebase mapping.
+                </p>
+            </div>
+
+            <!-- Algorithm Selection Buttons -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button onclick="inspectAlgo('aclm')" id="btn-algo-aclm" class="algo-pill-btn p-3 rounded-xl border text-left transition bg-sky-500/20 border-sky-400 text-sky-300">
+                    <div class="text-[10px] font-mono text-sky-400 font-bold mb-0.5">Algorithm 1</div>
+                    <div class="text-xs font-bold truncate">Active-Class Masking (ACLM)</div>
+                </button>
+                <button onclick="inspectAlgo('binomial')" id="btn-algo-binomial" class="algo-pill-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <div class="text-[10px] font-mono text-slate-500 font-bold mb-0.5">Algorithm 2</div>
+                    <div class="text-xs font-bold truncate">Anchored Skew Weighting</div>
+                </button>
+                <button onclick="inspectAlgo('sketch')" id="btn-algo-sketch" class="algo-pill-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <div class="text-[10px] font-mono text-slate-500 font-bold mb-0.5">Algorithm 3</div>
+                    <div class="text-xs font-bold truncate">Random Projection Sketching</div>
+                </button>
+                <button onclick="inspectAlgo('sccf')" id="btn-algo-sccf" class="algo-pill-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <div class="text-[10px] font-mono text-slate-500 font-bold mb-0.5">Algorithm 4</div>
+                    <div class="text-xs font-bold truncate">Subspace Cosine Filtering</div>
+                </button>
+                <button onclick="inspectAlgo('q1_norm')" id="btn-algo-q1_norm" class="algo-pill-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <div class="text-[10px] font-mono text-slate-500 font-bold mb-0.5">Algorithm 5</div>
+                    <div class="text-xs font-bold truncate">Adaptive Q1 Norm-Bounding</div>
+                </button>
+                <button onclick="inspectAlgo('ttt')" id="btn-algo-ttt" class="algo-pill-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <div class="text-[10px] font-mono text-slate-500 font-bold mb-0.5">Algorithm 6</div>
+                    <div class="text-xs font-bold truncate">Temporal Trust Tracking (TTT)</div>
+                </button>
+                <button onclick="inspectAlgo('safr')" id="btn-algo-safr" class="algo-pill-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <div class="text-[10px] font-mono text-slate-500 font-bold mb-0.5">Algorithm 7</div>
+                    <div class="text-xs font-bold truncate">Staleness Fallback (S-AFR)</div>
+                </button>
+                <button onclick="inspectAlgo('calibration')" id="btn-algo-calibration" class="algo-pill-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <div class="text-[10px] font-mono text-slate-500 font-bold mb-0.5">Algorithm 8</div>
+                    <div class="text-xs font-bold truncate">Temperature Calibration</div>
+                </button>
+            </div>
+
+            <!-- Purpose-Driven Breakdown Detail View -->
+            <div class="glass-panel rounded-2xl p-6 sm:p-8 space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 id="detail-algo-name" class="text-lg font-bold text-white">
+                                Active-Class Logit Masking (ACLM)
+                            </h3>
+                            <span id="detail-algo-tier" class="px-2.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                Applied on Parent & Local Heads
+                            </span>
+                        </div>
+                        <p id="detail-algo-tagline" class="text-xs text-slate-400 mt-1">
+                            Shielding the shared convolutional backbone from gradient interference caused by absent categories.
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-mono text-slate-500 block uppercase">Codebase Implementation</span>
+                        <span id="detail-algo-file" class="text-xs font-mono text-sky-400 font-bold">src/core/loss.py:L11-26</span>
+                    </div>
+                </div>
+
+                <!-- 4 Structured Questions Grid (Problem -> What it does -> Why it works -> Code Mapping) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <!-- 1. Problem / Flaw -->
+                    <div class="p-4 rounded-xl bg-slate-900/90 border border-red-500/20 space-y-2">
+                        <div class="font-bold text-red-400 flex items-center gap-2">
+                            <span class="p-1 rounded bg-red-500/20">❌ Problem / Flaw in Prior Work</span>
+                        </div>
+                        <p id="detail-algo-problem" class="text-slate-300 leading-relaxed">
+                            Standard cross-entropy evaluates probabilities over all 100 classes. When an edge device only has 2 classes (e.g., Cat and Dog), standard cross-entropy penalizes all other 98 missing classes (e.g., Ship, Truck), pushing their logits toward negative infinity. This creates non-zero negative gradient updates that degrade the shared feature backbone, destroying shared representations.
+                        </p>
+                    </div>
+
+                    <!-- 2. What it Does -->
+                    <div class="p-4 rounded-xl bg-slate-900/90 border border-sky-500/20 space-y-2">
+                        <div class="font-bold text-sky-400 flex items-center gap-2">
+                            <span class="p-1 rounded bg-sky-500/20">⚙️ What It Does (Input &rarr; Operation &rarr; Output)</span>
+                        </div>
+                        <p id="detail-algo-does" class="text-slate-300 leading-relaxed">
+                            <strong>Input:</strong> Raw logit vector from Parent or Local head ($z \in \mathbb{R}^C$) and the client's observed class set $\mathcal{Y}_i$.<br>
+                            <strong>Operation:</strong> Replaces logits of all unobserved classes with $-10^9$ ($-\infty$) prior to computing softmax.<br>
+                            <strong>Output:</strong> Masked cross-entropy loss where missing classes evaluate to exactly zero probability ($\tilde{p}_c = 0.0$).
+                        </p>
+                    </div>
+
+                    <!-- 3. Why it Works -->
+                    <div class="p-4 rounded-xl bg-slate-900/90 border border-emerald-500/20 space-y-2">
+                        <div class="font-bold text-emerald-400 flex items-center gap-2">
+                            <span class="p-1 rounded bg-emerald-500/20">💡 Why It Works (Intuitive Rationale)</span>
+                        </div>
+                        <p id="detail-algo-why" class="text-slate-300 leading-relaxed">
+                            Because $\exp(-\infty) = 0$, missing classes receive zero probability. The backpropagated gradient with respect to class logit $c$ is $\tilde{p}_c - \mathbb{I}(y = c)$. For missing classes, $\tilde{p}_c = 0$ and the ground truth indicator is also $0$. Thus, $0 - 0 = 0.0$! Unobserved categories contribute exactly ZERO gradient into the shared backbone, completely shielding shared features without needing separate networks.
+                        </p>
+                    </div>
+
+                    <!-- 4. Code Mapping -->
+                    <div class="p-4 rounded-xl bg-slate-900/90 border border-purple-500/20 space-y-2">
+                        <div class="font-bold text-purple-400 flex items-center gap-2">
+                            <span class="p-1 rounded bg-purple-500/20">💻 Code Mapping & Verification</span>
+                        </div>
+                        <div id="detail-algo-coderef" class="space-y-1.5 text-slate-300">
+                            <div><strong>File:</strong> <code class="text-sky-300">src/core/loss.py</code></div>
+                            <div><strong>Class:</strong> <code class="text-teal-300">ActiveMaskedCrossEntropyLoss</code></div>
+                            <div><strong>Caller:</strong> <code class="text-purple-300">PyTorchLocalUpdater._update_hep</code> in <code class="text-slate-400">src/core/updater.py:L846-857</code></div>
+                            <div class="text-[11px] text-slate-400 mt-1">Verified with unit test: <code class="text-emerald-400">tests/test_audit_fixes.py::test_aclm_zero_gradient_shielding</code></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Block -->
+                <div class="bg-[#080c16] rounded-xl p-4 border border-slate-800 text-xs">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono mb-2">
+                        <span id="detail-algo-code-header">Implementation Snippet (src/core/loss.py)</span>
+                        <span class="text-teal-400 font-bold">Clean Code Extraction</span>
+                    </div>
+                    <pre class="code-font text-[11px] text-sky-300 overflow-x-auto p-1 leading-relaxed" id="detail-algo-code"><code>class ActiveMaskedCrossEntropyLoss(nn.Module):
+    def __init__(self, mask_value: float = -1e9):
+        super().__init__()
+        self.mask_value = mask_value
+
+    def forward(self, logits, targets, active_mask=None):
+        if active_mask is not None:
+            # Mask inactive classes to -1e9 so their softmax probability is 0
+            logits = logits.masked_fill(~active_mask.to(logits.device), self.mask_value)
+        return F.cross_entropy(logits, targets)</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: PAPER'S EMPIRICAL RESULTS DASHBOARD -->
+        <section id="results-matrix" class="space-y-6">
+            <div class="border-b border-slate-800 pb-4">
+                <h2 class="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 font-mono text-sm font-bold">4</span>
+                    Experimental Benchmarks & Hardware Profiling
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">
+                    Reproduction of the key findings from Tables I, III, IV, V, and VI in the paper.
+                </p>
+            </div>
+
+            <!-- Key Findings Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                <div class="p-4 rounded-xl bg-slate-900 border border-teal-500/30">
+                    <div class="text-[10px] font-mono uppercase text-teal-400 font-bold mb-1">CIFAR-100 Extreme Skew ($\alpha=0.05$)</div>
+                    <div class="text-xl font-bold text-white my-1">65.49% <span class="text-emerald-400 text-xs font-normal">(+5.81 pp vs Ditto)</span></div>
+                    <p class="text-slate-400">FedHEP achieves highest accuracy while lifting worst-decile tail fairness to <strong>53.92%</strong> (vs 24.87% for FedAvg).</p>
+                </div>
+
+                <div class="p-4 rounded-xl bg-slate-900 border border-orange-500/30">
+                    <div class="text-[10px] font-mono uppercase text-orange-400 font-bold mb-1">Byzantine Noise Attack ($q=0.30$)</div>
+                    <div class="text-xl font-bold text-white my-1">44.53% <span class="text-emerald-400 text-xs font-normal">(-3.35 pp drop only)</span></div>
+                    <p class="text-slate-400">FedAvg crashes to 1.30% and Multi-Krum drops to 22.96%. FedHEP preserves domain expertise via SCCF.</p>
+                </div>
+
+                <div class="p-4 rounded-xl bg-slate-900 border border-purple-500/30">
+                    <div class="text-[10px] font-mono uppercase text-purple-400 font-bold mb-1">MobileNetV3 Edge VRAM</div>
+                    <div class="text-xl font-bold text-white my-1">158.80 MB <span class="text-emerald-400 text-xs font-normal">(46.8% Savings)</span></div>
+                    <p class="text-slate-400">Ditto requires 298.60 MB peak VRAM. FedHEP cuts latency from 22.80ms down to <strong>11.20ms</strong> (2.0x faster).</p>
+                </div>
+
+                <div class="p-4 rounded-xl bg-slate-900 border border-sky-500/30">
+                    <div class="text-[10px] font-mono uppercase text-sky-400 font-bold mb-1">50-Client Scalability ($C_p=0.20$)</div>
+                    <div class="text-xl font-bold text-white my-1">18.11% <span class="text-emerald-400 text-xs font-normal">(Tail Fairness)</span></div>
+                    <p class="text-slate-400">Staleness-Aware Fallback Routing (S-AFR) prevents unselected clients from crashing, doubling Ditto's 8.60%.</p>
+                </div>
+            </div>
+
+            <!-- Ablation Matrix Summary Card -->
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="text-sm font-bold text-white mb-2">Ablation Study Summary (CIFAR-100, Extreme Skew $\alpha=0.05$):</div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                    <div class="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                        <div class="font-bold text-red-400 mb-1">Removing ACLM:</div>
+                        <div class="text-slate-300 font-mono text-sm font-bold">56.50% (-8.99 pp)</div>
+                        <p class="text-slate-500 text-[11px] mt-1">Confirms missing class gradient drag degrades representations.</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                        <div class="font-bold text-amber-400 mb-1">Removing Parent Head:</div>
+                        <div class="text-slate-300 font-mono text-sm font-bold">60.34% (-5.15 pp)</div>
+                        <p class="text-slate-500 text-[11px] mt-1">Proves collaborative peer clusters prevent isolated head overfitting.</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                        <div class="font-bold text-red-400 mb-1">Enforcing $K=1$ Grand Coalition:</div>
+                        <div class="text-slate-300 font-mono text-sm font-bold">57.30% (-8.19 pp)</div>
+                        <p class="text-slate-500 text-[11px] mt-1">Shows single global model cannot substitute for specialized peer clusters.</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                        <div class="font-bold text-teal-400 mb-1">$K=3$ Oracle Bound (Ideal):</div>
+                        <div class="text-slate-300 font-mono text-sm font-bold">66.85% (Upper Bound)</div>
+                        <p class="text-slate-500 text-[11px] mt-1">FedHEP's 256-dim sketches achieve 65.49% (98.0% of theoretical oracle!).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="border-t border-slate-800/80 mt-16 py-8 text-center text-xs text-slate-500 space-y-1">
+        <p>FedHEP Interactive Systems & Algorithmic Inspector &bull; AAMAS 2027</p>
+        <p class="font-mono text-slate-600">Tailwind CSS &bull; Vanilla JS &bull; Zero External Runtime Dependencies</p>
+    </footer>
+
+    <!-- INTERACTIVE SCRIPT LOGIC -->
+    <script>
+        // -------------------------------------------------------------
+        // STEPPER DATA (5 CHRONOLOGICAL PHASES)
+        // -------------------------------------------------------------
+        const STEP_DETAILS = {
+            1: {
+                phaseBadge: "Phase 1: Downlink Transmission",
+                chip: "Downlink Broadcast",
+                file: "src/core/hierarchical_ensemble_engine.py:L164-178",
+                headline: "Step 1: Broadcast & Model Dispatch (Downlink)",
+                detail: "The central server broadcasts the shared convolutional backbone $\\Phi_\\theta$ and Root head $W_r$ to all participating clients. Concurrently, Cluster Heads send their collaborative Parent head $W_p$ exclusively to clients in their assigned peer cluster. <strong>Key Invariant:</strong> The client's Local head $W_l$ is <em>never</em> broadcast or received; it stays saved in the client's local memory from the previous round!",
+                serverToClient: "Backbone $\\Phi_\\theta$, Root Head $W_r$",
+                clusterToClient: "Parent Head $W_p$",
+                deviceCache: "Local Head $W_l$ restored privately",
+                payloadTracker: "Downlink Payload: ~6.60 MB / Client",
+                code: `for client_id in participants:
+    # Client receives globally aggregated Root model & Backbone
+    self.clients_state[client_id].weights = self.server_weights.clone()
+    
+    # Client receives cluster-pooled Parent model
+    head_id = self.topology.get_neighbors(client_id)[0]
+    self.clients_state[client_id].parent_weights = self.cluster_heads_state[head_id].weights.clone()
+    
+    # Note: Local head fc2_local is kept safely in client memory!`
+            },
+            2: {
+                phaseBadge: "Phase 2: On-Device Single-Pass SGD",
+                chip: "Edge Training & ACLM",
+                file: "src/core/updater.py:L716-930 & src/core/loss.py",
+                headline: "Step 2: On-Device Single-Backbone Multi-Head SGD",
+                detail: "The edge client executes local training on its private dataset. It passes input images through the shared backbone $\\Phi_\\theta$ <strong>exactly once</strong> to generate features $h$. The 3 linear heads compute outputs simultaneously. <strong>Active-Class Logit Masking (ACLM)</strong> zeroes out absent categories to prevent negative gradient drag, while skew-calibrated weights balance capacity.",
+                serverToClient: "Server is idle (waiting for uplink)",
+                clusterToClient: "Cluster Head is idle (waiting for sketches)",
+                deviceCache: "1 Forward pass &bull; 3 Head losses computed",
+                payloadTracker: "Compute: 11.20 ms / Batch (B=32 on MobileNet)",
+                code: `# Pass image through shared backbone ONCE
+logits_root, logits_parent, logits_local = multi_model(images, head="all")
+
+# ACLM: Mask unobserved classes to -1e9 on Parent and Local heads
+logits_parent_masked = logits_parent.masked_fill(~active_mask.unsqueeze(0), -1e9)
+logits_local_masked  = logits_local.masked_fill(~active_mask.unsqueeze(0), -1e9)
+
+# Continuous skew-calibrated loss combination
+loss = alpha_r * ce_root + alpha_p * ce_parent_masked + alpha_l * ce_local_masked
+loss.backward()
+optimizer.step()`
+            },
+            3: {
+                phaseBadge: "Phase 3: Random Projection Sketching",
+                chip: "Uplink Prep & Privacy",
+                file: "src/topologies/hierarchical.py:L5-13 & L87-129",
+                headline: "Step 3: Uplink Preparation & Random Projection Sketching",
+                detail: "To discover peer clusters without transmitting raw label counts or uncompressed 50,000-dimensional parameter weights, the client compresses its Parent head update into a compact <strong>256-dimensional random sketch</strong> $\\mathbf{s}_i$ using a Gaussian matrix $\\mathbf{R}$. The private Local head $W_l$ <em>never</em> leaves the edge device.",
+                serverToClient: "Client uploads $\\Delta \\Phi_\\theta$ and $\\Delta W_r$",
+                clusterToClient: "Client uploads 256-dim sketch $\\mathbf{s}_i$",
+                deviceCache: "Local Head $W_l$ NEVER uploaded (100% private)",
+                payloadTracker: "Sketch Payload: 256 floats (1.02 KB)",
+                code: `# Compress 51,200 dims down to 256 dims (JL Lemma)
+def _random_project(vectors: np.ndarray, target_dim: int = 256, seed: int = 42):
+    rng = np.random.RandomState(seed)
+    projection = rng.randn(vectors.shape[1], target_dim) / np.sqrt(target_dim)
+    return vectors @ projection # Projects without leaking parameters!`
+            },
+            4: {
+                phaseBadge: "Phase 4: Subspace Byzantine Defense",
+                chip: "Server Aggregation & Defense",
+                file: "src/core/aggregator.py:L118-204 & unified_defended_engine.py",
+                headline: "Step 4: Subspace Defense (SCCF) & Dual-Tier Aggregation",
+                detail: "Two-tier aggregation takes place: (1) Cluster Heads aggregate Parent head updates among peer members; (2) Global Server aggregates Root heads and Backbone. The server applies <strong>Subspace-Constrained Cosine Filtering (SCCF)</strong> to evaluate updates strictly on each client's active class coordinates, clips backbone norms to $3.0 \\cdot Q_1$, and isolates persistent attackers via Temporal Trust Tracking.",
+                serverToClient: "Server aggregates $\\Phi_\\theta$ (Q1 clipped) and $W_r$ (SCCF)",
+                clusterToClient: "Cluster Head averages $W_p$ among cluster peers",
+                deviceCache: "Clients idle (waiting for next round)",
+                payloadTracker: "Defense: Evaluates Active Subspaces S_i",
+                code: `# Subspace Cosine Trust strictly on active coordinates
+mask = active_masks.float().unsqueeze(2).expand(n, num_classes, feature_dim).reshape(n, -1)
+unit_head = F.normalize(head_deltas * mask, dim=1, eps=1e-10)
+centroid_head = unit_head.mean(dim=0)
+centroid_masked = centroid_head.unsqueeze(0) * mask
+sims = F.cosine_similarity(unit_head, centroid_masked, dim=1) # Evaluates strictly on active support!`
+            },
+            5: {
+                phaseBadge: "Phase 5: Calibrated Inference & S-AFR",
+                chip: "Evaluation & Fallback",
+                file: "src/core/hierarchical_ensemble_engine.py:L527-550, 634-680",
+                headline: "Step 5: Temperature-Calibrated Inference & S-AFR Fallback",
+                detail: "During client evaluation, predictions are formed by blending logits with calibrated temperatures ($T_l=0.5$ sharp, $T_p=0.8$, $T_r=1.0$ diffuse). Under partial participation ($C_p=0.20$), if a client has not been selected for several rounds, <strong>Staleness-Aware Fallback Routing (S-AFR)</strong> automatically shifts inference weight toward the fresh Root model, preventing outdated local parameters from destroying tail fairness.",
+                serverToClient: "Round $t$ complete &bull; Global Root converged",
+                clusterToClient: "Cluster models updated",
+                deviceCache: "Ensemble: z_ens = w_l(z_l/0.5) + w_p(z_p/0.8) + w_r(z_r/1.0)",
+                payloadTracker: "Fairness: Bottom-10% decile lifted to 18.11%",
+                code: `# S-AFR Staleness Fallback (src/core/hierarchical_ensemble_engine.py)
+staleness = round_num - last_sampled_round[client_id]
+fade = np.exp(-staleness / tau_0)
+w_local = prior_alpha * fade
+w_parent = prior_beta * fade
+w_root = max(0.0, 1.0 - w_local - w_parent) # Safely falls back to fresh Root!`
+            }
+        };
+
+        let currentStep = 1;
+        let isAutoPlaying = false;
+        let autoPlayTimer = null;
+
+        function setStep(stepNum) {
+            currentStep = stepNum;
+            const data = STEP_DETAILS[stepNum];
+
+            // Update Tab Buttons
+            for (let i = 1; i <= 5; i++) {
+                const navBtn = document.getElementById(`step-nav-${i}`);
+                if (i === stepNum) {
+                    navBtn.className = "step-nav-card p-3 rounded-xl border text-left transition bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/10";
+                } else {
+                    navBtn.className = "step-nav-card p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700";
+                }
+            }
+
+            // Update Text Contents
+            document.getElementById("canvas-phase-indicator").innerText = data.phaseBadge;
+            document.getElementById("canvas-payload-tracker").innerText = data.payloadTracker;
+            document.getElementById("step-chip").innerText = data.chip;
+            document.getElementById("step-code-file").innerText = data.file;
+            document.getElementById("step-headline").innerText = data.headline;
+            document.getElementById("step-detail-text").innerHTML = data.detail;
+            document.getElementById("tensor-server-client").innerHTML = data.serverToClient;
+            document.getElementById("tensor-cluster-client").innerHTML = data.clusterToClient;
+            document.getElementById("tensor-device-cache").innerHTML = data.deviceCache;
+            document.getElementById("step-code-preview").innerHTML = `<code>${data.code}</code>`;
+
+            drawWorkflowCanvas();
+        }
+
+        function stepperNext() {
+            let next = currentStep + 1;
+            if (next > 5) next = 1;
+            setStep(next);
+        }
+
+        function stepperPrev() {
+            let prev = currentStep - 1;
+            if (prev < 1) prev = 5;
+            setStep(prev);
+        }
+
+        function stepperReset() {
+            stopAutoPlay();
+            setStep(1);
+        }
+
+        function jumpToStep(num) {
+            stopAutoPlay();
+            setStep(num);
+        }
+
+        function toggleAutoPlay() {
+            if (isAutoPlaying) {
+                stopAutoPlay();
+            } else {
+                startAutoPlay();
+            }
+        }
+
+        function startAutoPlay() {
+            isAutoPlaying = true;
+            document.getElementById("autoplay-icon").innerText = "⏸";
+            document.getElementById("autoplay-text").innerText = "Pause";
+            document.getElementById("btn-autoplay").className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white transition flex items-center gap-1.5";
+            
+            autoPlayTimer = setInterval(() => {
+                stepperNext();
+            }, 3000);
+        }
+
+        function stopAutoPlay() {
+            isAutoPlaying = false;
+            if (autoPlayTimer) clearInterval(autoPlayTimer);
+            document.getElementById("autoplay-icon").innerText = "▶";
+            document.getElementById("autoplay-text").innerText = "Auto-Play";
+            document.getElementById("btn-autoplay").className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white transition flex items-center gap-1.5";
+        }
+
+        // -------------------------------------------------------------
+        // LIVE CANVAS NETWORK TOPOLOGY & TENSOR HIGHWAY
+        // -------------------------------------------------------------
+        function drawWorkflowCanvas() {
+            const canvas = document.getElementById("workflowCanvas");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.parentElement.clientWidth;
+            const h = canvas.parentElement.clientHeight || 350;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Entities Coordinates
+            const sX = w * 0.5, sY = 45;         // Central Server
+            const cH1X = w * 0.28, cHY = 145;    // Cluster Head 1
+            const cH2X = w * 0.72;               // Cluster Head 2
+            const c1X = w * 0.16, clY = 270;     // Client 1 (Cluster 1)
+            const c2X = w * 0.36;                // Client 2 (Cluster 1)
+            const c3X = w * 0.64;                // Client 3 (Cluster 2)
+            const c4X = w * 0.84;                // Client 4 (Byz Attacker)
+
+            // Drawing helper: Component Box
+            function drawBox(x, y, bw, bh, fill, stroke, title, sub, textColor) {
+                ctx.fillStyle = fill;
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(x - bw/2, y - bh/2, bw, bh, 8);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = textColor;
+                ctx.font = "bold 11px Inter";
+                ctx.textAlign = "center";
+                ctx.fillText(title, x, y - 2);
+
+                ctx.fillStyle = "#94a3b8";
+                ctx.font = "9px Inter";
+                ctx.fillText(sub, x, y + 11);
+            }
+
+            // Drawing helper: Connection Line
+            function drawLine(x1, y1, x2, y2, color, dashed = false, width = 1.5) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.setLineDash(dashed ? [4, 4] : []);
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Draw Base Structural Links
+            drawLine(sX, sY + 18, cH1X, cHY - 18, "rgba(255,255,255,0.06)");
+            drawLine(sX, sY + 18, cH2X, cHY - 18, "rgba(255,255,255,0.06)");
+            drawLine(cH1X, cHY + 18, c1X, clY - 24, "rgba(255,255,255,0.06)");
+            drawLine(cH1X, cHY + 18, c2X, clY - 24, "rgba(255,255,255,0.06)");
+            drawLine(cH2X, cHY + 18, c3X, clY - 24, "rgba(255,255,255,0.06)");
+            drawLine(cH2X, cHY + 18, c4X, clY - 24, "rgba(255,255,255,0.06)");
+
+            // Dynamic Step Tensor Flows
+            if (currentStep === 1) {
+                // Downlink: Server -> All, Cluster -> Members
+                drawLine(sX, sY + 18, cH1X, cHY - 18, "#2dd4bf", false, 2.5);
+                drawLine(sX, sY + 18, cH2X, cHY - 18, "#2dd4bf", false, 2.5);
+                drawLine(cH1X, cHY + 18, c1X, clY - 24, "#fb923c", false, 2);
+                drawLine(cH1X, cHY + 18, c2X, clY - 24, "#fb923c", false, 2);
+                drawLine(cH2X, cHY + 18, c3X, clY - 24, "#fb923c", false, 2);
+                drawLine(cH2X, cHY + 18, c4X, clY - 24, "#fb923c", false, 2);
+
+                ctx.fillStyle = "#2dd4bf";
+                ctx.font = "bold 9px 'Fira Code'";
+                ctx.fillText("↓ Φθ, Wr", sX - 60, (sY + cHY)/2);
+                ctx.fillStyle = "#fb923c";
+                ctx.fillText("↓ Wp", cH1X - 35, (cHY + clY)/2);
+            } else if (currentStep === 2) {
+                // Local SGD: Client internal activity
+                [c1X, c2X, c3X, c4X].forEach(cx => {
+                    ctx.fillStyle = "rgba(192, 132, 252, 0.18)";
+                    ctx.beginPath();
+                    ctx.arc(cx, clY, 32, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.fillStyle = "#c084fc";
+                ctx.font = "bold 10px Inter";
+                ctx.fillText("⚡ 1 Forward Pass through Φθ &bull; ACLM Shields Missing Classes", sX, clY + 36);
+            } else if (currentStep === 3) {
+                // Uplink Sketching
+                drawLine(c1X, clY - 24, cH1X, cHY + 18, "#fb923c", true, 2);
+                drawLine(c2X, clY - 24, cH1X, cHY + 18, "#fb923c", true, 2);
+                drawLine(c3X, clY - 24, cH2X, cHY + 18, "#fb923c", true, 2);
+                drawLine(c4X, clY - 24, cH2X, cHY + 18, "#f87171", true, 2);
+
+                ctx.fillStyle = "#fb923c";
+                ctx.font = "bold 9px 'Fira Code'";
+                ctx.fillText("↑ Sketch s_i (256 dims)", cH1X - 45, (cHY + clY)/2);
+                ctx.fillStyle = "#c084fc";
+                ctx.fillText("🔒 Wl stays private", c1X, clY + 36);
+            } else if (currentStep === 4) {
+                // Subspace Defense & Server Aggregation
+                drawLine(cH1X, cHY - 18, sX, sY + 18, "#2dd4bf", false, 2.5);
+                drawLine(cH2X, cHY - 18, sX, sY + 18, "#2dd4bf", false, 2.5);
+
+                ctx.fillStyle = "#2dd4bf";
+                ctx.font = "bold 9px 'Fira Code'";
+                ctx.fillText("↑ SCCF ΔWr, Q1 Δθ", sX + 15, (sY + cHY)/2);
+
+                ctx.fillStyle = "#f87171";
+                ctx.fillText("❌ Attacker 4 Filtered by SCCF", c4X, clY + 36);
+            } else if (currentStep === 5) {
+                // Calibrated Inference
+                ctx.fillStyle = "#4ade80";
+                ctx.font = "bold 10px Inter";
+                ctx.fillText("✓ Temperature-Calibrated Prediction &bull; S-AFR Fallback Active", sX, clY + 36);
+            }
+
+            // Draw Server Node
+            drawBox(sX, sY, 170, 38, "#0f172a", "#2dd4bf", "Central Cloud Server", "Holds: Backbone Φθ, Root Wr", "#2dd4bf");
+
+            // Draw Cluster Head Nodes
+            drawBox(cH1X, cHY, 125, 34, "#0f172a", "#fb923c", "Peer Cluster Head 1", "Pools: Parent Head Wp,1", "#fb923c");
+            drawBox(cH2X, cHY, 125, 34, "#0f172a", "#fb923c", "Peer Cluster Head 2", "Pools: Parent Head Wp,2", "#fb923c");
+
+            // Draw Client Nodes
+            drawBox(c1X, clY, 82, 44, "#0b1329", "#38bdf8", "Client 1", "Aquatic Mammals", "#38bdf8");
+            drawBox(c2X, clY, 82, 44, "#0b1329", "#38bdf8", "Client 2", "Vehicles 1", "#38bdf8");
+            drawBox(c3X, clY, 82, 44, "#0b1329", "#38bdf8", "Client 3", "Flowers", "#38bdf8");
+            drawBox(c4X, clY, 82, 44, "#0b1329", "#f87171", "Client 4 (Byz)", "Sign-Flipping Attack", "#f87171");
+        }
+
+        // -------------------------------------------------------------
+        // CIFAR-100 DATASET SIMULATOR
+        // -------------------------------------------------------------
+        const DIRICHLET_REGIMES = {
+            ext: {
+                name: "Extreme (α=0.05)",
+                desc: "High statistical heterogeneity: edge clients observe only 2-5 classes out of 100.",
+                clients: [
+                    { id: 1, cluster: "Cluster 1", classes: ["Beaver (48)", "Dolphin (52)"], rskew: 0.03, weights: { local: "72.4%", parent: "20.1%", root: "7.5%" }, byz: false },
+                    { id: 2, cluster: "Cluster 1", classes: ["Otter (44)", "Seal (49)", "Whale (7)"], rskew: 0.05, weights: { local: "70.2%", parent: "21.8%", root: "8.0%" }, byz: false },
+                    { id: 3, cluster: "Cluster 2", classes: ["Bicycle (55)", "Bus (45)"], rskew: 0.02, weights: { local: "73.8%", parent: "19.0%", root: "7.2%" }, byz: false },
+                    { id: 4, cluster: "Cluster 2", classes: ["Motorcycle (60)", "Train (40)"], rskew: 0.02, weights: { local: "73.8%", parent: "19.0%", root: "7.2%" }, byz: false },
+                    { id: 5, cluster: "Cluster 3", classes: ["Orchid (50)", "Poppy (38)", "Rose (12)"], rskew: 0.06, weights: { local: "69.1%", parent: "22.6%", root: "8.3%" }, byz: false },
+                    { id: 6, cluster: "Cluster 2", classes: ["Sign-Flip Attack"], rskew: 0.02, weights: { local: "Malicious", parent: "Inverted", root: "Zeroed" }, byz: true }
+                ]
+            },
+            sev: {
+                name: "Severe (α=0.1)",
+                desc: "Clients observe 5-10 classes out of 100 with moderate imbalance.",
+                clients: [
+                    { id: 1, cluster: "Cluster 1", classes: ["Aquatic Mammals (6 classes)"], rskew: 0.14, weights: { local: "59.2%", parent: "28.3%", root: "12.5%" }, byz: false },
+                    { id: 2, cluster: "Cluster 1", classes: ["Aquatic Mammals & Fish (8 classes)"], rskew: 0.18, weights: { local: "54.1%", parent: "31.2%", root: "14.7%" }, byz: false },
+                    { id: 3, cluster: "Cluster 2", classes: ["Vehicles (7 classes)"], rskew: 0.15, weights: { local: "57.8%", parent: "29.2%", root: "13.0%" }, byz: false },
+                    { id: 4, cluster: "Cluster 2", classes: ["Vehicles & Devices (9 classes)"], rskew: 0.20, weights: { local: "51.8%", parent: "32.4%", root: "15.8%" }, byz: false },
+                    { id: 5, cluster: "Cluster 3", classes: ["Flowers & Trees (8 classes)"], rskew: 0.17, weights: { local: "55.3%", parent: "30.5%", root: "14.2%" }, byz: false },
+                    { id: 6, cluster: "Cluster 2", classes: ["Label-Flip Attack (y -> C-1-y)"], rskew: 0.15, weights: { local: "Poisoned", parent: "Filtered", root: "Zeroed" }, byz: true }
+                ]
+            },
+            mod: {
+                name: "Moderate (α=0.5)",
+                desc: "Clients observe 25-35 classes out of 100 with overlapping distributions.",
+                clients: [
+                    { id: 1, cluster: "Cluster 1", classes: ["Diverse Natural (28 classes)"], rskew: 0.48, weights: { local: "24.5%", parent: "39.8%", root: "35.7%" }, byz: false },
+                    { id: 2, cluster: "Cluster 1", classes: ["Diverse Aquatic (32 classes)"], rskew: 0.52, weights: { local: "21.6%", parent: "40.1%", root: "38.3%" }, byz: false },
+                    { id: 3, cluster: "Cluster 2", classes: ["Diverse Artificial (30 classes)"], rskew: 0.50, weights: { local: "23.0%", parent: "40.0%", root: "37.0%" }, byz: false },
+                    { id: 4, cluster: "Cluster 2", classes: ["Diverse Vehicles (29 classes)"], rskew: 0.49, weights: { local: "23.8%", parent: "39.9%", root: "36.3%" }, byz: false },
+                    { id: 5, cluster: "Cluster 3", classes: ["Diverse Flora & Fauna (33 classes)"], rskew: 0.53, weights: { local: "20.9%", parent: "40.2%", root: "38.9%" }, byz: false },
+                    { id: 6, cluster: "Cluster 2", classes: ["Gaussian Noise Vector"], rskew: 0.50, weights: { local: "Noisy", parent: "Filtered", root: "Zeroed" }, byz: true }
+                ]
+            },
+            mild: {
+                name: "Mild (α=1.0)",
+                desc: "Broad label coverage: clients observe 50-70 classes out of 100.",
+                clients: [
+                    { id: 1, cluster: "Global", classes: ["Wide Distribution (58 classes)"], rskew: 0.74, weights: { local: "9.5%", parent: "28.1%", root: "62.4%" }, byz: false },
+                    { id: 2, cluster: "Global", classes: ["Wide Distribution (62 classes)"], rskew: 0.76, weights: { local: "8.3%", parent: "26.8%", root: "64.9%" }, byz: false },
+                    { id: 3, cluster: "Global", classes: ["Wide Distribution (65 classes)"], rskew: 0.79, weights: { local: "6.8%", parent: "24.5%", root: "68.7%" }, byz: false },
+                    { id: 4, cluster: "Global", classes: ["Wide Distribution (60 classes)"], rskew: 0.75, weights: { local: "8.9%", parent: "27.5%", root: "63.6%" }, byz: false },
+                    { id: 5, cluster: "Global", classes: ["Wide Distribution (66 classes)"], rskew: 0.80, weights: { local: "6.3%", parent: "23.7%", root: "70.0%" }, byz: false },
+                    { id: 6, cluster: "Global", classes: ["Gradient Ascent Attack"], rskew: 0.75, weights: { local: "Excluded", parent: "Excluded", root: "Q1 Clipped" }, byz: true }
+                ]
+            },
+            iid: {
+                name: "Uniform IID (α=∞)",
+                desc: "Ideal uniform partitioning: each client observes all 100 classes with balanced frequencies.",
+                clients: [
+                    { id: 1, cluster: "Global", classes: ["All 100 Classes Balanced (100)"], rskew: 1.00, weights: { local: "0.0%", parent: "0.0%", root: "100.0%" }, byz: false },
+                    { id: 2, cluster: "Global", classes: ["All 100 Classes Balanced (100)"], rskew: 1.00, weights: { local: "0.0%", parent: "0.0%", root: "100.0%" }, byz: false },
+                    { id: 3, cluster: "Global", classes: ["All 100 Classes Balanced (100)"], rskew: 1.00, weights: { local: "0.0%", parent: "0.0%", root: "100.0%" }, byz: false },
+                    { id: 4, cluster: "Global", classes: ["All 100 Classes Balanced (100)"], rskew: 1.00, weights: { local: "0.0%", parent: "0.0%", root: "100.0%" }, byz: false },
+                    { id: 5, cluster: "Global", classes: ["All 100 Classes Balanced (100)"], rskew: 1.00, weights: { local: "0.0%", parent: "0.0%", root: "100.0%" }, byz: false },
+                    { id: 6, cluster: "Global", classes: ["Sign-Flip Attack"], rskew: 1.00, weights: { local: "0.0%", parent: "0.0%", root: "Rejected" }, byz: true }
+                ]
+            }
+        };
+
+        function setDirichletRegime(key) {
+            document.querySelectorAll(".regime-btn").forEach(btn => {
+                btn.className = "regime-btn px-3 py-1.5 rounded-lg text-xs font-bold border transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white";
+            });
+            document.getElementById(`regime-btn-${key}`).className = "regime-btn px-3 py-1.5 rounded-lg text-xs font-bold border transition bg-sky-500/20 border-sky-400 text-sky-300";
+
+            renderClientCards(key);
+        }
+
+        function renderClientCards(key) {
+            const data = DIRICHLET_REGIMES[key];
+            const container = document.getElementById("clients-sample-grid");
+            container.innerHTML = "";
+
+            data.clients.forEach(c => {
+                const card = document.createElement("div");
+                card.className = c.byz 
+                    ? "p-4 rounded-xl bg-red-950/20 border border-red-500/40 space-y-2"
+                    : "p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2";
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="font-bold text-xs ${c.byz ? 'text-red-400' : 'text-white'} flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full ${c.byz ? 'bg-red-400' : 'bg-sky-400'}"></span>
+                            Client ${c.id} ${c.byz ? '(Byzantine Attacker)' : ''}
+                        </div>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded ${c.byz ? 'bg-red-500/20 text-red-300' : 'bg-slate-800 text-slate-300'}">
+                            ${c.cluster}
+                        </span>
+                    </div>
+
+                    <div class="text-[11px] text-slate-300">
+                        <span class="text-slate-500">Observed Classes:</span> ${c.classes.join(", ")}
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-800/80 grid grid-cols-3 gap-1 text-center font-mono text-[10px]">
+                        <div class="p-1 rounded bg-purple-500/10 text-purple-300">
+                            Local: ${c.weights.local}
+                        </div>
+                        <div class="p-1 rounded bg-orange-500/10 text-orange-300">
+                            Parent: ${c.weights.parent}
+                        </div>
+                        <div class="p-1 rounded bg-teal-500/10 text-teal-300">
+                            Root: ${c.weights.root}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // PURPOSE-DRIVEN ALGORITHMS DATA STORE (NO RIGID MATH)
+        // -------------------------------------------------------------
+        const ALGORITHMS_PURPOSE = {
+            aclm: {
+                name: "Active-Class Logit Masking (ACLM)",
+                tier: "Applied on Parent & Local Heads &bull; Edge SGD",
+                tagline: "Shielding the shared convolutional backbone from gradient interference caused by absent categories.",
+                file: "src/core/loss.py:L11-26 & src/core/updater.py:L846-857",
+                problem: "Standard cross-entropy evaluates probabilities over all 100 classes. When an edge device only has 2 classes (e.g., Cat and Dog), standard cross-entropy penalizes all other 98 missing classes (e.g., Ship, Truck), pushing their logits toward negative infinity. This creates non-zero negative gradient updates that degrade the shared feature backbone, destroying shared representations.",
+                does: "<strong>Input:</strong> Raw logit vector from Parent or Local head ($z \\in \\mathbb{R}^C$) and the client's observed class set $\\mathcal{Y}_i$.<br><strong>Operation:</strong> Replaces logits of all unobserved classes with $-10^9$ ($-\\infty$) prior to computing softmax.<br><strong>Output:</strong> Masked cross-entropy loss where missing classes evaluate to exactly zero probability ($\\tilde{p}_c = 0.0$).",
+                why: "Because $\\exp(-\\infty) = 0$, missing classes receive zero probability. The backpropagated gradient with respect to class logit $c$ is $\\tilde{p}_c - \\mathbb{I}(y = c)$. For missing classes, $\\tilde{p}_c = 0$ and the ground truth indicator is also $0$. Thus, $0 - 0 = 0.0$! Unobserved categories contribute exactly ZERO gradient into the shared backbone, completely shielding shared features without needing separate networks.",
+                coderef: `<div><strong>File:</strong> <code class="text-sky-300">src/core/loss.py</code></div>
+                          <div><strong>Class:</strong> <code class="text-teal-300">ActiveMaskedCrossEntropyLoss</code></div>
+                          <div><strong>Caller:</strong> <code class="text-purple-300">PyTorchLocalUpdater._update_hep</code> in <code class="text-slate-400">src/core/updater.py:L846-857</code></div>
+                          <div class="text-[11px] text-slate-400 mt-1">Verified with unit test: <code class="text-emerald-400">tests/test_audit_fixes.py::test_aclm_zero_gradient_shielding</code></div>`,
+                codeHeader: "Implementation Snippet (src/core/loss.py)",
+                code: `class ActiveMaskedCrossEntropyLoss(nn.Module):
+    def __init__(self, mask_value: float = -1e9):
+        super().__init__()
+        self.mask_value = mask_value
+
+    def forward(self, logits, targets, active_mask=None):
+        if active_mask is not None:
+            # Mask inactive classes to -1e9 so their softmax probability is 0
+            logits = logits.masked_fill(~active_mask.to(logits.device), self.mask_value)
+        return F.cross_entropy(logits, targets)`
+            },
+            binomial: {
+                name: "Anchored Skew-Calibrated Binomial Weighting",
+                tier: "Dynamic Capacity Partition of Unity",
+                tagline: "Smoothly shifting capacity across Root, Parent, and Local tiers based on local empirical label entropy.",
+                file: "src/core/loss.py:L91-115 & src/core/updater.py:L756-764",
+                problem: "Heuristic if-else thresholds or fixed 50/50 weights fail under heterogeneous federated distributions. Under balanced IID data, isolated heads in split-head methods (FedRep) suffer acute representation collapse (dropping from 41% to 16% accuracy) because local heads overfit without global aggregation. Conversely, under severe skew, fixed weights starve personalization.",
+                does: "<strong>Input:</strong> Client empirical label entropy $R_{\\text{skew}} \\in [0, 1]$, total classes $C$, client observed classes $|\\mathcal{Y}_i|$, and cluster count $K$.<br><strong>Operation:</strong> Evaluates degree-2 Bernstein basis polynomials with anchor floor $a_i = \\max(1/(2K), |\\mathcal{Y}_i|/C)$: $\\lambda_r = a_i + (1-a_i)R^2$, $\\lambda_p = 2R(1-R)$, $\\lambda_l = (1-R)^2$.<br><strong>Output:</strong> Normalized loss coefficients $\\alpha_r, \\alpha_p, \\alpha_l$ satisfying $\\sum \\alpha_h = 1.0$.",
+                why: "Bernstein polynomials provide a smooth, continuous partition of unity across $[0, 1]$. When $R_{\\text{skew}}=1.0$ (IID), capacity shifts 100% to Root (pure FedAvg, eliminating split-head collapse). When $R_{\\text{skew}} \\to 0$, capacity shifts to Local and Parent, while the data-support anchor $a_i$ guarantees that specialized edge nodes never sever their tie to the global backbone.",
+                coderef: `<div><strong>File:</strong> <code class="text-sky-300">src/core/loss.py</code></div>
+                          <div><strong>Function:</strong> <code class="text-teal-300">compute_dynamic_binomial_loss_weights</code></div>
+                          <div><strong>Caller:</strong> <code class="text-purple-300">PyTorchLocalUpdater._alloc_steps_binomial</code> in <code class="text-slate-400">src/core/updater.py:L756</code></div>
+                          <div class="text-[11px] text-slate-400 mt-1">Verified with unit test: <code class="text-emerald-400">tests/test_audit_fixes.py::test_dynamic_binomial_weights</code></div>`,
+                codeHeader: "Implementation Snippet (src/core/loss.py:L91-115)",
+                code: `def compute_dynamic_binomial_loss_weights(r_skew, num_classes=10, local_classes=2, num_clusters=3, enable_parent_head=True):
+    # Anchor floor ensures even specialized clients retain root connectivity
+    a_i = max(1.0 / (2.0 * max(1, num_clusters)), float(local_classes) / float(num_classes))
+    lr = a_i + (1.0 - a_i) * (r_skew ** 2)
+    lp = 2.0 * r_skew * (1.0 - r_skew) if enable_parent_head else 0.0
+    ll = (1.0 - r_skew) ** 2
+    total = lr + lp + ll
+    return lr, lp, ll, lr / total, lp / total, ll / total`
+            },
+            sketch: {
+                name: "Privacy-Preserving Random Projection Sketching (RP)",
+                tier: "Peer Cluster Discovery &bull; Uplink Phase",
+                tagline: "Compressing 51,200-dimensional updates into 256 dimensions to discover peer clusters without leaking data.",
+                file: "src/topologies/hierarchical.py:L5-13 & L87-129",
+                problem: "To cluster clients by distribution similarity, naive methods transmit either raw label histograms (which directly leaks private user demographics) or uncompressed gradient vectors (51,200 dimensions), which imposes massive bandwidth overhead and risks gradient inversion attacks.",
+                does: "<strong>Input:</strong> Vectorized Parent head parameter update $\\Delta W_{p,i} \\in \\mathbb{R}^{51,200}$ and shared Gaussian matrix $\\mathbf{R} \\in \\mathbb{R}^{256 \\times 51,200}$.<br><strong>Operation:</strong> Multiplies $\\mathbf{R} \\cdot \\text{vec}(\\Delta W_{p,i})$ and applies $L_2$ unit normalization.<br><strong>Output:</strong> Compact 256-dimensional directional sketch $\\mathbf{s}_i \\in \\mathbb{R}^{256}$.",
+                why: "Under the Johnson-Lindenstrauss lemma, pairwise Euclidean and cosine distances between vectors are preserved with high fidelity upon random linear projection. The server runs spherical $k$-means on these 256-dim sketches to cluster synergistic clients, while recovering 51,200 parameters from 256 coordinates is mathematically impossible.",
+                coderef: `<div><strong>File:</strong> <code class="text-sky-300">src/topologies/hierarchical.py</code></div>
+                          <div><strong>Function:</strong> <code class="text-teal-300">_random_project</code> & <code class="text-teal-300">HierarchicalTopology.build_update_similarity</code></div>
+                          <div class="text-[11px] text-slate-400 mt-1">Experimental Result: Achieves 65.49% accuracy, matching theoretical K=3 Oracle upper bound within 1.36 pp!</div>`,
+                codeHeader: "Implementation Snippet (src/topologies/hierarchical.py:L5-13)",
+                code: `def _random_project(vectors: np.ndarray, target_dim: int = 256, seed: int = 42) -> np.ndarray:
+    if vectors.shape[1] <= target_dim:
+        return vectors
+    rng = np.random.RandomState(seed)
+    D = vectors.shape[1]
+    projection = rng.randn(D, target_dim) / np.sqrt(target_dim)
+    return vectors @ projection # Projects 51,200 dims down to 256 dims!`
+            },
+            sccf: {
+                name: "Subspace-Constrained Cosine Filtering (SCCF)",
+                badge: "Byzantine Defense &bull; Server Side",
+                tier: "Byzantine Defense on Root Head",
+                tagline: "Evaluating directional update alignment strictly within observed class support to prevent false rejection.",
+                file: "src/core/aggregator.py:L118-176 & compute_classifier_slices",
+                problem: "Standard robust aggregators (like Multi-Krum and geometric median) compute Euclidean distance in the full parameter space $\\mathbb{R}^D$. Under non-IID skew, honest specialized updates point into sparse coordinate subspaces. Standard outlier detectors mistake this natural angular dispersion for malicious poisoning, falsely rejecting legitimate edge experts! Multi-Krum drops to 25.04% accuracy even with ZERO attackers ($q=0.0$).",
+                does: "<strong>Input:</strong> Client Root head updates $\\Delta \\mathbf{w}_i$ and active class mask $\\mathcal{Y}_i$.<br><strong>Operation:</strong> Slices the linear classifier coordinates and computes cosine similarity with consensus strictly along the active class coordinates $\\mathbf{P}_{\\mathcal{S}_i}$.<br><strong>Output:</strong> Instantaneous trust score $\\tau_i^{(t)}$ via temperature-scaled softmax.",
+                why: "In the observed class subspace $\\mathcal{S}_i$, unobserved coordinates are masked out. Honest updates align cleanly with consensus ($\\cos \\approx 1.0$), earning high trust, while Byzantine attacks (sign flipping, label flipping) point in opposing directions and are down-weighted or filtered out.",
+                coderef: `<div><strong>File:</strong> <code class="text-sky-300">src/core/aggregator.py</code></div>
+                          <div><strong>Function:</strong> <code class="text-teal-300">soft_cosine_trust</code> (with head slicing)</div>
+                          <div><strong>Engine:</strong> <code class="text-purple-300">UnifiedDefendedEngine</code> in <code class="text-slate-400">src/core/unified_defended_engine.py:L193-203</code></div>
+                          <div class="text-[11px] text-slate-400 mt-1">Verified with unit test: <code class="text-emerald-400">tests/test_audit_fixes.py::test_skew_calibrated_cosine_similarity_head_slicing</code></div>`,
+                codeHeader: "Implementation Snippet (src/core/aggregator.py:L133-144)",
+                code: `feature_dim = head_deltas.size(1) // num_classes
+mask = active_masks.float().unsqueeze(2).expand(n, num_classes, feature_dim).reshape(n, -1)
+unit_head = head_deltas * mask
+unit_head = F.normalize(unit_head, dim=1, eps=1e-10)
+centroid_head = unit_head.mean(dim=0)
+
+# Compare each client strictly within its active observed subspace
+centroid_masked = centroid_head.unsqueeze(0) * mask
+sims = F.cosine_similarity(unit_head, centroid_masked, dim=1, eps=1e-10)
+return F.softmax(sims / curr_temp, dim=0)`
+            },
+            q1_norm: {
+                name: "Adaptive Q1 Backbone Norm-Bounding",
+                tier: "Magnitude Inflation Defense &bull; Server Side",
+                tagline: "Dynamically bounding backbone update norms using the first quartile of received client updates.",
+                file: "src/core/aggregator.py:L180-204",
+                problem: "Adversaries executing gradient ascent or scaling attacks inflate their parameter updates by $10\\times$ or $100\\times$, overpowering linear aggregation and forcing FedAvg accuracy to crash to 1.06%. Static clipping thresholds either choke early learning or admit late poisoning, while median thresholds can be corrupted if attackers are numerous.",
+                does: "<strong>Input:</strong> Received client backbone update norms $\\{\\|\\Delta \\theta_j\\|_2\\}$.<br><strong>Operation:</strong> Computes the 25th percentile (first quartile $Q_1$) and sets clipping bound $\\tau^{(t)} = 3.0 \\cdot Q_1$. Clamps updates using $\\min(1, \\tau^{(t)} / \\|\\Delta \\theta_i\\|)$.<br><strong>Output:</strong> Norm-bounded backbone updates.",
+                why: "Anchoring to $Q_1$ ensures that adversaries controlling up to $q < 0.25$ of clients cannot artificially inflate the clipping threshold with their oversized vectors. Furthermore, as honest updates contract during convergence, the bound adaptively tightens automatically.",
+                coderef: `<div><strong>File:</strong> <code class="text-sky-300">src/core/aggregator.py</code></div>
+                          <div><strong>Function:</strong> <code class="text-teal-300">bound_update_norms</code> & <code class="text-teal-300">_lower_quartile</code></div>
+                          <div class="text-[11px] text-slate-400 mt-1">Verified with unit test: <code class="text-emerald-400">tests/test_audit_fixes.py::test_lower_quartile_norm_bounding</code></div>`,
+                codeHeader: "Implementation Snippet (src/core/aggregator.py:L180-204)",
+                code: `def bound_update_norms(stacked: torch.Tensor, k: float = 3.0):
+    norms = stacked.norm(dim=1)
+    s = torch.sort(norms).values
+    lq = s[int(0.25 * s.size(0))] # First quartile Q1 anchor!
+    scale = torch.where(norms > 1e-8, (k * lq / norms).clamp(max=1.0), torch.ones_like(norms))
+    return stacked * scale.unsqueeze(1)`
+            },
+            ttt: {
+                name: "Temporal Trust Tracking (TTT) & Blacklist Quarantine",
+                tier: "Stealthy Attacker Defense &bull; Server Side",
+                tagline: "Tracking exponential moving average trust across rounds to permanently isolate persistent attackers.",
+                file: "src/core/unified_defended_engine.py:L213-223 & src/defense/trust_tracker.py",
+                problem: "Stealthy or intermittent adversaries behave honestly in early rounds to build credibility, and then inject malicious poisoning vectors in later rounds without triggering single-round rejection.",
+                does: "<strong>Input:</strong> Round $t$ instantaneous trust score $\\tau_i^{(t)}$, cluster size $|\\mathcal{C}_k|$, and previous cumulative score $T_i^{(t-1)}$.<br><strong>Operation:</strong> Updates exponential moving average $T_i^{(t)} = \\beta T_i^{(t-1)} + (1-\\beta)\\min(1.0, |\\mathcal{C}_k|\\tau_i^{(t)})$ with momentum $\\beta=0.85$. If $T_i < \\tau_{\\text{iso}}=0.20$, flags client as confirmed malicious.<br><strong>Output:</strong> Updated credibility score and permanent blacklist exclusion.",
+                why: "Single-round outliers could occasionally happen due to extreme statistical variance, but persistent attackers will steadily bleed trust across consecutive rounds. Blacklisting isolates confirmed adversaries permanently from future aggregation.",
+                coderef: `<div><strong>File:</strong> <code class="text-sky-300">src/core/unified_defended_engine.py</code></div>
+                          <div><strong>Class:</strong> <code class="text-teal-300">UnifiedDefendedEngine.run_round</code> (L213-223)</div>
+                          <div><strong>Storage:</strong> <code class="text-purple-300">TrustTracker</code> in <code class="text-slate-400">src/defense/trust_tracker.py</code></div>`,
+                codeHeader: "Implementation Snippet (src/core/unified_defended_engine.py)",
+                code: `norm_t = min(1.0, t_score * n_members)
+self.client_trust_scores[cid] = (
+    self.reputation_momentum * self.client_trust_scores[cid]
+    + (1.0 - self.reputation_momentum) * norm_t
+)
+if self.client_trust_scores[cid] < self.malicious_reputation_threshold:
+    self.clients_state[cid].is_confirmed_malicious = True
+    print(f"Client {cid} trust decayed below 0.20 -> permanently isolated.")`
+            },
+            safr: {
+                name: "Staleness-Aware Fallback Routing (S-AFR)",
+                tier: "Tail Fairness &bull; Scaled Multiagent Edge",
+                tagline: "Exponentially attenuating stale local parameters for unselected clients to protect worst-decile fairness.",
+                file: "src/core/hierarchical_ensemble_engine.py:L634-680",
+                problem: "In larger federated populations under partial client participation (e.g., $N=50, C_p=0.20$), clients are only sampled every few rounds. When evaluating unselected clients, their local heads are stale. In standard baselines, using months-old local parameters crashes local accuracy, severely violating Rawlsian tail fairness (Ditto's bottom-10% fairness drops to 8.60%).",
+                does: "<strong>Input:</strong> Current round $t$, client last sampled round $t_{\\text{last}}$, and participation count.<br><strong>Operation:</strong> Computes exponential attenuation fade factor $\\gamma = \\exp(-(t - t_{\\text{last}})/\\tau_0)$. Scales down local weights $w_l = \\alpha_l \\cdot \\gamma$ and smoothly transfers residual weight to the fresh Root model: $w_r = 1.0 - w_l - w_p$.<br><strong>Output:</strong> Staleness-calibrated inference weights.",
+                why: "If an edge device's private parameters are stale, the globally aggregated consensus model is guaranteed to be fresher and more accurate. Falling back to the Root head prevents stale client accuracy from plummeting, lifting bottom-10% tail fairness to 18.11%.",
+                coderef: `<div><strong>File:</strong> <code class="text-sky-300">src/core/hierarchical_ensemble_engine.py</code></div>
+                          <div><strong>Function:</strong> <code class="text-teal-300">_safr_blend_weights</code> (L634-680)</div>
+                          <div><strong>Benchmark:</strong> Table IV ($N=50, C_p=0.20, R=40$)</div>`,
+                codeHeader: "Implementation Snippet (src/core/hierarchical_ensemble_engine.py)",
+                code: `staleness = round_num - last_sampled
+fade = float(np.exp(-staleness / tau_0))
+w_local = prior[0] * fade
+w_parent = prior[1] * fade
+w_root = max(0.0, 1.0 - w_local - w_parent) # Smoothly transfers weight to Root!`
+            },
+            calibration: {
+                name: "Temperature-Calibrated Prediction Blending",
+                tier: "Personalized Inference &bull; Test Time",
+                tagline: "Calibrating confidence across heads to prevent sharp local classifiers from falsely overpowering root consensus.",
+                file: "src/core/hierarchical_ensemble_engine.py:L527-545",
+                problem: "Linear summation of raw logits from different heads produces distorted predictions: local heads trained on only 2 classes produce sharp, high-variance logits that drown out the broader diffuse consensus of the 100-class Root head on test images belonging to rare classes.",
+                does: "<strong>Input:</strong> Logit vectors $z_l, z_p, z_r$ from the three heads, head temperatures $T_l=0.5, T_p=0.8, T_r=1.0$, and dynamic dispersion $\\sigma_h / \\sigma_r$.<br><strong>Operation:</strong> Divides each head's logits by its temperature scalar before computing the weighted linear ensemble: $z_{\\text{ens}} = w_l (z_l/T_l) + w_p (z_p/T_p) + w_r (z_r/T_r)$.<br><strong>Output:</strong> Calibrated ensemble logit vector.",
+                why: "Dividing by temperature scales logit variances to a compatible baseline, preventing overconfident specialized heads from making erroneous high-confidence errors on out-of-distribution classes.",
+                coderef: `<div><strong>File:</strong> <code class="text-sky-300">src/core/hierarchical_ensemble_engine.py</code></div>
+                          <div><strong>Function:</strong> <code class="text-teal-300">evaluate_ensemble</code> (L527-545)</div>`,
+                codeHeader: "Implementation Snippet (src/core/hierarchical_ensemble_engine.py)",
+                code: `# Dynamic Logit Dispersion Temperature Matching
+std_l = logits_local.std().item()
+std_r = logits_root.std().item()
+t_l = max(0.2, min(2.0, std_l / std_r)) if std_r > 1e-6 else 0.5
+
+logits_ensemble = (
+    w_local * (logits_local / t_l)
+    + w_parent * (logits_parent / 0.8)
+    + w_root * (logits_root / 1.0)
+)`
+            }
+        };
+
+        function inspectAlgo(key) {
+            document.querySelectorAll(".algo-pill-btn").forEach(btn => {
+                btn.className = "algo-pill-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white";
+            });
+            document.getElementById(`btn-algo-${key}`).className = "algo-pill-btn p-3 rounded-xl border text-left transition bg-sky-500/20 border-sky-400 text-sky-300";
+
+            const data = ALGORITHMS_PURPOSE[key];
+            document.getElementById("detail-algo-name").innerText = data.name;
+            document.getElementById("detail-algo-tier").innerText = data.tier;
+            document.getElementById("detail-algo-tagline").innerText = data.tagline;
+            document.getElementById("detail-algo-file").innerText = data.file;
+
+            document.getElementById("detail-algo-problem").innerHTML = data.problem;
+            document.getElementById("detail-algo-does").innerHTML = data.does;
+            document.getElementById("detail-algo-why").innerHTML = data.why;
+            document.getElementById("detail-algo-coderef").innerHTML = data.coderef;
+
+            document.getElementById("detail-algo-code-header").innerText = data.codeHeader;
+            document.getElementById("detail-algo-code").innerHTML = `<code>${data.code}</code>`;
+        }
+
+        // -------------------------------------------------------------
+        // DEEP DIVE: CLIENT MECHANICS & TIER SYNCHRONIZATION DATA
+        // -------------------------------------------------------------
+        const MECHANIC_TABS = {
+            why3heads: `
+                <div class="space-y-6">
+                    <!-- Header banner -->
+                    <div class="p-5 rounded-2xl bg-gradient-to-r from-purple-950/60 via-slate-900 to-slate-900 border border-purple-500/30">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <span class="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wide">Architecture Philosophy</span>
+                                <h3 class="text-lg font-bold text-white mt-1">Decoupled Multi-Scale Specialization (1 Backbone + 3 Dedicated Heads)</h3>
+                                <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                                    Real-world federated clients are neither 100% identical (pure IID) nor completely isolated islands. 
+                                    FedHEP decomposes prediction into three complementary scales of representation learning, all anchored by a <strong>single shared feature extractor</strong>.
+                                </p>
+                            </div>
+                            <div class="text-left sm:text-right shrink-0">
+                                <span class="text-[10px] font-mono text-slate-400 block">Peak VRAM Footprint</span>
+                                <span class="text-sm font-mono font-bold text-emerald-400">158.8 MB (vs 298.6 MB Ditto)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3 Heads Cards Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Root Head Card -->
+                        <div class="p-5 rounded-2xl bg-slate-900/90 border border-emerald-500/30 space-y-3 relative overflow-hidden flex flex-col justify-between">
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">GLOBAL SCALE</span>
+                                    <span class="text-[10px] font-mono text-slate-500">Tier: Cloud Server</span>
+                                </div>
+                                <h4 class="text-base font-bold text-white flex items-center gap-1.5">
+                                    <span class="text-emerald-400">🌐 Root Head</span>
+                                    <span class="text-xs font-mono text-slate-400">(W_r: 512 &rarr; 100)</span>
+                                </h4>
+                                <div class="space-y-2 text-xs text-slate-300">
+                                    <p><strong>Role:</strong> Captures domain-invariant consensus across <em>all 100 classes</em> by aggregating updates from all clients globally.</p>
+                                    <p><strong>Why It's Essential:</strong> In methods like FedRep, having only an isolated local head causes catastrophic collapse when client data is balanced (FedRep crashes to 16.08% on IID data). The Root Head anchors universal knowledge (achieving 40.94% on IID), ensuring the client never fails on unseen classes.</p>
+                                </div>
+                            </div>
+                            <div class="pt-3 border-t border-slate-800 text-[11px] font-mono text-slate-400 flex justify-between">
+                                <span>Aggregation: <strong>Global FedAvg (SCCF)</strong></span>
+                                <span class="text-emerald-400">100 Classes</span>
+                            </div>
+                        </div>
+
+                        <!-- Parent Head Card -->
+                        <div class="p-5 rounded-2xl bg-slate-900/90 border border-teal-500/30 space-y-3 relative overflow-hidden flex flex-col justify-between">
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">CLUSTER SCALE</span>
+                                    <span class="text-[10px] font-mono text-slate-500">Tier: Cluster Head</span>
+                                </div>
+                                <h4 class="text-base font-bold text-white flex items-center gap-1.5">
+                                    <span class="text-teal-400">👥 Parent Head</span>
+                                    <span class="text-xs font-mono text-slate-400">(W_p: 512 &rarr; 100)</span>
+                                </h4>
+                                <div class="space-y-2 text-xs text-slate-300">
+                                    <p><strong>Role:</strong> Captures peer sub-domain consensus by aggregating updates exclusively among clients in the same affinity cluster C_k.</p>
+                                    <p><strong>Why It's Essential:</strong> When an edge device has only 20 samples from 2 classes, a pure local classifier rapidly overfits and memorizes noise. The Parent Head allows peer clients who share similar class distributions to pool training capacity without needing a massive grand coalition.</p>
+                                </div>
+                            </div>
+                            <div class="pt-3 border-t border-slate-800 text-[11px] font-mono text-slate-400 flex justify-between">
+                                <span>Aggregation: <strong>Cluster Peers Only</strong></span>
+                                <span class="text-teal-400">Sub-Domain Prior</span>
+                            </div>
+                        </div>
+
+                        <!-- Local Head Card -->
+                        <div class="p-5 rounded-2xl bg-slate-900/90 border border-purple-500/30 space-y-3 relative overflow-hidden flex flex-col justify-between">
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">DEVICE SCALE</span>
+                                    <span class="text-[10px] font-mono text-slate-500">Tier: Edge Client</span>
+                                </div>
+                                <h4 class="text-base font-bold text-white flex items-center gap-1.5">
+                                    <span class="text-purple-400">🔒 Local Head</span>
+                                    <span class="text-xs font-mono text-slate-400">(W_l: 512 &rarr; 100)</span>
+                                </h4>
+                                <div class="space-y-2 text-xs text-slate-300">
+                                    <p><strong>Role:</strong> Sovereign on-device personalization. Never uploaded, never shared over radio, and never influenced by network stragglers or adversarial noise.</p>
+                                    <p><strong>Why It's Essential:</strong> Fine-tunes directly on the edge device's private idiosyncrasies. Because it remains 100% on-device, it incurs zero uplink bandwidth and eliminates any risk of parameter inversion or membership inference.</p>
+                                </div>
+                            </div>
+                            <div class="pt-3 border-t border-slate-800 text-[11px] font-mono text-slate-400 flex justify-between">
+                                <span>Aggregation: <strong>None (Strictly Private)</strong></span>
+                                <span class="text-purple-400">Zero Bandwidth</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- The Shared Backbone Hardware Synergy -->
+                    <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+                        <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                            <span class="p-1 rounded bg-sky-500/20 text-sky-400">⚡ Hardware Synergy: 1 Shared Backbone vs 2 Competing Models</span>
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+                            <p class="leading-relaxed">
+                                Instead of running multiple competing models (like Ditto, which trains <strong>two full neural networks</strong> per client and doubles VRAM to 298.6 MB), FedHEP attaches all 3 heads to <strong>one shared MobileNetV3 backbone &Phi;_&theta;</strong>.
+                            </p>
+                            <p class="leading-relaxed">
+                                During local training, each batch runs through &Phi;_&theta; <strong>only once</strong> to generate hidden representation h = &Phi;_&theta;(x) &in; R^512. The 3 heads are just fast matrix multiplications (512 &times; 100), taking only <strong>11.20 ms</strong> per batch and cutting peak edge VRAM to <strong>158.8 MB</strong> (a 46.8% reduction!).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `,
+
+            gradientflow: `
+                <div class="space-y-6">
+                    <!-- Header banner -->
+                    <div class="p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 via-slate-900 to-slate-900 border border-blue-500/30">
+                        <span class="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase tracking-wide">Gradient Mechanics</span>
+                        <h3 class="text-lg font-bold text-white mt-1">How Weights Optimize On-Device: Single Forward Pass + ACLM Shield</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                            The mathematical mechanism that allows three diverse heads to share a single convolutional backbone without conflicting or causing catastrophic forgetting.
+                        </p>
+                    </div>
+
+                    <!-- 4-Stage Optimization Pipeline -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Stage 1: Single Forward Pass -->
+                        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                            <div class="flex items-center gap-2 text-sky-400 font-bold text-xs">
+                                <span class="w-5 h-5 rounded-full bg-sky-500/20 flex items-center justify-center text-[10px]">1</span>
+                                Single Backbone Forward Pass & Head Projections
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                Input batch x passes through backbone &Phi;_&theta; once, yielding feature embedding h = &Phi;_&theta;(x) &in; R^(B &times; 512). Then all three heads produce their respective logit tensors simultaneously:
+                            </p>
+                            <div class="bg-[#080c16] p-2.5 rounded-lg font-mono text-[11px] text-sky-300 border border-slate-800">
+                                z_root   = h @ W_r.T   # (B, 100) - Unmasked<br>
+                                z_parent = h @ W_p.T   # (B, 100) - To be masked<br>
+                                z_local  = h @ W_l.T   # (B, 100) - To be masked
+                            </div>
+                        </div>
+
+                        <!-- Stage 2: The ACLM Shield -->
+                        <div class="p-4 rounded-xl bg-slate-900 border border-purple-500/30 space-y-2">
+                            <div class="flex items-center gap-2 text-purple-400 font-bold text-xs">
+                                <span class="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center text-[10px]">2</span>
+                                Active-Class Logit Masking (ACLM Shield)
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                On Parent and Local heads, unobserved classes c &notin; Y_i are filled with -10^9. In softmax, p_c = e^(-10^9) / &sum; e^(z_j) &equiv; 0.0.
+                                Because ground truth y_c = 0, the gradient is:
+                            </p>
+                            <div class="bg-[#080c16] p-2.5 rounded-lg font-mono text-[11px] text-teal-300 border border-slate-800">
+                                &part;L / &part;z_c = p_c - y_c = 0.0 - 0 = 0.0000 (Exact Zero!)<br>
+                                <span class="text-slate-400 text-[10px]">No negative gradients drag backwards into backbone &Phi;_&theta;!</span>
+                            </div>
+                        </div>
+
+                        <!-- Stage 3: Binomial Skew Loss Weighting -->
+                        <div class="p-4 rounded-xl bg-slate-900 border border-amber-500/30 space-y-2">
+                            <div class="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                                <span class="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-[10px]">3</span>
+                                Continuous Skew-Calibrated Multi-Task Loss
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                Rather than arbitrary fixed weights, loss weights are calculated continuously based on the client's empirical Dirichlet skew:
+                            </p>
+                            <div class="bg-[#080c16] p-2.5 rounded-lg font-mono text-[11px] text-amber-300 border border-slate-800">
+                                L_total = &alpha;_r * L_root + &alpha;_p * L_parent_masked + &alpha;_l * L_local_masked<br>
+                                <span class="text-slate-400 text-[10px]">Extreme skew (&alpha;=0.05): &alpha;_l=0.50, &alpha;_p=0.35, &alpha;_r=0.15<br>Uniform IID (&alpha;=&infin;): &alpha;_l=0.15, &alpha;_p=0.25, &alpha;_r=0.60</span>
+                            </div>
+                        </div>
+
+                        <!-- Stage 4: Backpropagation & Weight Updates -->
+                        <div class="p-4 rounded-xl bg-slate-900 border border-emerald-500/30 space-y-2">
+                            <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">4</span>
+                                Independent Head Step + Accumulated Backbone Update
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                Gradients backpropagate in a unified computation graph. Each head updates independently, while the shared backbone accumulates clean, constructive updates:
+                            </p>
+                            <div class="bg-[#080c16] p-2.5 rounded-lg font-mono text-[11px] text-emerald-300 border border-slate-800">
+                                W_h &larr; W_h - &eta; * &alpha;_h * &nabla;_{W_h} L_h   (for h &in; {r, p, l})<br>
+                                &Phi;_&theta; &larr; &Phi;_&theta; - &eta; * &sum;_{h} &alpha;_h * &nabla;_&theta; L_h (Backbone accumulation)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Code Walkthrough from src/core/updater.py -->
+                    <div class="bg-[#080c16] rounded-xl p-4 border border-slate-800 text-xs">
+                        <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono mb-2">
+                            <span>Implementation Snippet: Edge Client Multi-Head Step (src/core/updater.py)</span>
+                            <span class="text-sky-400 font-bold">1 Forward Pass &bull; ACLM Masked</span>
+                        </div>
+                        <pre class="code-font text-[11px] text-slate-300 overflow-x-auto leading-relaxed"><code># 1. Forward pass through shared backbone ONCE
+logits_r, logits_p, logits_l = model(images, head="all")
+
+# 2. ACLM: Mask unobserved classes to -1e9 for Parent and Local heads
+active_mask = (class_counts > 0).to(images.device)
+logits_p_masked = logits_p.masked_fill(~active_mask.unsqueeze(0), -1e9)
+logits_l_masked = logits_l.masked_fill(~active_mask.unsqueeze(0), -1e9)
+
+# 3. Compute 3 losses (Root evaluates all 100 classes for global consensus)
+loss_r = F.cross_entropy(logits_r, labels)
+loss_p = F.cross_entropy(logits_p_masked, labels)
+loss_l = F.cross_entropy(logits_l_masked, labels)
+
+# 4. Skew-weighted multi-task combination & single backward pass
+loss_total = alpha_r * loss_r + alpha_p * loss_p + alpha_l * loss_l
+loss_total.backward() # Backpropagates into W_r, W_p, W_l, and shared Phi_theta!
+optimizer.step()</code></pre>
+                    </div>
+                </div>
+            `,
+
+            tiersync: `
+                <div class="space-y-6">
+                    <!-- Header banner -->
+                    <div class="p-5 rounded-2xl bg-gradient-to-r from-teal-950/60 via-slate-900 to-slate-900 border border-teal-500/30">
+                        <span class="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase tracking-wide">Topology Coordination</span>
+                        <h3 class="text-lg font-bold text-white mt-1">Separation of Concerns: Dual-Tier Uplink & Aggregation</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                            How the edge client selectively dispatches models, and how the Cluster Tier and Cloud Server update them independently without crosstalk.
+                        </p>
+                    </div>
+
+                    <!-- Communication Routing Flow Diagram -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Route 1: Local Head -->
+                        <div class="p-4 rounded-xl bg-slate-900 border border-purple-500/30 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs text-purple-400">🔒 Local Head (W_l)</span>
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono bg-purple-500/20 text-purple-300">0 KB Uplink</span>
+                            </div>
+                            <div class="p-3 rounded-lg bg-black/40 border border-slate-800 text-center font-mono text-xs text-purple-300">
+                                Client Flash Memory<br>
+                                <span class="text-slate-500 text-[10px]">Stays 100% on edge device</span>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                <strong>No transmission:</strong> Cached locally between rounds. Neither the cluster head nor the global server ever sees W_l. No communication cost, zero privacy leakage.
+                            </p>
+                        </div>
+
+                        <!-- Route 2: Parent Head -->
+                        <div class="p-4 rounded-xl bg-slate-900 border border-teal-500/30 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs text-teal-400">👥 Parent Head (W_p)</span>
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono bg-teal-500/20 text-teal-300">Cluster Tier</span>
+                            </div>
+                            <div class="p-3 rounded-lg bg-black/40 border border-slate-800 text-center font-mono text-xs text-teal-300">
+                                Client &rarr; Cluster Head &rarr; Client<br>
+                                <span class="text-slate-500 text-[10px]">Compressed via 256-dim RP sketch</span>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                <strong>Peer Aggregation:</strong> Cluster Head aggregates &Delta;W_p strictly from clients within cluster C_k. It broadcasts the updated W_{p, k}^(t+1) only to its local cluster.
+                            </p>
+                        </div>
+
+                        <!-- Route 3: Backbone & Root Head -->
+                        <div class="p-4 rounded-xl bg-slate-900 border border-emerald-500/30 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs text-emerald-400">🌐 Backbone (&Phi;_&theta;) & Root (W_r)</span>
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono bg-emerald-500/20 text-emerald-300">Global Cloud</span>
+                            </div>
+                            <div class="p-3 rounded-lg bg-black/40 border border-slate-800 text-center font-mono text-xs text-emerald-300">
+                                Client &rarr; Cloud Server &rarr; All Clients<br>
+                                <span class="text-slate-500 text-[10px]">Filtered via SCCF + Q1 Bounding</span>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                <strong>Global Consensus:</strong> Central server collects &Delta;&Phi;_&theta; and &Delta;W_r from all clients, applies Byzantine defenses, and broadcasts globally.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Dual Aggregator Mechanics Deep Dive -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <!-- Cluster Tier Aggregator -->
+                        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+                            <h4 class="font-bold text-white flex items-center gap-2">
+                                <span class="p-1 rounded bg-teal-500/20 text-teal-300">👥 Cluster Head Aggregation Mechanics</span>
+                            </h4>
+                            <p class="text-slate-300 leading-relaxed">
+                                Each Cluster Head acts as a localized proxy. It groups edge devices whose data affinity matches (clustered by Gaussian random projection sketches).
+                            </p>
+                            <div class="bg-[#080c16] p-3 rounded-lg border border-slate-800 text-slate-300 font-mono text-[11px] space-y-1">
+                                <div># Aggregation within Cluster C_k:</div>
+                                <div class="text-teal-300">W_p^(t+1) = W_p^(t) + &sum;_{i &in; C_k} (n_i / N_k) * &Delta;W_{p, i}</div>
+                                <div class="text-slate-500 text-[10px]">Downlink: Broadcast only to peer clients in C_k</div>
+                            </div>
+                            <p class="text-slate-400">
+                                <strong>Key Benefit:</strong> Clients with limited local samples gain the combined representational power of their cluster peers without diluting specialized features with unrelated categories.
+                            </p>
+                        </div>
+
+                        <!-- Global Server Aggregator -->
+                        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+                            <h4 class="font-bold text-white flex items-center gap-2">
+                                <span class="p-1 rounded bg-emerald-500/20 text-emerald-300">🌐 Cloud Server Aggregation Mechanics</span>
+                            </h4>
+                            <p class="text-slate-300 leading-relaxed">
+                                The global server aggregates &Phi;_&theta; and W_r across all clients, but shields the global model using two robust filters:
+                            </p>
+                            <div class="bg-[#080c16] p-3 rounded-lg border border-slate-800 text-slate-300 font-mono text-[11px] space-y-1">
+                                <div># 1. Subspace Cosine Filtering (SCCF):</div>
+                                <div class="text-emerald-300">cos_sim = cosine(&Delta;W_{r, i}[active], consensus[active])</div>
+                                <div class="mt-1"># 2. Adaptive Q1 Norm Bounding:</div>
+                                <div class="text-emerald-300">&Delta;&Phi;_{&theta;, i} = clip_norm(&Delta;&Phi;_{&theta;, i}, max_norm = 3.0 * Q1)</div>
+                            </div>
+                            <p class="text-slate-400">
+                                <strong>Key Benefit:</strong> SCCF prevents non-IID clients from being falsely penalized as Byzantine adversaries, while Q1 bounding neutralizes model-replacement attacks without hyperparameter tuning.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `,
+
+            sotacompare: `
+                <div class="space-y-6">
+                    <!-- Header banner -->
+                    <div class="p-5 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 border border-amber-500/30">
+                        <span class="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wide">Comparative Systems Analysis</span>
+                        <h3 class="text-lg font-bold text-white mt-1">Why FedHEP Outperforms SOTA: The Architectural Trade-Off Matrix</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                            Direct comparison between FedHEP and prevailing state-of-the-art FL personalization paradigms on architecture, memory, latency, and extreme skew accuracy.
+                        </p>
+                    </div>
+
+                    <!-- Comparative Table -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-800">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-900/90 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">Method</th>
+                                    <th class="p-3">Model Architecture</th>
+                                    <th class="p-3">Forward Passes</th>
+                                    <th class="p-3">Edge VRAM</th>
+                                    <th class="p-3">CIFAR-100 (&alpha;=0.05)</th>
+                                    <th class="p-3">IID Behavior</th>
+                                    <th class="p-3">Peer Collaboration</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/60 font-mono text-[11px]">
+                                <tr class="hover:bg-slate-900/40">
+                                    <td class="p-3 font-bold text-slate-300">FedAvg</td>
+                                    <td class="p-3 text-slate-400">1 Single Global Model</td>
+                                    <td class="p-3 text-slate-400">1 pass</td>
+                                    <td class="p-3 text-slate-400">~150 MB</td>
+                                    <td class="p-3 text-red-400 font-bold">34.12% (Catastrophic drift)</td>
+                                    <td class="p-3 text-emerald-400">Stable</td>
+                                    <td class="p-3 text-slate-500">None</td>
+                                </tr>
+                                <tr class="hover:bg-slate-900/40">
+                                    <td class="p-3 font-bold text-slate-300">Ditto</td>
+                                    <td class="p-3 text-slate-400">2 Full Neural Networks</td>
+                                    <td class="p-3 text-amber-400 font-bold">2 full passes (22.8ms)</td>
+                                    <td class="p-3 text-red-400 font-bold">298.6 MB (+88%)</td>
+                                    <td class="p-3 text-slate-300">59.68%</td>
+                                    <td class="p-3 text-emerald-400">Stable</td>
+                                    <td class="p-3 text-slate-500">None (Isolated)</td>
+                                </tr>
+                                <tr class="hover:bg-slate-900/40">
+                                    <td class="p-3 font-bold text-slate-300">FedRep</td>
+                                    <td class="p-3 text-slate-400">1 Backbone + 1 Local Head</td>
+                                    <td class="p-3 text-slate-400">Alternating head/backbone</td>
+                                    <td class="p-3 text-slate-400">~150 MB</td>
+                                    <td class="p-3 text-slate-300">48.22%</td>
+                                    <td class="p-3 text-red-400 font-bold">COLLAPSES to 16.08%!</td>
+                                    <td class="p-3 text-slate-500">None (Isolated)</td>
+                                </tr>
+                                <tr class="bg-purple-950/20 hover:bg-purple-950/30">
+                                    <td class="p-3 font-bold text-purple-300 flex items-center gap-1">
+                                        <span>★ FedHEP</span>
+                                    </td>
+                                    <td class="p-3 text-teal-300 font-bold">1 Backbone + 3 Multi-Scale Heads</td>
+                                    <td class="p-3 text-emerald-400 font-bold">1 single pass (11.2ms)</td>
+                                    <td class="p-3 text-emerald-400 font-bold">158.8 MB (-46.8%)</td>
+                                    <td class="p-3 text-emerald-400 font-bold">65.49% (+5.81 pp vs Ditto)</td>
+                                    <td class="p-3 text-emerald-400 font-bold">40.94% (Anchored by Root)</td>
+                                    <td class="p-3 text-teal-300 font-bold">Hierarchical Clusters</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Explanatory Breakdown Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                            <h4 class="font-bold text-red-400">Why Ditto is Hardware Inefficient</h4>
+                            <p class="text-slate-300 leading-relaxed">
+                                Ditto instantiates two complete models on the device: a global model w_g and a personalized model v, bound by an explicit penalty. This forces the device to execute two full forward and backward passes per batch, doubling peak VRAM from 158 MB to 298.6 MB and doubling batch latency to 22.80 ms.
+                            </p>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                            <h4 class="font-bold text-amber-400">Why FedRep Fails on IID Data</h4>
+                            <p class="text-slate-300 leading-relaxed">
+                                FedRep completely strips away the shared classifier head, forcing each client to learn classification exclusively through its isolated local head. When data is IID or balanced, client datasets lack sufficient local volume to train the classifier independently, causing accuracy to collapse to an abysmal 16.08%. FedHEP's Root Head preserves universal consensus, avoiding this collapse completely.
+                            </p>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-slate-900 border border-emerald-500/30 space-y-2">
+                            <h4 class="font-bold text-emerald-400">Why FedHEP Wins Both Extreme & IID</h4>
+                            <p class="text-slate-300 leading-relaxed">
+                                By maintaining Root, Parent, and Local heads on a single backbone, FedHEP seamlessly shifts capacity based on client skew. Extreme non-IID clients rely on the ACLM-shielded Local and Parent heads (+5.81 pp over Ditto), while IID clients rely on the Root Head (40.94%), achieving the Pareto frontier of federated personalization.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `
+        };
+
+        function setMechanicTab(tabKey) {
+            const tabs = ['why3heads', 'gradientflow', 'tiersync', 'sotacompare'];
+            tabs.forEach(key => {
+                const btn = document.getElementById(`mech-btn-${key}`);
+                if (btn) {
+                    btn.className = (key === tabKey)
+                        ? "mech-tab-btn p-3 rounded-xl border text-left transition bg-purple-500/20 border-purple-400 text-purple-300 shadow-lg shadow-purple-500/10"
+                        : "mech-tab-btn p-3 rounded-xl border text-left transition bg-slate-900 border-slate-800 text-slate-400 hover:text-white";
+                }
+            });
+            const contentContainer = document.getElementById('mechanic-tab-content');
+            if (contentContainer && MECHANIC_TABS[tabKey]) {
+                contentContainer.innerHTML = MECHANIC_TABS[tabKey];
+            }
+        }
+
+
+        // Initialize on page load
+        window.addEventListener("load", () => {
+            setStep(1);
+            setDirichletRegime("ext");
+            inspectAlgo("aclm");
+            setMechanicTab("why3heads");
+        });
+
+        window.addEventListener("resize", () => {
+            drawWorkflowCanvas();
+        });
+    </script>
+</body>
+</html>

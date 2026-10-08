@@ -1,4 +1,4 @@
-\documentclass[sigconf,anonymous]{aamas}
+\documentclass[sigconf,anonymous,screen]{aamas}
 
 %%% Load required packages
 \usepackage{amsmath}
@@ -7,6 +7,19 @@
 \usepackage{placeins} % Prevents tables/figures from floating past their sections
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+
+%%% Caption formatting: smaller font size without bold style
+\captionsetup{font=footnotesize, labelfont=normalfont, textfont=normalfont}
+
+%%% Active clickable citations and links directing to references
+\AtBeginDocument{
+  \hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+  }
+}
 
 %%% AAMAS-2027 copyright block (do not change!)
 \makeatletter

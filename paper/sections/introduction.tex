@@ -11,13 +11,16 @@ Third, adversarial model poisoning and Byzantine failures pose serious threats i
 
 To address these challenges, we observe that edge clients benefit from a multi-tier representation hierarchy: a global model captures features common across all clients, cluster-level models pool knowledge among peer devices with similar label distributions, and local heads provide private adaptation tailored to each device. To avoid the memory overhead of maintaining separate neural networks for each tier, we design a unified framework where all three tiers share a single feature backbone.
 
-\paragraph{Contributions.} We introduce \textbf{\fedhep{}} (\textit{Federated Hierarchical Ensemble Personalization}), an efficient framework designed for heterogeneous edge clients. Our key contributions are:
-\begin{itemize}
-    \item \textbf{Single-Backbone Three-Tier Hierarchy}: We design an architecture where a single shared feature extractor feeds three linear classification tiers: a global consensus Root head ($W_r$), a collaborative cluster Parent head ($W_p$), and a private Local head ($W_l$), avoiding redundant feature extractors and minimizing on-device memory.
-    \item \textbf{Active-Class Logit Masking (ACLM) \& Skew-Calibrated Weighting}: We introduce ACLM to mask unobserved categories during training on cluster and local heads. This mathematically eliminates negative gradient updates from classes a client does not possess, while a continuous Bernstein polynomial weighting scheme balances the contribution of each tier based on local label skew.
-    \item \textbf{Privacy-Preserving Peer Clustering}: Clients discover collaborative peer clusters using low-dimensional Random Projections (RP) grounded in the Johnson-Lindenstrauss lemma~\cite{johnson1984extensions,woodruff2014sketching}, grouping clients by functional update similarity without transmitting raw local parameters or label counts.
-    \item \textbf{Layered Subspace Byzantine Defense}: We develop a defense combining Subspace-Constrained Cosine Filtering (\textbf{SCCF}), which measures update alignment strictly on each client's observed classes, adaptive backbone update norm-bounding, and multi-round Temporal Trust Tracking (\textbf{TTT}).
-    \item \textbf{Empirical Evaluation}: We evaluate FedHEP on edge-budgeted subsamples of CIFAR-100 and FEMNIST across five Dirichlet non-IID regimes ($\alpha \in \{0.05, 0.1, 0.5, 1.0, \infty\}$) and 50-client scaling under partial participation. We compare against 6 state-of-the-art baselines across 4 adversarial attack vectors, and profile on-device runtime on MobileNetV3 to confirm memory and latency efficiency.
-\end{itemize}
+We introduce \textbf{\fedhep{}} (\textit{Federated Hierarchical Ensemble Personalization}), an efficient framework designed for heterogeneous edge clients. Our key contributions are:
 
-The remainder of this paper is organized as follows. Section~\ref{sec:related} reviews related work. Section~\ref{sec:method} presents the FedHEP methodology. Section~\ref{sec:experiments} presents experimental results and ablation studies. Section~\ref{sec:conclusion} concludes the paper.
+\noindent\textbf{Single-Backbone Three-Tier Hierarchy}: We design an architecture where a single shared feature extractor feeds three linear classification tiers: a global consensus Root head ($W_r$), a collaborative cluster Parent head ($W_p$), and a private Local head ($W_l$), avoiding redundant feature extractors and minimizing on-device memory.
+
+\noindent\textbf{Active-Class Logit Masking (ACLM) \& Skew-Calibrated Weighting}: We introduce ACLM to mask unobserved categories during training on cluster and local heads. This mathematically eliminates negative gradient updates from classes a client does not possess, while a continuous Bernstein polynomial weighting scheme balances the contribution of each tier based on local label skew.
+
+\noindent\textbf{Privacy-Preserving Peer Clustering}: Clients discover collaborative peer clusters using low-dimensional Random Projections (RP) grounded in the Johnson-Lindenstrauss lemma~\cite{johnson1984extensions,woodruff2014sketching}, grouping clients by functional update similarity without transmitting raw local parameters or label counts.
+
+\noindent\textbf{Layered Subspace Byzantine Defense}: We develop a defense combining Subspace-Constrained Cosine Filtering (\textbf{SCCF}), which measures update alignment strictly on each client's observed classes, adaptive backbone update norm-bounding, and multi-round Temporal Trust Tracking (\textbf{TTT}).
+
+\noindent\textbf{Empirical Evaluation}: We evaluate FedHEP on edge-budgeted subsamples of CIFAR-100 and FEMNIST across five Dirichlet non-IID regimes ($\alpha \in \{0.05, 0.1, 0.5, 1.0, \infty\}$) and 50-client scaling under partial participation. We compare against 6 state-of-the-art baselines across 4 adversarial attack vectors, and profile on-device runtime on MobileNetV3 to confirm memory and latency efficiency.
+
+

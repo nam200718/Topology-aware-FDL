@@ -4,12 +4,14 @@
 
 \paragraph{High-Level Workflow.}
 Figure~\ref{fig:architecture} illustrates the overall architecture of \fedhep{}. The training workflow coordinates four key operations across edge clients and the central server:
-\begin{enumerate}
-    \item \textbf{On-Device Multi-Tier Inference}: Each edge client maintains a single shared convolutional backbone $\Phi_\theta$ extracting features for three linear classifier heads: a globally aggregated Root head ($W_r$), a cluster-level collaborative Parent head ($W_p$), and a private Local head ($W_l$).
-    \item \textbf{Interference Shielding via ACLM}: During on-device training, clients apply Active-Class Logit Masking (ACLM) on the cluster and local heads, masking out unobserved categories to prevent negative gradient updates from corrupting shared backbone representations. Skew-calibrated loss weighting smoothly balances the three tiers based on each client's empirical label entropy.
-    \item \textbf{Privacy-Preserving Peer Discovery}: Clients compress their collaborative Parent head parameter updates into low-dimensional random sketches ($\mathbf{s}_i$) using a shared Gaussian projection matrix. The server clusters these sketches to discover collaborative peer groups without inspecting private gradients or raw label distributions.
-    \item \textbf{Layered Subspace Byzantine Defense}: The server aggregates Root head updates and feature backbones through a three-stage defense: Subspace-Constrained Cosine Filtering (SCCF), adaptive update norm clipping, and multi-round Temporal Trust Tracking (TTT).
-\end{enumerate}
+\noindent\textbf{On-Device Multi-Tier Inference}: Each edge client maintains a single shared convolutional backbone $\Phi_\theta$ extracting features for three linear classifier heads: a globally aggregated Root head ($W_r$), a cluster-level collaborative Parent head ($W_p$), and a private Local head ($W_l$).
+
+\noindent\textbf{Interference Shielding via ACLM}: During on-device training, clients apply Active-Class Logit Masking (ACLM) on the cluster and local heads, masking out unobserved categories to prevent negative gradient updates from corrupting shared backbone representations. Skew-calibrated loss weighting smoothly balances the three tiers based on each client's empirical label entropy.
+
+\noindent\textbf{Privacy-Preserving Peer Discovery}: Clients compress their collaborative Parent head parameter updates into low-dimensional random sketches ($\mathbf{s}_i$) using a shared Gaussian projection matrix. The server clusters these sketches to discover collaborative peer groups without inspecting private gradients or raw label distributions.
+
+\noindent\textbf{Layered Subspace Byzantine Defense}: The server aggregates Root head updates and feature backbones through a three-stage defense: Subspace-Constrained Cosine Filtering (SCCF), adaptive update norm clipping, and multi-round Temporal Trust Tracking (TTT).
+
 
 \paragraph{Problem Formulation.}
 We consider a distributed federated network of $N$ heterogeneous edge clients $\mathcal{N} = \{1, \dots, N\}$. Each client $i$ possesses a private local training dataset $\mathcal{D}_i = \{(x_j, y_j)\}_{j=1}^{n_i}$ sampled from distribution $\mathcal{P}_i(x, y)$ over input space $\mathcal{X}$ and label space $\mathcal{Y} = \{0, 1, \dots, C-1\}$. We denote the subset of classes present on client $i$ by $\mathcal{Y}_i = \{y \in \mathcal{Y} \mid \exists (x, y) \in \mathcal{D}_i\}$. Under non-IID Dirichlet label partitioning, edge clients typically observe only a fraction of the total classes ($|\mathcal{Y}_i| \ll C$).
@@ -41,7 +43,7 @@ where $\mathbf{z}_i^{(h)} = W_h^\top \Phi_\theta(x) \in \mathbb{R}^C$ is the log
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/architecture.png}
-    \caption{\textbf{Overview of FedHEP Architecture.} (Left) On-device client with a single backbone, tripartite head ensemble, and Active-Class Logit Masking (ACLM). (Right) Server-side sketch clustering and layered subspace defense (SCCF + TTT).}
+    \caption{Overview of FedHEP Architecture. (Left) On-device client with a single backbone, tripartite head ensemble, and Active-Class Logit Masking (ACLM). (Right) Server-side sketch clustering and layered subspace defense (SCCF + TTT).}
     \label{fig:architecture}
 \end{figure*}
 
