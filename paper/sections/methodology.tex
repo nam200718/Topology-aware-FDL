@@ -19,7 +19,7 @@ We consider a distributed federated network of $N$ heterogeneous edge clients $\
 \paragraph{Threat Model.}
 We consider a Byzantine adversary controlling up to a fraction $q < 0.5$ of clients $\mathcal{M} \subset \mathcal{N}$ executing coordinated attacks~\cite{fang2020local,bhagoji2019analyzing,shejwalkar2021manipulating}:
 (1) \textit{Label Flipping}: malicious nodes map training labels symmetrically via $y \to C - 1 - y$;
-(2) \textit{Sign Flipping}: updates are inverted and scaled via $\Delta \mathbf{w} \to -\gamma \Delta \mathbf{w}$;
+(2) \textit{Sign Flipping}: updates are inverted and scaled via $\Delta \mathbf{w} \to -\gamma \Delta \mathbf{w}$ (with scaling factor $\gamma > 0$);
 (3) \textit{Gradient Ascent}: clients minimize the negative loss to actively maximize training error; and
 (4) \textit{Gaussian Noise}: updates are replaced with random Gaussian vectors $\mathcal{N}(0, \sigma^2 \mathbf{I})$.
 The central server maintains no clean proxy validation dataset and cannot inspect private client data.

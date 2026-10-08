@@ -1,11 +1,11 @@
 \begin{table}[t]
 \centering
-\caption{CIFAR-100 Byzantine Multi-Attack Robustness Matrix ($q \in \{0.0, 0.1, 0.2, 0.3, 0.4\}$). $\Delta(0 \to 0.3)$ denotes the accuracy change (in percentage points) from benign ($q=0.0$) to $30\%$ attackers ($q=0.3$).}
+\caption{CIFAR-100 Byzantine Multi-Attack Robustness Matrix ($q \in \{0.0, \dots, 0.4\}$). $\Delta_{0 \to 0.3}$ denotes the accuracy degradation (in percentage points) from benign ($q=0.0$) to $30\%$ attackers ($q=0.3$).}
 \label{tab:cifar100_byzantine}
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{llcccccc}
 \toprule
-\textbf{Attack Type} & \textbf{Method} & \textbf{q = 0.0} & \textbf{q = 0.1} & \textbf{q = 0.2} & \textbf{q = 0.3} & \textbf{q = 0.4} & \textbf{$\Delta(0 \to 0.3)$} \\
+\textbf{Attack Type} & \textbf{Method} & \textbf{q = 0.0} & \textbf{q = 0.1} & \textbf{q = 0.2} & \textbf{q = 0.3} & \textbf{q = 0.4} & \textbf{$\Delta_{0 \to 0.3}$} \\
 \midrule
 Label Flipping & FedAvg & 40.20\% & 37.63\% & 35.07\% & 26.82\% & 16.90\% & -13.38pp \\
 Label Flipping & Multi-Krum & 26.77\% & 25.70\% & 24.71\% & 16.59\% & 15.09\% & -10.18pp \\
