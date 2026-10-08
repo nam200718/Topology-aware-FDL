@@ -5,9 +5,9 @@ export PYTHONUNBUFFERED=1
 echo "=========================================================="
 echo "Starting Master Pipeline on RTX 4090: $(date)"
 echo "=========================================================="
-
-cd /workspace/Topology-aware-FDL
-
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 # -----------------------------------------------------------------
 # 1. 50-Client Scalability Benchmark (Table IV)
 # -----------------------------------------------------------------
@@ -39,9 +39,8 @@ python3 scripts/run_cifar100_ablation.py --rounds 25 --seeds 42 123 7 --force
 # 3. Packaging Artifacts
 # -----------------------------------------------------------------
 echo ">>> Packaging artifacts into zip..."
-mkdir -p /workspace/outputs
-cd /workspace/Topology-aware-FDL
-zip -r /workspace/outputs/scale50_and_ablation_artifacts.zip \
+mkdir -p "$PROJECT_ROOT/outputs"
+zip -r "$PROJECT_ROOT/outputs/scale50_and_ablation_artifacts.zip" \
   outputs/scale50 \
   outputs/scale_50clients_results.json \
   outputs/baselines/ablation

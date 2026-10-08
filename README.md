@@ -3,9 +3,12 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests: Passing](https://img.shields.io/badge/tests-94%2F94%20passing-brightgreen.svg)](tests/)
+[![Tests: 146 Passed](https://img.shields.io/badge/tests-146%20passed-brightgreen.svg)](tests/)
 
-* **Project Report:** See [`report/main.pdf`](report/main.pdf) (VinUniversity UROP Final Report).
+> **Supplementary Code & Artifact Evaluation Repository** accompanying the research paper:  
+> *"Hierarchical Ensemble Personalization for Parameter-Efficient Federated Learning"*
+> * **Pre-computed Experimental Artifacts:** Complete experimental results, raw CSVs, and figures are cataloged in [`outputs/`](outputs/).
+> * **Project Report:** See [`report/REPORT_nam/main.pdf`](report/REPORT_nam/main.pdf) (VinUniversity UROP Final Report).
 
 ---
 
@@ -181,6 +184,11 @@ Compresses Root-head updates ($2570$ dimensions) into a $256$-dimensional summar
 
 ```
 Topology-aware-FDL/
+|-- setup_env.sh                # Automated Linux/macOS virtualenv & dependency setup script
+|-- setup_gpu.ps1               # Automated Windows DirectML GPU setup script
+|-- pyproject.toml              # Project metadata & pyright / pytest settings
+|-- requirements.txt            # Python dependencies
+|-- main.py                     # Core CLI entrypoint
 |-- configs/                    # YAML experiment configurations
 |   |-- comparison.yaml         # Main 5-regime benchmark (FedAvg vs APFL vs Ditto vs FedHEP)
 |   |-- shard_cifar100_5regimes.yaml # CIFAR-100 full 5-regime sweep
@@ -191,11 +199,21 @@ Topology-aware-FDL/
 |   |-- test_1round.yaml        # Fast smoke test configuration
 |   |-- benchmarks/             # High-cardinality, scaling & baseline configs
 |   |-- ablations/              # Distillation, grouping & budget configs
-|   |-- byzantine/              # Attack & defense configs
-|   \-- archive/                # Historical & diagnostic configs
+|   \-- byzantine/              # Attack & defense configs
+|-- outputs/                    # Raw experimental outputs, logs & LaTeX tables
+|   |-- master_experimental_data.csv   # Consolidated master experimental results (CSV)
+|   |-- master_experimental_data.json  # Consolidated master experimental results (JSON)
+|   |-- tables/                 # Publication-ready LaTeX tables
+|   |-- section_5_2_femnist_personalization/
+|   |-- section_5_2_cifar100_personalization/
+|   |-- section_5_3_byzantine_robustness/
+|   |-- section_5_4_scalability_50clients/
+|   \-- section_5_5_mobilenet_simulated_edge/
 |-- src/
 |   |-- config.py               # Pydantic configuration schemas & FedHEP defaults
-|   |-- core/                   # Core FL engines, updaters, and models
+|   |-- baselines/              # Standard FL baseline implementations (FedAvg, FedProx, SCAFFOLD, etc.)
+|   |-- defense/                # SCCF defense, robust aggregation & trust tracking
+|   |-- core/                   # Core FL engines, updaters, loss functions, and models
 |   |   |-- model.py            # SimpleCNN, ResNet-9, MultiHeadResNet9, MobileNetV3
 |   |   |-- updater.py          # PyTorchLocalUpdater with ACLM & binomial weighting
 |   |   |-- hierarchical_ensemble_engine.py  # 3-tier ensemble controller
@@ -205,7 +223,8 @@ Topology-aware-FDL/
 |   |-- topologies/             # Dynamic topology graphs & clustering controllers
 |   \-- experiments/            # Experiment runner, logging, and plotting
 |-- scripts/
-|   |-- run_aamas_suite.py              # Unified master orchestrator (Jobs 1, 2, 3, 4, 5 & finalize)
+|   |-- run_aamas_suite.py              # Unified master orchestrator (Jobs 1-5 & finalize)
+|   |-- run_master_pipeline.sh          # End-to-end master shell pipeline
 |   |-- run_scale_50clients.py          # 50-client scalability benchmark (Job 3)
 |   |-- run_mobilenet_benchmark.py      # MobileNetV3-Small edge benchmark (Job 4)
 |   |-- profile_hardware_efficiency.py  # Hardware latency & peak VRAM profiler
@@ -215,20 +234,16 @@ Topology-aware-FDL/
 |   |-- run_calibration_distillation_ablation.py # Calibration & distillation ablation
 |   |-- run_epoch_budget_ablation.py    # Epoch budget compute fairness ablation
 |   |-- generate_all_tables.py          # Automated LaTeX table generation
+|   |-- plot_manuscript_figures.py      # Manuscript publication figures
 |   |-- make_paper_figures.py           # Paper figure generation
 |   |-- compute_multiseed_statistics.py # Multi-seed statistics aggregator
 |   |-- compute_significance.py         # Statistical significance testing
 |   |-- compute_dp_budget.py            # Differential privacy budget accountant
 |   |-- download_cifar.py               # Dataset download utility
-|   \-- archive/                        # Preserved historical experiment scripts
-|-- report/                     # UROP Final Report LaTeX source & compiled PDF
-|   |-- main.tex                # Report manuscript
-|   |-- main.pdf                # Compiled PDF report
-|   \-- references.bib          # Bibliography
-|-- tests/                      # 94 pytest unit tests
-|-- requirements.txt            # Dependency specifications
-|-- main.py                     # CLI entrypoint
+|   \-- build_section_modules.py        # Section results organizer
+|-- tests/                      # Pytest unit tests (146 passed)
 \-- README.md
+
 ```
 
 ---
@@ -237,29 +252,41 @@ Topology-aware-FDL/
 
 ### 1. Prerequisites
 * Python 3.10, 3.11, or 3.12
-* PyTorch 2.0+ with CUDA, ROCm, DirectML, or CPU support
+* PyTorch 2.0+ with CUDA, ROCm, DirectML, Apple MPS, or CPU support
 
 ### 2. Environment Setup
+
+#### Option A: Automated Setup (Linux / macOS)
 ```bash
-# Clone repository
+git clone https://github.com/nam200718/Topology-aware-FDL.git
+cd Topology-aware-FDL
+bash setup_env.sh
+```
+
+#### Option B: Standard Python Virtual Environment
+```bash
 git clone https://github.com/nam200718/Topology-aware-FDL.git
 cd Topology-aware-FDL
 
-# Create virtual environment
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate  # On Windows PowerShell: .\.venv\Scripts\Activate.ps1
 
-# Install dependencies
+pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
+```
+
+#### Option C: Windows AMD DirectML Setup
+```powershell
+powershell -ExecutionPolicy Bypass -File setup_gpu.ps1
 ```
 
 ### 3. Verify Test Suite
 ```bash
 pytest tests/ -q
 ```
-All **94 unit tests** should pass.
+All **146 unit tests** should pass.
 
-### 4. Run a Fast Smoke Test (1 Round)
+### 4. Fast Smoke Test (1 Round, < 60 seconds)
 ```bash
 python scripts/run_aamas_suite.py --smoke-test
 ```
@@ -313,6 +340,7 @@ python scripts/run_aamas_suite.py --smoke-test
 * **Finalize: LaTeX Tables & Figures Compilation**:
   ```bash
   python scripts/run_aamas_suite.py --job finalize
+  ```
 
 * **Cluster Count (K) Sensitivity & Bipartite Certification (Table VII)**:
   ```bash
@@ -334,15 +362,53 @@ python scripts/run_aamas_suite.py --smoke-test
   python scripts/run_calibration_distillation_ablation.py
   ```
 
-* **Master Strengthening Suite (Runs CIFAR-100, Scale-50, K-Sweep, Byzantine, and Budget Ablations sequentially)**:
+* **Master End-to-End Pipeline**:
   ```bash
-  python scripts/run_all_paper_experiments.py
+  bash scripts/run_master_pipeline.sh
   ```
 
 * **Render All Paper Figures**:
   ```bash
-  python scripts/make_paper_figures.py
+  python scripts/plot_manuscript_figures.py
   ```
+
+---
+
+## Direct Artifact Verification (No Re-computation Required)
+
+To inspect and verify experimental claims without re-running hundreds of GPU training hours, all raw metrics, convergence histories, per-round logs, and generated tables are stored in [`outputs/`](outputs/):
+
+* **Master Summary Tables**:
+  * `outputs/master_experimental_data.csv`: Unified tabular record of all algorithm benchmarks, seeds, and skew regimes.
+  * `outputs/master_experimental_data.json`: Full configuration metadata and client test accuracies.
+* **Per-Section Datasets & Standalone Plotting**:
+  * `outputs/section_5_2_cifar100_personalization/`: Multi-regime personalization curves and metrics on CIFAR-100.
+  * `outputs/section_5_2_femnist_personalization/`: Real-world writer non-IID personalization on FEMNIST.
+  * `outputs/section_5_3_byzantine_robustness/`: Multi-attack adversarial evaluation results across $f \in [0, 0.40]$.
+  * `outputs/section_5_4_scalability_50clients/`: 50-client scalability benchmark with partial participation.
+  * `outputs/section_5_5_mobilenet_simulated_edge/`: MobileNetV3 edge hardware profiling and accuracy metrics.
+* **Camera-Ready LaTeX Tables**:
+  * `outputs/tables/table1_femnist.tex`
+  * `outputs/tables/table2_cifar100.tex`
+  * `outputs/tables/table3_byzantine.tex`
+  * `outputs/tables/table4_scale50.tex`
+  * `outputs/tables/table5_hardware.tex`
+  * `outputs/tables/table6_ablation.tex`
+
+---
+
+## Citation & Contact
+
+If you find this codebase or paper helpful in your research, please cite:
+
+```bibtex
+@inproceedings{fedhep2027,
+  title     = {Hierarchical Ensemble Personalization for Parameter-Efficient Federated Learning},
+  author    = {Author, Anonymous},
+  booktitle = {Proceedings of the International Conference on Autonomous Agents and Multiagent Systems (AAMAS)},
+  year      = {2027}
+}
+```
 
 ---
 

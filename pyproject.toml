@@ -33,14 +33,10 @@ exclude = [
     ".venv*",
     "data",
     "outputs",
-    "notebook_training",
-    "colab",
-    "temp",
     "scratch",
-    "scripts/archive",
     "**/*.ipynb",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-norecursedirs = ["scripts/archive", "temp", "scratch", "data", "outputs", ".venv*"]
+norecursedirs = ["scratch", "data", "outputs", ".venv*"]
