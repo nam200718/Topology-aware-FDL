@@ -42,7 +42,7 @@ where $\mathbf{z}_i^{(h)} = W_h^\top \Phi_\theta(x) \in \mathbb{R}^C$ is the log
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.92\textwidth]{figures/architecture.png}
+    \includegraphics[width=0.92\textwidth]{figures/architecture.pdf}
     \caption{Overview of FedHEP Architecture. (Left) On-device client with a single backbone, tripartite head ensemble, and Active-Class Logit Masking (ACLM). (Right) Server-side sketch clustering and layered subspace defense (SCCF + TTT).}
     \label{fig:architecture}
 \end{figure*}
@@ -74,7 +74,7 @@ Because the true label belongs to the client's observed data ($y \in \mathcal{Y}
 \begin{equation}
 \frac{\partial \mathcal{L}_{\mathrm{CE}}}{\partial z_{i, c}} = 0 - 0 = 0, \quad \forall c \notin \mathcal{Y}_i.
 \end{equation}
-By the multivariate chain rule, the backpropagated gradient from classifier head $W \in \mathbb{R}^{d \times C}$ into the shared feature extractor $\Phi_\theta(x)$ is $\nabla_{\Phi_\theta(x)} \mathcal{L}_{\mathrm{CE}} = \sum_{c \in \mathcal{Y}} \frac{\partial \mathcal{L}_{\mathrm{CE}}}{\partial z_{i, c}} \mathbf{w}_c = \sum_{c \in \mathcal{Y}_i} \frac{\partial \mathcal{L}_{\mathrm{CE}}}{\partial z_{i, c}} \mathbf{w}_c + \mathbf{0}$, where $\mathbf{w}_c \in \mathbb{R}^d$ denotes the column of head weight matrix $W$ corresponding to class $c$. Consequently, unobserved categories contribute exactly zero gradient to the shared feature extractor, shielding shared representations from label-absence penalties.
+By the multivariate chain rule, the backpropagated gradient from classifier head $W \in \mathbb{R}^{d \times C}$ into the shared feature extractor $\Phi_\theta(x)$ is $\nabla_{\Phi_\theta(x)} \mathcal{L}_{\mathrm{CE}} = \sum_{c \in \mathcal{Y}} \frac{\partial \mathcal{L}_{\mathrm{CE}}}{\partial z_{i, c}} \mathbf{w}_c = \sum_{c \in \mathcal{Y}_i} \frac{\partial \mathcal{L}_{\mathrm{CE}}}{\partial z_{i, c}} \mathbf{w}_c + \mathbf{0}$, where $\mathbf{w}_c \in \mathbb{R}^d$ denotes the column of head weight matrix $W$ corresponding to class $c$. Consequently, unobserved categories contribute exactly zero gradient to the shared feature extractor from the Parent and Local heads, shielding shared representations from label-absence penalties.
 
 \paragraph{Skew-Calibrated Loss Weighting.}
 To balance the three classification tiers, each client dynamically weights its loss terms based on its local label skew. First, client $i$ computes its empirical label frequency vector $\mathbf{p}_i = [p_{i,0}, \dots, p_{i,C-1}]^\top$, where $p_{i,c} = \frac{|\{(x,y) \in \mathcal{D}_i : y = c\}|}{|\mathcal{D}_i|}$. The client then measures its normalized empirical entropy $H(\mathbf{p}_i) = -\sum_{c \in \mathcal{Y}_i} p_{i,c} \ln p_{i,c}$, defining its skew coefficient:
@@ -87,7 +87,7 @@ Under a uniform label distribution ($p_{i,c} = 1/C$ for all $c$), $\Rskew^{(i)} 
 To ensure that even specialized clients retain a non-zero anchor to global consensus, we define a baseline anchor $a_i = \max\left(\frac{1}{2K}, \frac{|\mathcal{Y}_i|}{C}\right)$, where $K$ is the number of peer clusters. Using degree-2 Bernstein basis polynomials~\cite{lorentz1953bernstein}, which provide a smooth partition of unity over $[0, 1]$, we compute unnormalized tier weights:
 \begin{equation}
 \label{eq:binomial_weights}
-\lambda_r = a_i + (1 - a_i)(\Rskew^{(i)})^2, \quad \lambda_p = 2\Rskew^{(i)}(1 - \Rskew^{(i)}), \quad \lambda_l = (1 - \Rskew^{(i)})^2.
+\lambda_r = a_i + (1 - a_i)(1 - \Rskew^{(i)})^2, \quad \lambda_p = 2\Rskew^{(i)}(1 - \Rskew^{(i)}), \quad \lambda_l = (\Rskew^{(i)})^2.
 \end{equation}
 As skew increases from $0$ to $1$, these polynomials smoothly transition model capacity from global consensus to peer and local heads. The normalized loss coefficients are obtained via $\alpha_h = \frac{\lambda_h}{\sum_{j \in \{r, p, l\}} \lambda_j}$ for $h \in \{r, p, l\}$, forming the composite local objective:
 \begin{equation}
