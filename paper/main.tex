@@ -5,6 +5,8 @@
 \let\Bbbk\relax
 \usepackage{amssymb}
 \usepackage{placeins} % Prevents tables/figures from floating past their sections
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
 
 %%% AAMAS-2027 copyright block (do not change!)
 \makeatletter
@@ -71,8 +73,10 @@
 % The authors would like to thank our advisors and lab members for their helpful discussions.
 \end{acks}
 
-%%% Balance columns on last page
+%%% Balance columns on page 8
 \balance
+
+\clearpage
 
 %%% References
 \bibliographystyle{ACM-Reference-Format}

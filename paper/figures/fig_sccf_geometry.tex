@@ -1,0 +1,99 @@
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    scale=0.85,
+    every node/.style={font=\scriptsize},
+    vector/.style={-Stealth, thick},
+    projline/.style={dashed, thick},
+    axis/.style={->, >=Stealth, thin, gray!60}
+]
+
+%%% --- SUBFIGURE (a): Full Classifier Parameter Space --- %%%
+\begin{scope}[shift={(0, 3.2)}]
+    % Coordinate Axes
+    \draw[axis] (-1.5, 0) -- (2.8, 0) node[right, black] {$\coords(\mathcal{Y}_i)$};
+    \draw[axis] (0, -0.4) -- (0, 2.1) node[above, black] {$\coords(\mathcal{Y} \setminus \mathcal{Y}_i)$};
+    \node[below left, gray!60] at (0,0) {$0$};
+
+    % Euclidean Acceptance Ball around Consensus
+    \draw[dashed, draw=blue!40!gray, fill=blue!5, fill opacity=0.5, thick] (1.3, 1.3) circle [radius=0.7];
+    \node[font=\tiny, text=blue!70!black, align=center, text width=1.5cm] at (1.3, 1.6) {Euclidean\\Acceptance};
+
+    % Consensus Vector c^(t)
+    \draw[vector, draw=blue!75!black, very thick] (0, 0) -- (1.3, 1.3)
+        node[above left=1pt, text=blue!85!black] {$\mathbf{c}^{(t)}$};
+
+    % Angle Arc
+    \draw[draw=black!70, thin] (0.5, 0.03) arc (3:45:0.5);
+    \node[font=\tiny, text=black!80] at (0.85, 0.3) {$\theta_{\mathrm{full}} \gg 0$};
+
+    % Honest Client Vector \Delta w_i (sparse active support, minimal orthogonal component)
+    \draw[vector, draw=green!60!black, very thick] (0, 0) -- (2.3, 0.15)
+        node[above right=1pt, text=green!60!black] {$\Delta \mathbf{w}_i$};
+    % Outlier Badge
+    \node[font=\tiny\bfseries, text=red!75!black, fill=red!6, draw=red!40, rounded corners=2pt, inner sep=1.5pt] 
+        at (2.1, -0.32) {$\times$ False Outlier in $\ell_2$};
+
+    % Byzantine Attacker Vector \Delta w_byz
+    \draw[vector, draw=red!75!black, very thick] (0, 0) -- (-1.0, 1.1)
+        node[above left=1pt, text=red!80!black] {$\Delta \mathbf{w}_{\mathrm{byz}}$};
+
+    % Subfigure Label & Concise Explanation (a)
+    \node[font=\footnotesize, text=black, align=center, text width=7.4cm] at (0.65, -0.75) {
+        \textbf{(a) Full Parameter Space $\mathbb{R}^D$ (Euclidean Failure)}\\
+        \textit{Honest non-IID updates appear distant from consensus, triggering false rejection.}
+    };
+\end{scope}
+
+%%% --- SUBFIGURE (b): Observed Class Subspace S_i --- %%%
+\begin{scope}[shift={(0, 0)}]
+    % Subspace band S_i
+    \fill[green!15, opacity=0.5, rounded corners=2pt] (-1.5, -0.22) rectangle (2.8, 0.22);
+    \draw[axis, line width=1.0pt, green!60!black] (-1.5, 0) -- (2.8, 0) node[right, green!60!black] {$\mathcal{S}_i$};
+    \draw[axis, dashed, gray!40] (0, -0.4) -- (0, 1.9) node[above, gray!60] {$\mathcal{S}_i^\perp$};
+    \node[below left, gray!60] at (0,0) {$0$};
+
+    % Faint full-space reference vectors
+    \draw[vector, draw=blue!30, thin, dashed] (0, 0) -- (1.3, 1.3);
+    \draw[vector, draw=green!35, thin, dashed] (0, 0) -- (2.3, 0.15);
+    \draw[vector, draw=red!30, thin, dashed] (0, 0) -- (-1.0, 1.1);
+
+    % Downward Orthogonal Projections via P_{S_i}
+    \draw[projline, draw=blue!65, -{Stealth[length=3.5pt]}] (1.3, 1.25) -- (1.3, 0.08)
+        node[midway, right=1pt, font=\tiny, text=blue!75] {$\mathbf{P}_{\mathcal{S}_i}$};
+    \draw[projline, draw=green!60!black, -{Stealth[length=3.5pt]}] (2.3, 0.15) -- (2.3, 0.08);
+    \draw[projline, draw=red!65, -{Stealth[length=3.5pt]}] (-1.0, 1.05) -- (-1.0, 0.08)
+        node[midway, left=1pt, font=\tiny, text=red!75] {$\mathbf{P}_{\mathcal{S}_i}$};
+
+    % Projected Vectors on S_i
+    % Projected Consensus P_{S_i} c^(t) (offset slightly below axis)
+    \draw[vector, draw=blue!75!black, very thick] (0, -0.06) -- (1.3, -0.06)
+        node[below=2pt, text=blue!85!black] {$\mathbf{P}_{\mathcal{S}_i}\mathbf{c}^{(t)}$};
+
+    % Projected Honest Update P_{S_i} \Delta w_i (offset slightly above axis)
+    \draw[vector, draw=green!60!black, very thick] (0, 0.06) -- (2.3, 0.06)
+        node[above=2pt, text=green!60!black] {$\mathbf{P}_{\mathcal{S}_i}\Delta \mathbf{w}_i$};
+
+    % Cosine Alignment Annotation
+    \node[font=\tiny\bfseries, text=green!60!black, fill=white, draw=green!40, inner sep=1.5pt, rounded corners=2pt] 
+        at (1.8, 0.65) {$\cos \approx 1 \implies$ High Trust $\tau_i^{(t)}$};
+
+    % Projected Byzantine Update (along negative axis)
+    \draw[vector, draw=red!75!black, very thick] (0, 0) -- (-1.0, 0)
+        node[below=2pt, text=red!80!black] {$\mathbf{P}_{\mathcal{S}_i}\Delta \mathbf{w}_{\mathrm{byz}}$};
+
+    % Byzantine Rejection Annotation
+    \node[font=\tiny\bfseries, text=red!75!black, fill=white, draw=red!40, inner sep=1.5pt, rounded corners=2pt] 
+        at (-0.8, 0.65) {$\cos \le 0 \implies$ Filtered};
+
+    % Subfigure Label & Concise Explanation (b)
+    \node[font=\footnotesize, text=black, align=center, text width=7.4cm] at (0.65, -0.75) {
+        \textbf{(b) Observed Class Subspace $\mathcal{S}_i$ (SCCF Alignment)}\\
+        \textit{Subspace projection isolates shared support: honest updates align, attacks separate.}
+    };
+\end{scope}
+
+\end{tikzpicture}
+\caption{\textbf{Geometric Intuition of Subspace-Constrained Cosine Filtering (SCCF).} (a) In full parameter space $\mathbb{R}^D$, an honest client with non-IID label skew ($\mathcal{Y}_i \subset \mathcal{Y}$) updates primarily along active coordinates $\coords(\mathcal{Y}_i)$, creating large Euclidean distance to consensus $\mathbf{c}^{(t)}$ and triggering false rejection. (b) Projecting via $\mathbf{P}_{\mathcal{S}_i}$ onto active subspace $\mathcal{S}_i$ removes unobserved dimensions: honest updates align with consensus ($\cos \approx 1$, high trust $\tau_i^{(t)}$), while Byzantine attacks remain separated.}
+\label{fig:sccf_geometry}
+\end{figure}
