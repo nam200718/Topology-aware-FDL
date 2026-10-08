@@ -5,42 +5,42 @@
     every node/.style={font=\scriptsize},
     vector/.style={-Stealth, thick},
     projline/.style={dashed, thick},
-    axis/.style={->, >=Stealth, thin, gray!60}
+    axis/.style={->, >=Stealth, semithick, black}
 ]
 
 %%% --- SUBFIGURE (a): Full Classifier Parameter Space --- %%%
 \begin{scope}[shift={(0, 0)}]
-    % Coordinate Axes
-    \draw[axis] (-1.1, 0) -- (2.3, 0) node[right, black, font=\tiny] {$\coords(\mathcal{Y}_i)$};
+    % Coordinate Axes (crisp black)
+    \draw[axis] (-1.1, 0) -- (2.35, 0) node[right, black, font=\tiny] {$\coords(\mathcal{Y}_i)$};
     \draw[axis] (0, -0.3) -- (0, 1.85) node[above, black, font=\tiny] {$\coords(\mathcal{Y} \setminus \mathcal{Y}_i)$};
-    \node[below left, gray!60, font=\tiny, inner sep=1pt] at (0,0) {$0$};
+    \node[below left, black, font=\tiny, inner sep=1pt] at (0,0) {$0$};
 
     % Euclidean Acceptance Ball around Consensus
-    \draw[dashed, draw=blue!40!gray, fill=blue!5, fill opacity=0.5, thick] (1.1, 1.1) circle [radius=0.52];
+    \draw[dashed, draw=blue!40!gray, fill=blue!5, fill opacity=0.5, thick] (1.1, 1.1) circle [radius=0.48];
     \node[font=\tiny, text=blue!75!black, align=center] at (1.1, 1.35) {$\ell_2$\\acceptance};
 
     % Consensus Vector c^(t)
     \draw[vector, draw=blue!75!black, very thick] (0, 0) -- (1.1, 1.1);
     \node[above left=1pt, text=blue!85!black, font=\tiny] at (0.55, 0.55) {$\mathbf{c}^{(t)}$};
 
-    % Angle Arc
-    \draw[draw=black!70, thin] (0.4, 0.02) arc (3:45:0.4);
-    \node[font=\tiny, text=black!80] at (0.68, 0.20) {$\theta_{\mathrm{full}} \gg 0$};
+    % Angle Arc (compact radius 0.28 so it never overlaps label)
+    \draw[draw=black, thin] (0.28, 0.02) arc (3:45:0.28);
+    \node[font=\tiny, text=black] at (0.72, 0.22) {$\theta_{\mathrm{full}} \gg 0$};
 
     % Honest Client Vector \Delta w_i
-    \draw[vector, draw=green!60!black, very thick] (0, 0) -- (1.85, 0.12)
-        node[above=1pt, text=green!60!black, font=\tiny] at (1.45, 0.12) {$\Delta \mathbf{w}_i$};
+    \draw[vector, draw=green!60!black, very thick] (0, 0) -- (1.85, 0.12);
+    \node[above=1pt, text=green!60!black, font=\tiny] at (1.25, 0.14) {$\Delta \mathbf{w}_i$};
 
-    % Outlier Badge (in clear space above \Delta w_i, right of acceptance ball)
-    \node[font=\tiny, text=red!75!black, fill=red!6, draw=red!40, rounded corners=2pt, inner sep=1.2pt] 
-        at (1.85, 0.55) {$\times$ False Outlier in $\ell_2$};
+    % Outlier Badge (compact 2-line badge placed at (2.15, 0.52) to completely clear acceptance circle and \Delta w_i)
+    \node[font=\tiny, text=red!75!black, fill=red!6, draw=red!40, rounded corners=2pt, inner sep=1.2pt, align=center] 
+        at (2.15, 0.52) {$\times$ False Outlier\\in $\ell_2$};
 
     % Byzantine Attacker Vector \Delta w_byz
     \draw[vector, draw=red!75!black, very thick] (0, 0) -- (-0.75, 0.8)
         node[above=2pt, text=red!80!black, font=\tiny] {$\Delta \mathbf{w}_{\mathrm{byz}}$};
 
     % Subfigure Label (a)
-    \node[font=\scriptsize, text=black, align=center] at (0.55, -0.75) {
+    \node[font=\scriptsize, text=black, align=center] at (0.55, -0.90) {
         (a) Full parameter space $\mathbb{R}^D$\\
         (Euclidean failure)
     };
@@ -49,16 +49,16 @@
 %%% --- SUBFIGURE (b): Observed Class Subspace S_i --- %%%
 \begin{scope}[shift={(4.8, 0)}]
     % Subspace band S_i
-    \fill[green!15, opacity=0.5, rounded corners=2pt] (-1.1, -0.15) rectangle (2.2, 0.15);
-    \draw[axis, line width=1.0pt, green!60!black] (-1.1, 0) -- (2.2, 0) node[right, green!60!black, font=\tiny] {$\mathcal{S}_i$};
-    \draw[axis, dashed, gray!40] (0, -0.3) -- (0, 1.55) node[above, gray!60, font=\tiny] {$\mathcal{S}_i^\perp$};
-    \node[below left, gray!60, font=\tiny, inner sep=1pt] at (0,0) {$0$};
+    \fill[green!18, opacity=0.6, rounded corners=2pt] (-1.1, -0.15) rectangle (2.2, 0.15);
+    \draw[axis, line width=1.0pt, black] (-1.1, 0) -- (2.2, 0) node[right, black, font=\tiny] {$\mathcal{S}_i$};
+    \draw[axis, dashed, black] (0, -0.3) -- (0, 1.55) node[above, black, font=\tiny] {$\mathcal{S}_i^\perp$};
+    \node[below, black, font=\tiny, inner sep=1pt] at (0, -0.08) {$0$};
 
-    % Outcome Badges placed at top with clear separation
+    % Outcome Badges placed at top with -> instead of => for compact clarity
     \node[font=\tiny, text=red!75!black, fill=white, draw=red!40, inner sep=1.2pt, rounded corners=2pt] 
-        at (-0.95, 1.35) {$\cos \le 0 \implies \text{Filtered}$};
+        at (-0.85, 1.35) {$\cos \le 0 \to \text{Filtered}$};
     \node[font=\tiny, text=green!60!black, fill=white, draw=green!40, inner sep=1.2pt, rounded corners=2pt] 
-        at (1.45, 1.35) {$\cos \approx 1 \implies \text{High Trust } \tau_i^{(t)}$};
+        at (1.35, 1.35) {$\cos \approx 1 \to \text{High Trust } \tau_i^{(t)}$};
 
     % Faint full-space reference vectors
     \draw[vector, draw=blue!30, thin, dashed] (0, 0) -- (1.1, 1.1);
@@ -73,18 +73,18 @@
     % Projected Vectors on S_i
     % Projected Byzantine
     \draw[vector, draw=red!75!black, very thick] (0, 0) -- (-0.75, 0);
-    \node[above=1pt, text=red!80!black, font=\tiny] at (-0.45, 0.06) {$\mathbf{P}_{\mathcal{S}_i}\Delta \mathbf{w}_{\mathrm{byz}}$};
+    \node[below=2pt, text=red!80!black, font=\tiny] at (-0.48, -0.05) {$\mathbf{P}_{\mathcal{S}_i}\Delta \mathbf{w}_{\mathrm{byz}}$};
 
     % Projected Consensus
     \draw[vector, draw=blue!75!black, very thick] (0, -0.05) -- (1.1, -0.05);
-    \node[below=1.5pt, text=blue!85!black, font=\tiny] at (0.55, -0.06) {$\mathbf{P}_{\mathcal{S}_i}\mathbf{c}^{(t)}$};
+    \node[below=2pt, text=blue!85!black, font=\tiny] at (0.55, -0.05) {$\mathbf{P}_{\mathcal{S}_i}\mathbf{c}^{(t)}$};
 
     % Projected Honest
     \draw[vector, draw=green!60!black, very thick] (0, 0.05) -- (1.85, 0.05);
     \node[above=1pt, text=green!60!black, font=\tiny] at (1.55, 0.06) {$\mathbf{P}_{\mathcal{S}_i}\Delta \mathbf{w}_i$};
 
     % Subfigure Label (b)
-    \node[font=\scriptsize, text=black, align=center] at (0.55, -0.75) {
+    \node[font=\scriptsize, text=black, align=center] at (0.55, -0.90) {
         (b) Observed class subspace $\mathcal{S}_i$\\
         (SCCF alignment)
     };
