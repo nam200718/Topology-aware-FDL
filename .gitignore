@@ -185,4 +185,10 @@ scratch/
 *.toc
 *.fls
 *.fdb_latexmk
-*.synctex.gz
+*.synctex*
+paper/main.pdf
+
+# Windows ADS metadata files
+*:Zone.Identifier*
+*Zone.Identifier*
+

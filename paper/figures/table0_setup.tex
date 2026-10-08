@@ -14,15 +14,17 @@
 \midrule
 \textbf{Model Backbones} & ResNet-9~\cite{he2016deep} ($1.65\mathrm{M}$ params), MobileNetV3-Small~\cite{howard2019searching} ($1.53\mathrm{M}$) \\
 \midrule
-\textbf{FL Baselines} & FedAvg~\cite{mcmahan2017communication}, FedProx~\cite{li2020federated} ($\mu=0.01$), SCAFFOLD~\cite{karimireddy2020scaffold}, Multi-Krum~\cite{blanchard2017machine}, Ditto~\cite{li2021ditto} ($\lambda=0.05$), FedRep~\cite{collins2021exploiting} \\
+\textbf{FL Baselines} & \textit{Consensus}: FedAvg~\cite{mcmahan2017communication}, FedProx~\cite{li2020federated} ($\mu=0.01$), SCAFFOLD~\cite{karimireddy2020scaffold}; \\
+                           & \textit{Personalized}: Ditto~\cite{li2021ditto} ($\lambda=0.05$), FedRep~\cite{collins2021exploiting}; \\
+                           & \textit{Byzantine-Robust}: Multi-Krum~\cite{blanchard2017machine} \\
 \midrule
-\textbf{Threat Models ($q \le 0.4$)} & Label Flip, Sign Flip, Gradient Ascent, Gaussian Noise~\cite{fang2020local} \\
+\textbf{Threat Models ($q \le 0.4$)} & Label Flip, Sign Flip, Gradient Ascent, Gaussian Noise~\cite{fang2020local,bhagoji2019analyzing,shejwalkar2021manipulating} \\
 \midrule
 \textbf{Training Hyperparameters} & Local epochs $E=3$, Batch size $B \in \{32, 64\}$, SGD w/ momentum $0.9$, $\eta \in [0.02, 0.05]$, Weight decay $5 \times 10^{-4}$ \\
 \midrule
 \textbf{Communication Budget} & Rounds $R \in \{25, 30, 40\}$, 3 seeds $\{42, 123, 7\}$ \\
 \midrule
-\textbf{Evaluation Metrics} & Personalized Top-1 Accuracy (\%), Bottom-10\% Tail Fairness~\cite{li2020fair} (\%), Peak VRAM (MB), Latency (ms) \\
+\textbf{Evaluation Metrics} & Local Test Accuracy (\%), Bottom-10\% Tail Fairness~\cite{li2020fair} (\%), Peak VRAM (MB), Latency (ms) \\
 \bottomrule
 \end{tabular}
 }
