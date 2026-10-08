@@ -40,19 +40,27 @@ for idx, (m_orig, m_disp) in enumerate(zip(methods_orig, methods_disp)):
         bars_dict1[s_idx].append((m_disp, bars1[s_idx]))
         bars_dict2[s_idx].append((m_disp, bars2[s_idx]))
 
-# Only highlight the number of FedHEP data and the highest one (if it is not FedHEP)
+# Bold FedHEP, and bold the highest number if it is not FedHEP too; others in normal weight
 for s_idx in range(len(scenarios)):
     max_b1 = max(bars_dict1[s_idx], key=lambda t: t[1].get_height())
     for m_disp, bar in bars_dict1[s_idx]:
-        if m_disp == 'FedHEP' or bar == max_b1[1]:
-            yval = bar.get_height()
-            ax1.text(bar.get_x() + bar.get_width()/2.0, yval + 0.4, f"{yval:.1f}", ha='center', va='bottom', fontsize=5.0, fontweight='bold')
+        yval = bar.get_height()
+        is_highlight = (m_disp == 'FedHEP') or (bar == max_b1[1])
+        weight = 'bold' if is_highlight else 'normal'
+        size = 4.6 if is_highlight else 4.2
+        color = '#000000' if is_highlight else '#222222'
+        ax1.text(bar.get_x() + bar.get_width()/2.0, yval + 0.4, f"{yval:.1f}",
+                 ha='center', va='bottom', fontsize=size, fontweight=weight, color=color)
 
     max_b2 = max(bars_dict2[s_idx], key=lambda t: t[1].get_height())
     for m_disp, bar in bars_dict2[s_idx]:
-        if m_disp == 'FedHEP' or bar == max_b2[1]:
-            yval = bar.get_height()
-            ax2.text(bar.get_x() + bar.get_width()/2.0, yval + 0.3, f"{yval:.1f}", ha='center', va='bottom', fontsize=5.0, fontweight='bold')
+        yval = bar.get_height()
+        is_highlight = (m_disp == 'FedHEP') or (bar == max_b2[1])
+        weight = 'bold' if is_highlight else 'normal'
+        size = 4.6 if is_highlight else 4.2
+        color = '#000000' if is_highlight else '#222222'
+        ax2.text(bar.get_x() + bar.get_width()/2.0, yval + 0.3, f"{yval:.1f}",
+                 ha='center', va='bottom', fontsize=size, fontweight=weight, color=color)
 
 # Zero titles: rely on LaTeX caption
 ax1.set_xticks(x)
