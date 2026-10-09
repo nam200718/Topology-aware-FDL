@@ -6,10 +6,9 @@
 [![Conference: AAMAS 2027](https://img.shields.io/badge/AAMAS-2027-purple.svg)](https://aamas2027.org)
 
 > **Official Supplementary Code & Experimental Artifact Repository** accompanying the paper:  
-> *"FedHEP: Efficient Hierarchical Ensemble Personalization in Federated Learning"*  
-> **Target Venue**: *The 26th International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2027)*, Hanoi, Vietnam.  
-> **Camera-Ready LaTeX Manuscript**: Located in [`paper/`](paper/) (compiles to strictly 9-page [`paper/main.pdf`](paper/main.pdf)).  
-> **Master Experimental Data**: Audited results stored in [`outputs/master_experimental_data.json`](outputs/master_experimental_data.json) and [`outputs/master_experimental_data.csv`](outputs/master_experimental_data.csv).
+> *"FedHEP: Efficient Hierarchical Ensemble Personalization in Federated Learning"*   
+> **LaTeX Manuscript**: Located in [`paper/`](paper/) (compiles to strictly 9-page [`paper/main.pdf`](paper/main.pdf)).  
+> **Experimental Data**: Audited results stored in [`outputs/master_experimental_data.json`](outputs/master_experimental_data.json) and [`outputs/master_experimental_data.csv`](outputs/master_experimental_data.csv).
 
 ---
 
@@ -51,37 +50,12 @@ Evaluations across **FEMNIST** (62 classes) and **CIFAR-100** (100 classes) acro
 
 ## Key Innovations & Architecture
 
-```
-+----------------------------------------------------------------------------------------------------+
-|                                    CENTRAL FEDERATED SERVER                                        |
-|  [Layered Subspace Byzantine Defense]                      [Consensus Aggregation & Broadcast]     |
-|   - Subspace Cosine Filtering (SCCF)                        - Backbone Extractor Phi_theta         |
-|   - Adaptive Q1 Norm-Bounding                               - Global Root Head W_r                 |
-|   - Temporal Trust Tracking (TTT)                           - Dynamic Spherical k-Means Clustering |
-+----------------------------------------------------------------------------------------------------+
-                                      |                                   |
-                  Consensus Broadcast |                                   | Privacy Sketches (s_i)
-                                      v                                   v
-+----------------------------------------------------------------------------------------------------+
-|                                  COLLABORATIVE PEER CLUSTERS                                       |
-|     Cohort C_1 (Parent Head W_p,1)   ...   Cohort C_k (Parent Head W_p,k)   ...   Cohort C_K        |
-+----------------------------------------------------------------------------------------------------+
-                                      |                                   |
-                                      +-----------------+-----------------+
-                                                        |
-                                                        v
-+----------------------------------------------------------------------------------------------------+
-|                                        EDGE CLIENT (On-Device)                                     |
-|                                                                                                    |
-|  [Local Data D_i] ---> [Shared Backbone Phi_theta] --+---> [Root Head W_r]   (Global Consensus)    |
-|   (Label Skew r_skew)                                +---> [Parent Head W_p] (Cluster Synced)      |
-|                                                      +---> [Local Head W_l]  (Private On-Device)   |
-|                                                                                                    |
-|  Mechanics:                                                                                        |
-|  * Active-Class Logit Masking (ACLM): Zero-gradient shielding on unobserved classes                |
-|  * Skew-Calibrated Head Ensemble: Entropy-weighted inference prediction z_ens                      |
-+----------------------------------------------------------------------------------------------------+
-```
+<p align="center">
+  <img src="paper/figures/fedhep_hierarchy_figure.png" width="100%" alt="FedHEP System Architecture & Tripartite Hierarchy">
+</p>
+<p align="center">
+  <em>Overview of the FedHEP tripartite framework coordinating global consensus, peer affinity clustering, and private local edge heads under Byzantine-resilient subspace filtering.</em>
+</p>
 
 ---
 
