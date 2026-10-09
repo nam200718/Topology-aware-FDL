@@ -1,0 +1,391 @@
+\documentclass[tikz,border=1pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,shapes.geometric}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+
+% Path to vector/PDF icons
+\graphicspath{{../PDF_img/}{PDF_img/}}
+
+% Publication-grade font hierarchy for AAMAS (Clean Computer Modern)
+\newcommand{\cardTitleFont}{\fontsize{7.2}{8.2}\selectfont\bfseries}
+\newcommand{\cardSubtitleFont}{\fontsize{5.0}{5.8}\selectfont\itshape}
+\newcommand{\subheadFont}{\fontsize{6.0}{6.8}\selectfont\bfseries}
+\newcommand{\bodyFont}{\fontsize{5.2}{5.8}\selectfont}
+\newcommand{\subtitleFont}{\fontsize{5.0}{5.6}\selectfont}  % Unified unbolded subtitle font across all tiers
+\newcommand{\tinyFont}{\fontsize{4.6}{5.2}\selectfont}
+
+\begin{document}
+\begin{tikzpicture}[>=Latex]
+
+% =============================================================================
+% COLOR PALETTE (Strict high-contrast pure black typography)
+% =============================================================================
+\definecolor{ink}{RGB}{15,23,42}            % Pure crisp black ink for all body text
+\definecolor{borderSlate}{RGB}{148,163,184} % Crisp outer borders
+\definecolor{cardBg}{RGB}{255,255,255}      % Clean white canvas
+\definecolor{dividerLine}{RGB}{203,213,225} % Internal dividers
+
+\definecolor{redFed}{RGB}{220,38,38}
+\definecolor{redDark}{RGB}{153,27,27}
+\definecolor{redLight}{RGB}{254,242,242}
+
+\definecolor{amberFed}{RGB}{217,119,6}
+\definecolor{amberDark}{RGB}{146,64,14}
+\definecolor{amberLight}{RGB}{254,243,199}
+
+\definecolor{blueFed}{RGB}{37,99,235}
+\definecolor{blueDark}{RGB}{29,78,216}
+\definecolor{blueLight}{RGB}{239,246,255}
+
+\definecolor{greenFed}{RGB}{16,149,117}
+\definecolor{greenDark}{RGB}{15,118,110}
+\definecolor{greenLight}{RGB}{240,253,250}
+
+\definecolor{purpleFed}{RGB}{124,58,237}
+\definecolor{purpleDark}{RGB}{109,40,217}
+\definecolor{purpleLight}{RGB}{245,243,255}
+
+% =============================================================================
+% STYLE DEFINITIONS
+% =============================================================================
+\tikzset{
+  outerBox/.style={
+    fill=cardBg, draw=borderSlate!70, line width=0.65pt, rounded corners=4.5pt
+  },
+  cohortBox/.style={
+    fill=cardBg, draw=purpleFed!55, line width=0.65pt, rounded corners=4.5pt
+  },
+  legendBox/.style={
+    fill=cardBg, draw=borderSlate!55, line width=0.55pt, rounded corners=3.5pt
+  },
+  blueArrow/.style={
+    ->, draw=blueFed, line width=0.70pt, >={Latex[length=2.2mm,width=1.4mm]}
+  },
+  greenArrow/.style={
+    ->, draw=greenFed, line width=0.75pt, >={Latex[length=2.0mm,width=1.3mm]}
+  },
+  purpleArrow/.style={
+    ->, draw=purpleFed, line width=0.75pt, dashed, >={Latex[length=2.2mm,width=1.4mm]}
+  },
+  cohortLine/.style={
+    draw=ink!70, line width=0.70pt
+  }
+}
+
+% =============================================================================
+% 1. TOP-LEFT TIER: "CLIENT-SIDE ARCHITECTURE"
+%    x: 0.30 -> 5.50, y: 6.00 -> 10.85 (Width: 5.20cm, Height: 4.85cm)
+%    Perfect horizontal alignment with Central Federated Server baseline (y = 6.00)
+% =============================================================================
+\node[outerBox, minimum width=5.20cm, minimum height=4.85cm, anchor=south west]
+  (clientCard) at (0.30, 6.00) {};
+
+% Card Title & Subtitle: tight leading
+\node[anchor=north west, align=left] at (0.50, 10.68) {
+  {\cardTitleFont\color{ink} Client-Side Architecture}\\[-4.0pt]
+  {\cardSubtitleFont\color{ink} Single Backbone $\Phi_\theta$}
+};
+
+% Component 1: Local Dataset Icon placed at y = 9.20 & x = 0.90
+\node[anchor=center, inner sep=0pt] (iconData) at (0.90, 9.20)
+  {\includegraphics[height=0.66cm]{data.pdf}};
+% Wrapped "Local Data" with snug subtitle font
+\node[anchor=north, align=center] at (0.90, 8.82) {
+  {\subheadFont\color{amberDark} Local}\\[-3.0pt]
+  {\subheadFont\color{amberDark} Data}\\[-4.2pt]
+  {\subtitleFont\color{ink} Skew $\mathcal{D}_i$}
+};
+
+% Horizontal forward arrow from Data to Backbone
+\draw[greenArrow] (1.22, 9.20) -- (1.72, 9.20);
+
+% Component 2: Single Backbone Extractor Icon placed at y = 9.20 & x = 2.10
+\node[anchor=center, inner sep=0pt] (iconBackbone) at (2.10, 9.20)
+  {\includegraphics[height=0.70cm]{Backbone.pdf}};
+\node[anchor=north, align=center] at (2.10, 8.82) {
+  {\subheadFont\color{ink} Backbone}\\[-4.2pt]
+  {\subtitleFont\color{ink} Extractor $\Phi_\theta$}
+};
+
+% Tripartite Heads: Root, Parent, Local (Shifted to x = 3.05)
+% Root Head (y = 9.72): Wr badge + text
+\node[inner sep=1.8pt, rounded corners=2.2pt, draw=ink!80, fill=borderSlate!35, line width=0.55pt]
+  (dotRoot) at (3.15, 9.72) {\fontsize{4.6}{5.2}\selectfont\bfseries\color{ink} $W_r$};
+\node[anchor=west, align=left] (rootHeadNode) at (3.35, 9.72) {
+  {\subheadFont\color{ink} Root Head}\\[-4.2pt]
+  {\subtitleFont\color{ink} Global Consensus}
+};
+
+% Parent Head (y = 9.20): Wp badge + text (Cluster Synced)
+\node[inner sep=1.8pt, rounded corners=2.2pt, draw=ink!80, fill=borderSlate!35, line width=0.55pt]
+  (dotParent) at (3.15, 9.20) {\fontsize{4.6}{5.2}\selectfont\bfseries\color{ink} $W_p$};
+\node[anchor=west, align=left] (parentHeadNode) at (3.35, 9.20) {
+  {\subheadFont\color{ink} Parent Head}\\[-4.2pt]
+  {\subtitleFont\color{ink} Cluster Synced}
+};
+
+% Local Head (y = 8.68): Wl badge + text
+\node[inner sep=1.8pt, rounded corners=2.2pt, draw=ink!80, fill=borderSlate!35, line width=0.55pt]
+  (dotLocal) at (3.15, 8.68) {\fontsize{4.6}{5.2}\selectfont\bfseries\color{ink} $W_l$};
+\node[anchor=west, align=left] (localHeadNode) at (3.35, 8.68) {
+  {\subheadFont\color{ink} Local Head}\\[-4.2pt]
+  {\subtitleFont\color{ink} Private Local}
+};
+
+% Branching green arrows: Direct diagonal fan-out from Backbone to Heads (rẽ nhánh giống peer cluster)
+\draw[greenArrow] (2.42, 9.20) -- (dotRoot.west);
+\draw[greenArrow] (2.42, 9.20) -- (dotParent.west);
+\draw[greenArrow] (2.42, 9.20) -- (dotLocal.west);
+
+% Internal Divider Line relocated to y = 7.82 (Clearance below Skew Di, zero slicing)
+\draw[draw=borderSlate!60, line width=0.45pt] (0.45, 7.62) -- (5.35, 7.62);
+
+% Client Defense & Inference in a unified perfectly spaced block
+\node[anchor=north west, align=left] at (0.48, 7.62) {
+  \includegraphics[height=0.20cm]{lock.pdf}\;{\subheadFont\color{greenDark} ACLM Masking}\\[-4.0pt]
+  {\subtitleFont\color{ink} Zero-gradient shielding on unobserved classes}\\[3.5pt]
+  {\subheadFont\color{blueDark} $\bullet$\;Skew Head Ensemble}\\[-4.0pt]
+  {\subtitleFont\color{ink} Entropy-weighted inference prediction $\mathbf{z}_{\mathrm{ens}}$}
+};
+
+% =============================================================================
+% 2. INTER-TIER PRIVACY ARTIFACT: "JL SKETCH" BOX
+%    Icon enlarged (0.48cm), box compacted, un  bolded subtitle
+%    Aligned horizontally with Parent Head & Wp at y = 9.20, x = 6.40
+% =============================================================================
+\node[fill=white, draw=purpleFed!80, rounded corners=3pt, line width=0.6pt, inner sep=2.5pt, align=center]
+  (jlBox) at (6.40, 9.20) {
+    \includegraphics[height=0.48cm]{box.pdf}\\[-2.0pt]
+    {\subtitleFont\color{purpleDark} JL Sketch}
+  };
+
+% Direct horizontal connection from right edge of Parent Head text into JL Sketch
+\draw[purpleArrow, solid] (parentHeadNode.east) -- (jlBox.west);
+
+% =============================================================================
+% 3. TOP-RIGHT TIER: "CENTRAL FEDERATED SERVER"
+%    x: 7.30 -> 17.10, y: 6.00 -> 10.85 (Width: 9.80cm, Height: 4.85cm)
+% =============================================================================
+\node[outerBox, minimum width=9.80cm, minimum height=4.85cm, anchor=south west]
+  (centralServer) at (7.30, 6.00) {};
+
+% Card Title with refined subtitle replacing "Macro Consensus"
+\node[anchor=north, align=center] at (12.20, 10.68) {
+  {\cardTitleFont\color{ink} Central Federated Server}\\[-4.0pt]
+  {\cardSubtitleFont\color{ink} Layered Subspace Byzantine Defense and Global Aggregation}
+};
+
+% Left Column: Header DIRECTLY on top of Shield icon & Defense Bullets
+\node[anchor=north west] at (7.55, 9.95)
+  {\subheadFont\color{redDark} Layered Subspace Byzantine Defense};
+
+\node[anchor=north, inner sep=0pt] at (7.95, 9.60)
+  {\includegraphics[height=0.98cm]{shield.pdf}};
+
+% 3 Single-Line Defense Bullets with attached note in black
+\node[anchor=north west, align=left] at (8.35, 9.60) {
+  {\bodyFont\color{ink} \textbf{1.SCCF}: Subspace Cosine Filtering}\\[0.8pt]
+  {\bodyFont\color{ink} \textbf{2.Norm-Bound}: Adaptive $Q_1$ Clipping}\\[0.8pt]
+  {\bodyFont\color{ink} \textbf{3.TTT}: Temporal Trust Tracking ($\tau_{\mathrm{iso}}$)}\\[-3.5pt]
+  {\subtitleFont\color{ink} Subspace alignment check $\mathcal{S}_i$}
+};
+
+% Right Column: Header DIRECTLY on top of Server Hardware
+\node[anchor=north west] at (13.60, 9.95)
+  {\subheadFont\color{blueDark} Global Aggregation};
+
+\node[anchor=north, inner sep=0pt] at (14.05, 9.60)
+  {\includegraphics[height=0.92cm]{server.pdf}};
+
+% Global Aggregation Numbered Items: Numbered 1. & 2. for strict synergy
+\node[anchor=north west, align=left] at (14.40, 9.60) {
+  {\bodyFont\color{ink} \textbf{1.}Backbone $\Phi_\theta$}\\[1.5pt]
+  {\bodyFont\color{ink} \textbf{2.}Root Head $W_r$}
+};
+
+% "Consensus Broadcast" shifted to the left, below server hardware
+\node[anchor=north west, align=left] at (13.55, 8.48) {
+  {\subheadFont\color{blueDark} Consensus Broadcast}\\[-4.0pt]
+  {\subtitleFont\color{ink} Trusted fleet $\mathcal{A}^{(t)}$}
+};
+
+% Dividing line above Privacy Banner
+\draw[draw=borderSlate!60, line width=0.45pt] (7.50, 7.65) -- (16.90, 7.65);
+
+% Server Footer: Privacy Peer Discovery Banner stating ONLY applied algorithm
+\node[fill=purpleLight!65, draw=purpleFed!45, rounded corners=3.5pt, line width=0.55pt,
+      minimum width=9.35cm, minimum height=0.68cm, anchor=south west]
+  (privacyBanner) at (7.50, 6.45) {};
+
+\node[anchor=center, align=center] at (12.17, 6.79) {
+  {\subheadFont\color{purpleDark} Privacy Peer Discovery}:\;{\bodyFont\color{ink} Spherical $k$-Means Clustering on Sketches $\{\mathbf{s}_i\}$}
+};
+
+% Direct purple transmission from bottom of JL Sketch into Privacy Banner
+\draw[purpleArrow] (jlBox.south) |- (privacyBanner.west);
+
+% =============================================================================
+% 4. DOWNWARD TIER ARROWS: SERVER -> PEER CLUSTERS
+%    Generous vertical drop (y: 6.00 -> 5.00) - 4.3mm clearance below Client Card!
+%    Arrow 2 lands at x = 6.50, completely clearing the title text!
+% =============================================================================
+\draw[blueArrow] (7.60, 6.00) -- (2.70, 5.00);
+\draw[blueArrow] (10.90, 6.00) -- (6.50, 5.00);
+\draw[blueArrow] (14.10, 6.00) -- (14.10, 5.00);
+
+% =============================================================================
+% 5. MIDDLE TIER: COLLABORATIVE PEER CLUSTERS
+%    Spacious layout, top at y = 5.00, bottom at y = 3.60 (Height: 1.40cm)
+%    x: 0.30 -> 17.10, y: 3.60 -> 5.00
+% =============================================================================
+\node[cohortBox, minimum width=16.80cm, minimum height=1.40cm, anchor=south west]
+  (peerClustersBox) at (0.30, 3.60) {};
+
+% Card Title ONLY
+\node[anchor=north, align=center] at (8.70, 4.88) {
+  {\cardTitleFont\color{purpleDark} Collaborative Peer Clusters}
+};
+
+% Symmetrically distributed clusters across x = 2.70, x = 7.10, dots at 10.60, x = 14.10 (y = 4.15)
+% Cluster 1 (Green) - Centered at x = 2.70
+\node[anchor=center, inner sep=0pt] at (1.25, 4.15)
+  {\includegraphics[height=0.60cm]{cluster.pdf}};
+\node[anchor=west, align=left] at (1.70, 4.15) {
+  {\subheadFont\color{greenDark} Peer Cluster 1 ($\mathcal{C}_1$)}\\[-4.2pt]
+  {\subtitleFont\color{ink} Parent Head $W_{p,1}$ $\cdot$ Partition 1}
+};
+
+% Cluster 2 (Purple) - Centered at x = 7.10
+\node[anchor=center, inner sep=0pt] at (5.65, 4.15)
+  {\includegraphics[height=0.60cm]{cluster.pdf}};
+\node[anchor=west, align=left] at (6.10, 4.15) {
+  {\subheadFont\color{purpleDark} Peer Cluster 2 ($\mathcal{C}_2$)}\\[-4.2pt]
+  {\subtitleFont\color{ink} Parent Head $W_{p,2}$ $\cdot$ Partition 2}
+};
+
+% Progression ellipsis between Cluster 2 and Cluster K
+\node[anchor=center] at (10.60, 4.15) {
+  \fontsize{11.0}{12.0}\selectfont\bfseries\color{purpleDark} $\boldsymbol{\cdots}$
+};
+
+% Cluster K (Blue) - Centered at x = 14.10
+\node[anchor=center, inner sep=0pt] at (12.65, 4.15)
+  {\includegraphics[height=0.60cm]{cluster.pdf}};
+\node[anchor=west, align=left] at (13.10, 4.15) {
+  {\subheadFont\color{blueDark} Peer Cluster $K$ ($\mathcal{C}_K$)}\\[-4.2pt]
+  {\subtitleFont\color{ink} Parent Head $W_{p,K}$ $\cdot$ Partition $K$}
+};
+
+% =============================================================================
+% 6. BOTTOM TIER: PHYSICAL CLIENT PARTICIPANTS
+%    Direct node targeting (c1..cM) guarantees zero circular border penetration!
+%    Snug title-subtitle spacing: Client i and Partition i are tightly paired!
+% =============================================================================
+% Group 1 (Green Cluster) -> Clients 1, 2, 3
+\node[circle, draw=greenFed!70, fill=cardBg, line width=1.1pt, inner sep=0pt, minimum size=0.82cm]
+  (c1) at (1.25, 2.15) {\includegraphics[height=0.38cm]{data.pdf}};
+\node[anchor=north, align=center] at (1.25, 1.68) {
+  {\subheadFont\color{ink} Client 1}\\[-4.5pt]
+  {\subtitleFont\color{greenDark} Partition 1}
+};
+
+\node[circle, draw=greenFed!70, fill=cardBg, line width=1.1pt, inner sep=0pt, minimum size=0.82cm]
+  (c2) at (2.70, 2.15) {\includegraphics[height=0.38cm]{data.pdf}};
+\node[anchor=north, align=center] at (2.70, 1.68) {
+  {\subheadFont\color{ink} Client 2}\\[-4.5pt]
+  {\subtitleFont\color{greenDark} Partition 1}
+};
+
+\node[circle, draw=greenFed!70, fill=cardBg, line width=1.1pt, inner sep=0pt, minimum size=0.82cm]
+  (c3) at (4.15, 2.15) {\includegraphics[height=0.38cm]{data.pdf}};
+\node[anchor=north, align=center] at (4.15, 1.68) {
+  {\subheadFont\color{ink} Client 3}\\[-4.5pt]
+  {\subtitleFont\color{greenDark} Partition 1}
+};
+
+% Tangent-clipped tree connectors (Zero penetration!)
+\draw[cohortLine] (2.70, 3.60) -- (c1);
+\draw[cohortLine] (2.70, 3.60) -- (c2);
+\draw[cohortLine] (2.70, 3.60) -- (c3);
+
+% Group 2 (Purple Cluster) -> Clients 4, 5, 6
+\node[circle, draw=purpleFed!70, fill=cardBg, line width=1.1pt, inner sep=0pt, minimum size=0.82cm]
+  (c4) at (5.65, 2.15) {\includegraphics[height=0.38cm]{data.pdf}};
+\node[anchor=north, align=center] at (5.65, 1.68) {
+  {\subheadFont\color{ink} Client 4}\\[-4.5pt]
+  {\subtitleFont\color{purpleDark} Partition 2}
+};
+
+\node[circle, draw=purpleFed!70, fill=cardBg, line width=1.1pt, inner sep=0pt, minimum size=0.82cm]
+  (c5) at (7.10, 2.15) {\includegraphics[height=0.38cm]{data.pdf}};
+\node[anchor=north, align=center] at (7.10, 1.68) {
+  {\subheadFont\color{ink} Client 5}\\[-4.5pt]
+  {\subtitleFont\color{purpleDark} Partition 2}
+};
+
+\node[circle, draw=purpleFed!70, fill=cardBg, line width=1.1pt, inner sep=0pt, minimum size=0.82cm]
+  (c6) at (8.55, 2.15) {\includegraphics[height=0.38cm]{data.pdf}};
+\node[anchor=north, align=center] at (8.55, 1.68) {
+  {\subheadFont\color{ink} Client 6}\\[-4.5pt]
+  {\subtitleFont\color{purpleDark} Partition 2}
+};
+
+\draw[cohortLine] (7.10, 3.60) -- (c4);
+\draw[cohortLine] (7.10, 3.60) -- (c5);
+\draw[cohortLine] (7.10, 3.60) -- (c6);
+
+% Mathematical Ellipsis indicating Client scalability
+\node[anchor=center] at (10.60, 2.15) {
+  \fontsize{12.0}{13.0}\selectfont\bfseries\color{ink} $\boldsymbol{\cdots}$
+};
+
+% Group K (Blue Cluster) -> Clients 7, 8, M
+\node[circle, draw=blueFed!70, fill=cardBg, line width=1.1pt, inner sep=0pt, minimum size=0.82cm]
+  (c7) at (12.65, 2.15) {\includegraphics[height=0.38cm]{data.pdf}};
+\node[anchor=north, align=center] at (12.65, 1.68) {
+  {\subheadFont\color{ink} Client 7}\\[-4.5pt]
+  {\subtitleFont\color{blueDark} Partition $K$}
+};
+
+\node[circle, draw=blueFed!70, fill=cardBg, line width=1.1pt, inner sep=0pt, minimum size=0.82cm]
+  (c8) at (14.10, 2.15) {\includegraphics[height=0.38cm]{data.pdf}};
+\node[anchor=north, align=center] at (14.10, 1.68) {
+  {\subheadFont\color{ink} Client 8}\\[-4.5pt]
+  {\subtitleFont\color{blueDark} Partition $K$}
+};
+
+\node[circle, draw=blueFed!70, fill=cardBg, line width=1.1pt, inner sep=0pt, minimum size=0.82cm]
+  (cM) at (15.55, 2.15) {\includegraphics[height=0.38cm]{data.pdf}};
+\node[anchor=north, align=center] at (15.55, 1.68) {
+  {\subheadFont\color{ink} Client $M$}\\[-4.5pt]
+  {\subtitleFont\color{blueDark} Partition $K$}
+};
+
+\draw[cohortLine] (14.10, 3.60) -- (c7);
+\draw[cohortLine] (14.10, 3.60) -- (c8);
+\draw[cohortLine] (14.10, 3.60) -- (cM);
+
+% =============================================================================
+% 7. BOTTOM LEGEND (Shifted left to guarantee generous right margin!)
+%    x: 0.30 -> 17.10, y: 0.38 -> 1.10 (Height: 0.72cm)
+% =============================================================================
+\node[legendBox, minimum width=16.80cm, minimum height=0.62cm, anchor=south west]
+  (legend) at (0.30, 0.38) {};
+
+\node[anchor=west] at (0.30, 0.74) {{\cardTitleFont\color{ink} Legend:}};
+
+\draw[blueArrow] (1.60, 0.74) -- (2.05, 0.74);
+\node[anchor=west] at (2.12, 0.74) {{\bodyFont\color{ink} Global Parameter Broadcast}};
+
+\draw[purpleArrow] (5.75, 0.74) -- (6.20, 0.74);
+\node[anchor=west] at (6.27, 0.74) {{\bodyFont\color{ink} Privacy Sketch Upload}};
+
+\draw[greenArrow] (9.30, 0.74) -- (9.75, 0.74);
+\node[anchor=west] at (9.82, 0.74) {{\bodyFont\color{ink} On-Device Feature Forwarding}};
+
+\draw[cohortLine] (13.50, 0.74) -- (13.95, 0.74);
+\node[anchor=west] at (14.02, 0.74) {{\bodyFont\color{ink} Peer Cluster Membership}};
+
+\end{tikzpicture}
+\end{document}

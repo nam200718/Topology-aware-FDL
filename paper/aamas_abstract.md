@@ -4,7 +4,7 @@
 **Track**: *Distributed and Collaborative Machine Learning / Robust Distributed Systems*  
 **Abstract Submission Deadline**: October 1, 2026 (23:59 AoE)  
 **Full Paper Deadline**: October 8, 2026 (23:59 AoE)  
-**Submission Portal**: AAMAS 2027 CMT / EasyChair  
+**Submission Portal**: AAMAS 2027 OpenReview  
 
 ---
 
@@ -12,11 +12,7 @@
 
 - **Title**: *FedHEP: Efficient Hierarchical Ensemble Personalization in Federated Learning*
 - **Framework Moniker**: **FedHEP** (*Federated Hierarchical Ensemble Personalization*)
-- **Authors**:
-  - **Nghiem Duc Khanh Nam**\* (College of Engineering & Computer Science, VinUniversity, Vietnam) — `nam.ndk@vinuni.edu.vn`
-  - **Hung Anh Nguyen**\* (College of Engineering & Computer Science, VinUniversity, Vietnam) — `anh.nh@vinuni.edu.vn`
-  - **Leandro Soriano Marcolino** (School of Computing & Communications, Lancaster University, UK) — `l.marcolino@lancaster.ac.uk`  
-  *\* Equal contribution.*
+- **Authors**: Anonymous Author(s) (Double-Blind Review)
 - **Primary Area**: *Distributed Machine Learning / Cooperative Learning in Multi-Node Systems*
 - **Secondary Area**: *Fault Tolerance, Safety, and Trustworthiness in Distributed Systems*
 - **Keywords**: Federated Learning, Multi-Scale Personalization, Byzantine Fault Tolerance, Statistical Heterogeneity, Tail Fairness, Edge Computing.
