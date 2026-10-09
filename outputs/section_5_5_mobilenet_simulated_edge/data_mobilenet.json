@@ -3,23 +3,23 @@
   "simulated_resource_profile": {
     "FedAvg": {
       "parameters_m": 1.62,
-      "simulated_latency_ms": 17.55,
+      "simulated_latency_ms": 5.58,
       "simulated_peak_vram_mb": 152.4,
       "payload_mb": 6.48
     },
     "Ditto": {
       "parameters_m": 3.24,
-      "simulated_latency_ms": 35.08,
+      "simulated_latency_ms": 11.36,
       "simulated_peak_vram_mb": 298.6,
-      "payload_mb": 12.96
+      "payload_mb": 12.24
     },
     "FedHEP (Ours)": {
       "parameters_m": 3.01,
-      "simulated_latency_ms": 18.97,
+      "simulated_latency_ms": 6.29,
       "simulated_peak_vram_mb": 158.8,
-      "payload_mb": 6.85,
+      "payload_mb": 6.13,
       "simulated_vram_reduction_pct": 46.8,
-      "simulated_speedup_pct": 48.7
+      "simulated_speedup_pct": 44.6
     }
   },
   "accuracy_benchmarks": [

@@ -92,6 +92,6 @@
 
 \end{tikzpicture}%
 }
-\caption{Geometric Intuition of Subspace-Constrained Cosine Filtering (SCCF). (a) In full parameter space $\mathbb{R}^D$, an honest client with non-IID label skew ($\mathcal{Y}_i \subset \mathcal{Y}$) updates primarily along active coordinates $\coords(\mathcal{Y}_i)$, creating large Euclidean distance to consensus $\mathbf{c}^{(t)}$ and triggering false rejection. (b) Projecting via $\mathbf{P}_{\mathcal{S}_i}$ onto active subspace $\mathcal{S}_i$ removes unobserved dimensions: honest updates align with consensus ($\cos \approx 1$, high trust $\tau_i^{(t)}$), while Byzantine attacks remain separated.}
+\caption{Geometric Intuition of Subspace-Constrained Cosine Filtering (SCCF). (a) In full parameter space $\mathbb{R}^D$, an honest client with non-IID label skew ($\mathcal{Y}_i \subset \mathcal{Y}$) updates primarily along active coordinates $\coords(\mathcal{Y}_i)$, creating large Euclidean distance to consensus $\mathbf{c}^{(t)}$ and triggering false rejection. (b) Projecting via $\mathbf{P}_{\mathcal{S}_i}$ onto active subspace $\mathcal{S}_i$ removes unobserved dimensions ($\mathcal{S}_i^\perp$): honest updates align with consensus ($\cos \approx 1$, high trust $\tau_i^{(t)}$), while Byzantine attacks remain separated.}
 \label{fig:sccf_geometry}
 \end{figure}

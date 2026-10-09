@@ -1,31 +1,31 @@
 \begin{table}[t]
 \centering
-\caption{CIFAR-100 Byzantine Multi-Attack Robustness Matrix ($q \in \{0.0, \dots, 0.4\}$). $\Delta_{0 \to 0.3}$ denotes the accuracy degradation (in percentage points) from benign ($q=0.0$) to $30\%$ attackers ($q=0.3$).}
+\caption{CIFAR-100 Byzantine Multi-Attack Robustness Matrix across Attacker Fractions ($q \in [0.0, 0.4]$). $\Delta(0 \to 0.3)$ denotes accuracy degradation (in percentage points, pp) from benign ($q=0.0$) to $q=0.3$ attackers.}
 \label{tab:cifar100_byzantine}
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{llcccccc}
 \toprule
-\textbf{Attack Type} & \textbf{Method} & \textbf{q = 0.0} & \textbf{q = 0.1} & \textbf{q = 0.2} & \textbf{q = 0.3} & \textbf{q = 0.4} & \textbf{$\Delta_{0 \to 0.3}$} \\
+\textbf{Attack Type} & \textbf{Method} & \textbf{q = 0.0} & \textbf{q = 0.1} & \textbf{q = 0.2} & \textbf{q = 0.3} & \textbf{q = 0.4} & \textbf{$\Delta(0 \to 0.3)$} \\
 \midrule
 Label Flipping & FedAvg & 40.20\% & 37.63\% & 35.07\% & 26.82\% & 16.90\% & -13.38pp \\
 Label Flipping & Multi-Krum & 26.77\% & 25.70\% & 24.71\% & 16.59\% & 15.09\% & -10.18pp \\
 Label Flipping & Ditto & 43.96\% & 43.37\% & 42.82\% & 39.13\% & \textbf{37.31\%} & \textbf{-4.83pp} \\
-Label Flipping & FedHEP & \textbf{47.88\%} & \textbf{47.53\%} & \textbf{45.15\%} & \textbf{39.88\%} & \textbf{36.28\%} & \textbf{-8.00pp} \\
+Label Flipping & Defended FedHEP & \textbf{47.88\%} & \textbf{47.53\%} & \textbf{45.15\%} & \textbf{39.88\%} & 36.28\% & -8.00pp \\
 \midrule
 Sign Flipping & FedAvg & 40.80\% & 31.91\% & 18.58\% & 7.02\% & 1.06\% & -33.78pp \\
 Sign Flipping & Multi-Krum & 25.04\% & 25.00\% & 24.56\% & 23.44\% & 16.30\% & \textbf{-1.60pp} \\
 Sign Flipping & Ditto & 43.96\% & 40.35\% & 36.32\% & 21.32\% & 8.92\% & -22.64pp \\
-Sign Flipping & FedHEP & \textbf{47.88\%} & \textbf{44.93\%} & \textbf{40.22\%} & \textbf{31.30\%} & \textbf{20.78\%} & \textbf{-16.58pp} \\
+Sign Flipping & Defended FedHEP & \textbf{47.88\%} & \textbf{44.93\%} & \textbf{40.22\%} & \textbf{31.30\%} & \textbf{20.78\%} & -16.58pp \\
 \midrule
 Gradient Ascent & FedAvg & 40.33\% & 13.28\% & 1.06\% & 1.06\% & 1.06\% & -39.27pp \\
 Gradient Ascent & Multi-Krum & 25.73\% & 23.49\% & 23.80\% & 23.26\% & \textbf{16.77\%} & \textbf{-2.47pp} \\
 Gradient Ascent & Ditto & 44.07\% & 27.95\% & 15.09\% & 1.81\% & 2.04\% & -42.26pp \\
-Gradient Ascent & FedHEP & \textbf{47.88\%} & \textbf{44.03\%} & \textbf{40.45\%} & \textbf{28.93\%} & \textbf{15.17\%} & \textbf{-18.95pp} \\
+Gradient Ascent & Defended FedHEP & \textbf{47.88\%} & \textbf{44.03\%} & \textbf{40.45\%} & \textbf{28.93\%} & 15.17\% & -18.95pp \\
 \midrule
 Gaussian Noise & FedAvg & 38.26\% & 13.67\% & 1.43\% & 1.30\% & 1.37\% & -36.96pp \\
 Gaussian Noise & Multi-Krum & 25.04\% & 24.13\% & 23.97\% & 22.96\% & 22.06\% & \textbf{-2.08pp} \\
 Gaussian Noise & Ditto & 43.96\% & 25.47\% & 15.41\% & 10.86\% & 8.63\% & -33.10pp \\
-Gaussian Noise & FedHEP & \textbf{47.88\%} & \textbf{48.39\%} & \textbf{47.72\%} & \textbf{44.53\%} & \textbf{35.46\%} & \textbf{-3.35pp} \\
+Gaussian Noise & Defended FedHEP & \textbf{47.88\%} & \textbf{48.39\%} & \textbf{47.72\%} & \textbf{44.53\%} & \textbf{35.46\%} & -3.35pp \\
 \bottomrule
 \end{tabular}
 }

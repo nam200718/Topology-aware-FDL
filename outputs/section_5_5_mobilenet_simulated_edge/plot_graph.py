@@ -1,6 +1,5 @@
 import os
 import json
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -42,7 +41,7 @@ for bar in bars2:
 ax2.set_xticks(x)
 ax2.set_xticklabels(methods_res, fontsize=6.2)
 ax2.set_ylabel('Batch Latency (ms)', fontsize=7.2, labelpad=1.5)
-ax2.set_ylim(0, 44)
+ax2.set_ylim(0, 15)
 ax2.tick_params(axis='both', which='major', labelsize=6.0, pad=1)
 
 plt.subplots_adjust(left=0.14, right=0.98, bottom=0.18, top=0.92, wspace=0.34)

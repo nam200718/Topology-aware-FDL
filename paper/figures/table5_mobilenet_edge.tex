@@ -12,15 +12,15 @@
 ResNet-9 & Ditto & 220.40 MB & 16.95 ms & 13.18 MB \\
 ResNet-9 & FedHEP & \textbf{114.80 MB} & \textbf{8.42 ms} & \textbf{6.60 MB} \\
 \midrule
-MobileNetV3-Small & Ditto & 298.60 MB & 22.80 ms & 12.24 MB \\
-MobileNetV3-Small & FedHEP & \textbf{158.80 MB} & \textbf{11.20 ms} & \textbf{6.13 MB} \\
+MobileNetV3-Small & Ditto & 298.60 MB & 11.36 ms & 12.24 MB \\
+MobileNetV3-Small & FedHEP & \textbf{158.80 MB} & \textbf{6.29 ms} & \textbf{6.13 MB} \\
 \midrule
 \multicolumn{5}{c}{\textbf{CIFAR-100 LOCAL TEST ACCURACY \& TAIL FAIRNESS}} \\
 \midrule
 \textbf{Data Skew Regime} & \textbf{FedAvg} & \textbf{Ditto} & \multicolumn{2}{c}{\textbf{FedHEP}} \\
 \midrule
-Moderate ($\alpha=0.5$) & 15.37\% & 14.40\% & \multicolumn{2}{c}{\textbf{25.24\%}} \\
-\quad \textit{Bottom 10\% Fairness} & 10.44\% & 7.05\% & \multicolumn{2}{c}{\textbf{20.16\%}} \\
+Moderate ($\alpha=0.5$) & 15.37\% & \textbf{33.86\%} & \multicolumn{2}{c}{25.24\%} \\
+\quad \textit{Bottom 10\% Fairness} & 10.44\% & 19.33\% & \multicolumn{2}{c}{\textbf{20.16\%}} \\
 \midrule
 Extreme ($\alpha=0.05$) & 10.85\% & 34.66\% & \multicolumn{2}{c}{\textbf{45.43\%}} \\
 \quad \textit{Bottom 10\% Fairness} & 5.55\% & 16.75\% & \multicolumn{2}{c}{\textbf{30.07\%}} \\
