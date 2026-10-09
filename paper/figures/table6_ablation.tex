@@ -1,17 +1,17 @@
 \begin{table}[t]
 \centering
-\caption{Ablation Study and Coalition Valuation on CIFAR-100 ($C=100$, ResNet-9). B10 denotes Bottom-10\% tail fairness under Extreme skew ($\alpha=0.05$).}
+\caption{Ablation Study and Coalition Valuation on CIFAR-100 ($C=100$, ResNet-9). B10: Bottom-10\% tail fairness under Extreme skew ($\alpha=0.05$). Full FedHEP uses $N=15$ clients; ablation rows use $N=10$, so cross-row gaps are indicative only.}
 \label{tab:ablation_study}
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{lcccccc}
 \toprule
 \textbf{Ablation Configuration} & \textbf{IID} & \textbf{Mild} & \textbf{Mod} & \textbf{Sev} & \textbf{Ext} & \textbf{B10 (Ext)} \\
 \midrule
-Full FedHEP & \textbf{40.94\%} & \textbf{42.63\%} & \textbf{46.36\%} & \textbf{59.08\%} & \textbf{65.49\%} & \textbf{53.92\%} \\
+Full FedHEP & \textbf{40.94\%} & \textbf{42.63\%} & \textbf{46.36\%} & 59.08\% & 65.49\% & 53.92\% \\
 \quad w/o ACLM & 33.62\% & 39.54\% & 38.41\% & 50.31\% & 56.50\% & 43.33\% \\
 \quad w/o Parent Head & 31.03\% & 39.76\% & 39.67\% & 53.12\% & 60.34\% & 46.76\% \\
 \quad $K=1$ Grand Coalition & 35.78\% & 40.42\% & 39.88\% & 50.98\% & 57.30\% & 45.20\% \\
-\quad $K=3$ Oracle Bound & 34.15\% & 40.09\% & 40.18\% & 60.14\% & 66.85\% & 55.40\% \\
+\quad $K=3$ Oracle Bound & 34.15\% & 40.09\% & 40.18\% & \textbf{60.14\%} & \textbf{66.85\%} & \textbf{55.40\%} \\
 \bottomrule
 \end{tabular}
 }

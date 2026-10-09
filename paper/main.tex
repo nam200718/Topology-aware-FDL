@@ -5,6 +5,8 @@
 \let\Bbbk\relax
 \usepackage{amssymb}
 \usepackage{placeins} % Prevents tables/figures from floating past their sections
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage{array}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
@@ -60,14 +62,15 @@
 \DeclareRobustCommand{\aclm}{ACLM}
 \DeclareRobustCommand{\sccf}{SCCF}
 \DeclareRobustCommand{\ttt}{TTT}
-\DeclareRobustCommand{\Rskew}{R_{\mathrm{skew}}}
+\DeclareRobustCommand{\Rskew}{r_{\mathrm{skew}}}
+\DeclareRobustCommand{\rskew}{r_{\mathrm{skew}}}
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator{\Softmax}{Softmax}
 \DeclareMathOperator{\coords}{coords}
 \newcommand{\thindashline}{%
-  \noalign{\vskip -2.0pt}%
-  \multicolumn{12}{@{}c@{}}{\tikz[baseline=-3.0pt]{\draw[dash pattern=on 2.5pt off 2.5pt, line width=0.35pt, draw=black!45] (0,0) -- (729.18pt, 0);}}\\%
-  \noalign{\vskip -2.0pt}%
+  \noalign{\vskip -3.0pt}%
+  \multicolumn{12}{@{}c@{}}{\smash{\tikz[baseline=0pt]{\draw[dash pattern=on 2.5pt off 2.5pt, line width=0.35pt, draw=black!45] (0,0) -- (729.18pt, 0);}}}\\%
+  \noalign{\vskip -1.0pt}%
 }
 
 %%% Abstract and Keywords
@@ -96,6 +99,7 @@
 \balance
 
 \clearpage
+\nobalance
 
 %%% References
 \bibliographystyle{ACM-Reference-Format}
