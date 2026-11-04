@@ -46,15 +46,40 @@ def _append_result_to_csv(csv_path: str, result_dict: Dict[str, Any]):
     df_row.to_csv(csv_path, mode="a", header=write_header, index=False)
 
 
+def _normalize_method(m: str) -> str:
+    m_clean = str(m).strip().lower().replace("_", "").replace(" ", "").replace("-", "")
+    if "hep" in m_clean:
+        return "fedhep"
+    if "krum" in m_clean:
+        return "multikrum"
+    if "ditto" in m_clean:
+        return "ditto"
+    if "avg" in m_clean:
+        return "fedavg"
+    return m_clean
+
+
+def _normalize_key_item(col: str, val: Any) -> str:
+    if col == "method":
+        return _normalize_method(str(val))
+    try:
+        f = float(val)
+        if f.is_integer():
+            return str(int(f))
+        return f"{f:.4f}".rstrip("0")
+    except (ValueError, TypeError):
+        return str(val).strip().lower()
+
+
 def _load_existing_keys(csv_path: str, key_columns: List[str]) -> set:
-    """Loads a set of unique key tuples of already completed experiments to allow resume."""
+    """Loads a set of normalized unique key tuples of already completed experiments to allow resume."""
     if not os.path.exists(csv_path) or os.path.getsize(csv_path) == 0:
         return set()
     try:
         df = pd.read_csv(csv_path)
         existing = set()
         for _, row in df.iterrows():
-            key = tuple(str(row.get(col, "")) for col in key_columns)
+            key = tuple(_normalize_key_item(col, row.get(col, "")) for col in key_columns)
             existing.add(key)
         return existing
     except Exception:
@@ -92,6 +117,48 @@ class OrehComparisonRunner:
         os.makedirs(output_dir, exist_ok=True)
 
     # -------------------------------------------------------------------------
+    # Standalone / Sanity Experiment Dispatcher
+    # -------------------------------------------------------------------------
+    def run_single_experiment(
+        self,
+        defense_scope: str = "both",
+        attack_target_tier: str = "all",
+        attack_type: str = "alie",
+        byzantine_rate: float = 0.2,
+        seed: int = 42,
+        alie_z_max: Optional[float] = None,
+        method_label: str = "FedHEP",
+        method: Optional[str] = None,
+        num_clusters_override: Optional[int] = None,
+        alpha_override: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        Executes a single experiment run (FedHEP or baseline method) with the given configuration.
+        Used for pre-flight sanity checks and standalone evaluations.
+        """
+        target_method = (method or method_label).lower()
+        if target_method in ("fedavg", "ditto", "multikrum"):
+            return self._run_star_baseline_experiment(
+                method_id=target_method,
+                attack_type=attack_type,
+                byzantine_rate=byzantine_rate,
+                alie_z_max=alie_z_max,
+                seed=seed,
+            )
+        return self._run_hep_experiment(
+            defense_scope=defense_scope,
+            attack_target_tier=attack_target_tier,
+            attack_type=attack_type,
+            byzantine_rate=byzantine_rate,
+            seed=seed,
+            alie_z_max=alie_z_max,
+            method_label=method_label,
+            num_clusters_override=num_clusters_override,
+            alpha_override=alpha_override,
+        )
+
+
+    # -------------------------------------------------------------------------
     # IDEA 1: Defense Scope vs Targeted Attack Tiers
     # -------------------------------------------------------------------------
     def run_idea1_scope_matrix(
@@ -119,7 +186,7 @@ class OrehComparisonRunner:
         for atk in attack_types:
             for scope in scopes:
                 for tgt in target_tiers:
-                    key = (scope, tgt, atk, str(byzantine_rate), str(seed))
+                    key = tuple(_normalize_key_item(col, val) for col, val in zip(key_cols, [scope, tgt, atk, byzantine_rate, seed]))
                     if key in completed:
                         print(f">> [Skip/Done] Scope={scope} | Target={tgt} | Atk={atk}")
                         continue
@@ -134,7 +201,10 @@ class OrehComparisonRunner:
                     _append_result_to_csv(csv_path, res)
                     completed.add(key)
 
-        return pd.read_csv(csv_path)
+        return pd.read_csv(csv_path) if os.path.exists(csv_path) else pd.DataFrame()
+
+    # Backward-compatible alias for CLI / scripts
+    run_scope_vs_target_matrix = run_idea1_scope_matrix
 
     # -------------------------------------------------------------------------
     # IDEA 2: ALIE Attack Suite across Baselines (FedAvg, Ditto, Multi-Krum, FedHEP)
@@ -162,7 +232,7 @@ class OrehComparisonRunner:
 
         for m_id in methods:
             for q in byzantine_rates:
-                key = (m_id, "alie", str(q), str(seed))
+                key = tuple(_normalize_key_item(col, val) for col, val in zip(key_cols, [m_id, "alie", q, seed]))
                 if key in completed:
                     print(f">> [Skip/Done] Method={m_id} | Atk=alie | q={q}")
                     continue
@@ -218,7 +288,7 @@ class OrehComparisonRunner:
 
         for alpha in alphas:
             for k in k_values:
-                key = (str(k), str(alpha), str(byzantine_rate), str(seed))
+                key = tuple(_normalize_key_item(col, val) for col, val in zip(key_cols, [k, alpha, byzantine_rate, seed]))
                 if key in completed:
                     print(f">> [Skip/Done] K={k} | alpha={alpha}")
                     continue
