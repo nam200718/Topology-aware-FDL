@@ -62,6 +62,8 @@ def _normalize_method(m: str) -> str:
 def _normalize_key_item(col: str, val: Any) -> str:
     if col == "method":
         return _normalize_method(str(val))
+    if isinstance(val, bool) or str(val).lower() in ("true", "false"):
+        return str(val).strip().lower()
     try:
         f = float(val)
         if f.is_integer():
@@ -465,6 +467,62 @@ class OrehComparisonRunner:
                     )
                     _append_result_to_csv(csv_path, res)
                     completed.add(key)
+
+        return pd.read_csv(csv_path) if os.path.exists(csv_path) else pd.DataFrame()
+
+    def run_postmid_ttt_ablation(
+        self,
+        attacks: List[str] = ["sign_flip", "alie"],
+        byzantine_rates: List[float] = [0.2, 0.3],
+        ttt_options: List[bool] = [True, False],
+        seeds: List[int] = [42, 123],
+        defense_scope: str = "both",
+    ) -> pd.DataFrame:
+        """
+        Executes Post-Midterm TTT Removal / Ablation Study:
+        Empirically compares FedHEP with Temporal Trust Tracking (TTT) ON vs OFF to verify
+        the hypothesis of zero/negligible contribution due to the static 0.25 threshold.
+        Saves continuously to {output_dir}/{dataset}_postmid_ttt_ablation.csv.
+        """
+        csv_path = os.path.join(self.output_dir, f"{self.dataset}_postmid_ttt_ablation.csv")
+        key_cols = ["method", "attack_type", "byzantine_rate", "enable_ttt", "seed"]
+        completed = _load_existing_keys(csv_path, key_cols)
+
+        print("\n" + "=" * 70)
+        print(">> [POST-MIDTERM] RUNNING TTT ABLATION STUDY (ON vs OFF)")
+        print(f" Dataset: {self.dataset.upper()} | Rounds: {self.num_rounds} | Device: {self.device}")
+        print(f" Attacks: {attacks} | Byzantine Rates: {byzantine_rates} | TTT Options: {ttt_options}")
+        print(f" Seeds: {seeds} | Defense Scope: {defense_scope}")
+        print(f" Output File: {csv_path}")
+        print("=" * 70)
+
+        for atk in attacks:
+            for q in byzantine_rates:
+                for enable_ttt in ttt_options:
+                    for seed in seeds:
+                        key = (
+                            _normalize_key_item("method", "fedhep"),
+                            _normalize_key_item("attack_type", atk),
+                            _normalize_key_item("byzantine_rate", q),
+                            _normalize_key_item("enable_ttt", enable_ttt),
+                            _normalize_key_item("seed", seed),
+                        )
+                        if key in completed:
+                            print(f">> [Skip/Done] Atk={atk} | q={q} | enable_ttt={enable_ttt} | Seed={seed}")
+                            continue
+
+                        res = self._run_hep_experiment(
+                            defense_scope=defense_scope,
+                            attack_target_tier="all",
+                            attack_type=atk,
+                            byzantine_rate=q,
+                            seed=seed,
+                            enable_ttt=enable_ttt,
+                        )
+                        res["enable_ttt"] = enable_ttt
+                        res["defense_scope"] = defense_scope
+                        _append_result_to_csv(csv_path, res)
+                        completed.add(key)
 
         return pd.read_csv(csv_path) if os.path.exists(csv_path) else pd.DataFrame()
 
