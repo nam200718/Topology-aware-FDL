@@ -666,7 +666,6 @@ class OrehComparisonRunner:
         seed: int = 42,
         ipm_epsilon: float = 0.1,
         attack_onset_round: int = 15,
-        enable_ttt: bool = True,
     ) -> Dict[str, Any]:
         set_seed(seed)
         exp_name = f"{self.dataset}_star_{method_id}_{attack_type}_q{int(byzantine_rate*100)}_s{seed}"
@@ -723,7 +722,6 @@ class OrehComparisonRunner:
             alie_z_max=alie_z_max,
             ipm_epsilon=ipm_epsilon,
             attack_onset_round=attack_onset_round,
-            enable_ttt=enable_ttt,
         )
 
         t_start = time.perf_counter()
