@@ -111,16 +111,17 @@ class OrehLocalUpdater(PyTorchLocalUpdater):
             return w
 
         # Extract pre-computed deltas provided by OrehDefendedEngine / OrehCentralizedEngine
-        custom_root_delta = (
-            getattr(state, "alie_root_delta", None)
-            or getattr(state, "ipm_root_delta", None)
-            or getattr(state, "adaptive_root_delta", None)
-        )
-        custom_parent_delta = (
-            getattr(state, "alie_parent_delta", None)
-            or getattr(state, "ipm_parent_delta", None)
-            or getattr(state, "adaptive_parent_delta", None)
-        )
+        custom_root_delta = getattr(state, "alie_root_delta", None)
+        if custom_root_delta is None:
+            custom_root_delta = getattr(state, "ipm_root_delta", None)
+        if custom_root_delta is None:
+            custom_root_delta = getattr(state, "adaptive_root_delta", None)
+
+        custom_parent_delta = getattr(state, "alie_parent_delta", None)
+        if custom_parent_delta is None:
+            custom_parent_delta = getattr(state, "ipm_parent_delta", None)
+        if custom_parent_delta is None:
+            custom_parent_delta = getattr(state, "adaptive_parent_delta", None)
 
         recognized_attacks = (
             "sign_flip",

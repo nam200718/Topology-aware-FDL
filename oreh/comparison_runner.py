@@ -131,6 +131,7 @@ class OrehComparisonRunner:
         method: Optional[str] = None,
         num_clusters_override: Optional[int] = None,
         alpha_override: Optional[float] = None,
+        enable_ttt: bool = True,
     ) -> Dict[str, Any]:
         """
         Executes a single experiment run (FedHEP or baseline method) with the given configuration.
@@ -155,6 +156,7 @@ class OrehComparisonRunner:
             method_label=method_label,
             num_clusters_override=num_clusters_override,
             alpha_override=alpha_override,
+            enable_ttt=enable_ttt,
         )
 
 
@@ -482,6 +484,7 @@ class OrehComparisonRunner:
         alpha_override: Optional[float] = None,
         ipm_epsilon: float = 0.1,
         attack_onset_round: int = 15,
+        enable_ttt: bool = True,
     ) -> Dict[str, Any]:
         set_seed(seed)
         k_clusters = num_clusters_override or self.num_clusters
@@ -553,6 +556,7 @@ class OrehComparisonRunner:
             alie_z_max=alie_z_max,
             ipm_epsilon=ipm_epsilon,
             attack_onset_round=attack_onset_round,
+            enable_ttt=enable_ttt,
         )
 
         t_start = time.perf_counter()
@@ -604,6 +608,7 @@ class OrehComparisonRunner:
         seed: int = 42,
         ipm_epsilon: float = 0.1,
         attack_onset_round: int = 15,
+        enable_ttt: bool = True,
     ) -> Dict[str, Any]:
         set_seed(seed)
         exp_name = f"{self.dataset}_star_{method_id}_{attack_type}_q{int(byzantine_rate*100)}_s{seed}"
@@ -660,6 +665,7 @@ class OrehComparisonRunner:
             alie_z_max=alie_z_max,
             ipm_epsilon=ipm_epsilon,
             attack_onset_round=attack_onset_round,
+            enable_ttt=enable_ttt,
         )
 
         t_start = time.perf_counter()

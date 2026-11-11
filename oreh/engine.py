@@ -54,6 +54,7 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
         alie_z_max: Optional[float] = None,
         ipm_epsilon: float = 0.1,
         attack_onset_round: int = 15,
+        enable_ttt: bool = True,
     ):
         super().__init__(
             config=config,
@@ -66,6 +67,7 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
         self.alie_z_max = alie_z_max
         self.ipm_epsilon = ipm_epsilon
         self.attack_onset_round = attack_onset_round
+        self.enable_ttt = enable_ttt
 
         # Replace default updater with OrehLocalUpdater
         self.updater = OrehLocalUpdater(
@@ -314,7 +316,7 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
                 self.cluster_heads_state[hid].weights = ref + agg_delta
 
                 last_trust = self.cluster_defense_aggregator.get_last_trust_scores()
-                if last_trust is not None:
+                if self.enable_ttt and last_trust is not None:
                     valid_states = [
                         s for s, d in zip(clean_states, p_deltas)
                         if not (torch.isnan(d).any() or torch.isinf(d).any())
@@ -363,7 +365,7 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
                 self.server_weights = root_reference + agg_delta
 
                 last_trust_global = self.global_defense_aggregator.get_last_trust_scores()
-                if last_trust_global is not None:
+                if self.enable_ttt and last_trust_global is not None:
                     valid_global_states = [
                         s for s, d in zip(all_root_contributions, r_deltas)
                         if not (torch.isnan(d).any() or torch.isinf(d).any())
