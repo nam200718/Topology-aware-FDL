@@ -308,6 +308,165 @@ class OrehComparisonRunner:
         return pd.read_csv(csv_path)
 
     # -------------------------------------------------------------------------
+    # POST-MIDTERM 1: New Attacks Suite Targeting TTT (Idea C)
+    # -------------------------------------------------------------------------
+    def run_postmid_attacks(
+        self,
+        attacks: List[str] = ["sign_flip", "alie", "ipm", "adaptive_cosine", "delayed_onset"],
+        byzantine_rates: List[float] = [0.2, 0.3],
+        seeds: List[int] = [42, 123, 7],
+        defense_scope: str = "both",
+        attack_target_tier: str = "all",
+        ipm_epsilon: float = 0.1,
+        attack_onset_round: int = 15,
+    ) -> pd.DataFrame:
+        """
+        Executes Post-Midterm Study C: Evaluates new attacking types designed to
+        circumvent Temporal Trust Tracking (TTT) and subspace cosine filtering.
+        Saves continuously to {output_dir}/{dataset}_postmid_attacks.csv.
+        """
+        csv_path = os.path.join(self.output_dir, f"{self.dataset}_postmid_attacks.csv")
+        key_cols = ["method", "attack_type", "byzantine_rate", "seed"]
+        completed = _load_existing_keys(csv_path, key_cols)
+
+        print("\n" + "=" * 70)
+        print(">> [POST-MIDTERM] RUNNING NEW ATTACKS SUITE TARGETING TTT")
+        print(f" Dataset: {self.dataset.upper()} | Rounds: {self.num_rounds} | Device: {self.device}")
+        print(f" Attacks: {attacks} | Byzantine Rates: {byzantine_rates} | Seeds: {seeds}")
+        print(f" Output File: {csv_path}")
+        print("=" * 70)
+
+        for atk in attacks:
+            for q in byzantine_rates:
+                for seed in seeds:
+                    key = tuple(_normalize_key_item(col, val) for col, val in zip(key_cols, ["Defended FedHEP", atk, q, seed]))
+                    if key in completed:
+                        print(f">> [Skip/Done] Attack={atk} | q={q} | Seed={seed}")
+                        continue
+
+                    res = self._run_hep_experiment(
+                        defense_scope=defense_scope,
+                        attack_target_tier=attack_target_tier,
+                        attack_type=atk,
+                        byzantine_rate=q,
+                        seed=seed,
+                        method_label="Defended FedHEP",
+                        ipm_epsilon=ipm_epsilon,
+                        attack_onset_round=attack_onset_round,
+                    )
+                    _append_result_to_csv(csv_path, res)
+                    completed.add(key)
+
+        return pd.read_csv(csv_path) if os.path.exists(csv_path) else pd.DataFrame()
+
+    # -------------------------------------------------------------------------
+    # POST-MIDTERM 2: Majority Attacker Stress-Test (q >= 50%) (Idea B)
+    # -------------------------------------------------------------------------
+    def run_postmid_majority_q(
+        self,
+        byzantine_rates: List[float] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+        attacks: List[str] = ["sign_flip", "alie"],
+        methods: List[str] = ["fedhep", "fedavg", "ditto"],
+        seeds: List[int] = [42, 123, 7],
+        defense_scope: str = "both",
+    ) -> pd.DataFrame:
+        """
+        Executes Post-Midterm Study B: Stress-tests FedHEP under majority attacker
+        fractions (q >= 0.5) to analyze SCCF consensus inversion vs FedAvg/Ditto.
+        Saves continuously to {output_dir}/{dataset}_postmid_majority_q.csv.
+        """
+        csv_path = os.path.join(self.output_dir, f"{self.dataset}_postmid_majority_q.csv")
+        key_cols = ["method", "attack_type", "byzantine_rate", "seed"]
+        completed = _load_existing_keys(csv_path, key_cols)
+
+        print("\n" + "=" * 70)
+        print(">> [POST-MIDTERM] RUNNING MAJORITY ATTACKER STRESS TEST (q >= 0.5)")
+        print(f" Dataset: {self.dataset.upper()} | Rounds: {self.num_rounds} | Device: {self.device}")
+        print(f" Methods: {methods} | Byzantine Rates: {byzantine_rates} | Seeds: {seeds}")
+        print(f" Output File: {csv_path}")
+        print("=" * 70)
+
+        for m_id in methods:
+            for atk in attacks:
+                for q in byzantine_rates:
+                    effective_atk = "none" if q == 0.0 else atk
+                    for seed in seeds:
+                        key = tuple(_normalize_key_item(col, val) for col, val in zip(key_cols, [m_id, effective_atk, q, seed]))
+                        if key in completed:
+                            print(f">> [Skip/Done] Method={m_id} | Attack={effective_atk} | q={q} | Seed={seed}")
+                            continue
+
+                        if m_id.lower() in ("fedavg", "ditto", "multikrum"):
+                            res = self._run_star_baseline_experiment(
+                                method_id=m_id.lower(),
+                                attack_type=effective_atk,
+                                byzantine_rate=q,
+                                seed=seed,
+                            )
+                        else:
+                            res = self._run_hep_experiment(
+                                defense_scope=defense_scope,
+                                attack_target_tier="all",
+                                attack_type=effective_atk,
+                                byzantine_rate=q,
+                                seed=seed,
+                                method_label="Defended FedHEP",
+                            )
+
+                        _append_result_to_csv(csv_path, res)
+                        completed.add(key)
+
+        return pd.read_csv(csv_path) if os.path.exists(csv_path) else pd.DataFrame()
+
+    # -------------------------------------------------------------------------
+    # POST-MIDTERM 3: Multi-Seed K-Cluster Sensitivity Sweep (Idea A)
+    # -------------------------------------------------------------------------
+    def run_postmid_k_clusters(
+        self,
+        k_values: List[int] = [1, 2, 3, 5, 8, 10, 15],
+        alphas: List[float] = [0.05, 0.1, 0.5],
+        seeds: List[int] = [42, 123, 7],
+        byzantine_rate: float = 0.0,
+    ) -> pd.DataFrame:
+        """
+        Executes Post-Midterm Study A: Multi-seed statistical significance sweep over
+        number of peer clusters K across extreme to moderate label skews.
+        Saves continuously to {output_dir}/{dataset}_postmid_k_clusters.csv.
+        """
+        csv_path = os.path.join(self.output_dir, f"{self.dataset}_postmid_k_clusters.csv")
+        key_cols = ["num_clusters", "alpha", "byzantine_rate", "seed"]
+        completed = _load_existing_keys(csv_path, key_cols)
+
+        print("\n" + "=" * 70)
+        print(">> [POST-MIDTERM] RUNNING MULTI-SEED PEER CLUSTERS (K) SWEEP")
+        print(f" Dataset: {self.dataset.upper()} | Rounds: {self.num_rounds} | Device: {self.device}")
+        print(f" K Values: {k_values} | Alphas: {alphas} | Seeds: {seeds}")
+        print(f" Output File: {csv_path}")
+        print("=" * 70)
+
+        for alpha in alphas:
+            for k in k_values:
+                for seed in seeds:
+                    key = tuple(_normalize_key_item(col, val) for col, val in zip(key_cols, [k, alpha, byzantine_rate, seed]))
+                    if key in completed:
+                        print(f">> [Skip/Done] K={k} | alpha={alpha} | Seed={seed}")
+                        continue
+
+                    res = self._run_hep_experiment(
+                        defense_scope="both" if byzantine_rate > 0 else "none",
+                        attack_target_tier="all",
+                        attack_type="label_flip" if byzantine_rate > 0 else "none",
+                        byzantine_rate=byzantine_rate,
+                        seed=seed,
+                        num_clusters_override=k,
+                        alpha_override=alpha,
+                    )
+                    _append_result_to_csv(csv_path, res)
+                    completed.add(key)
+
+        return pd.read_csv(csv_path) if os.path.exists(csv_path) else pd.DataFrame()
+
+    # -------------------------------------------------------------------------
     # Helper Simulation Dispatchers
     # -------------------------------------------------------------------------
     def _run_hep_experiment(
@@ -321,13 +480,15 @@ class OrehComparisonRunner:
         method_label: str = "FedHEP",
         num_clusters_override: Optional[int] = None,
         alpha_override: Optional[float] = None,
+        ipm_epsilon: float = 0.1,
+        attack_onset_round: int = 15,
     ) -> Dict[str, Any]:
         set_seed(seed)
         k_clusters = num_clusters_override or self.num_clusters
         alpha = alpha_override if alpha_override is not None else self.alpha
         exp_name = f"{self.dataset}_hep_s_{defense_scope}_tgt_{attack_target_tier}_{attack_type}_q{int(byzantine_rate*100)}_k{k_clusters}_a{alpha}"
 
-        print(f"\n>> HEP Run: Scope={defense_scope} | Target={attack_target_tier} | Atk={attack_type} | q={byzantine_rate} | K={k_clusters} | a={alpha}")
+        print(f"\n>> HEP Run: Scope={defense_scope} | Target={attack_target_tier} | Atk={attack_type} | q={byzantine_rate} | K={k_clusters} | a={alpha} | Seed={seed}")
 
         cfg = SimulationConfig(
             experiment_name=exp_name,
@@ -390,6 +551,8 @@ class OrehComparisonRunner:
             defense_config=defense_cfg,
             attack_target_tier=attack_target_tier,
             alie_z_max=alie_z_max,
+            ipm_epsilon=ipm_epsilon,
+            attack_onset_round=attack_onset_round,
         )
 
         t_start = time.perf_counter()
@@ -410,6 +573,7 @@ class OrehComparisonRunner:
         mean_tier2_lat = float(np.mean(engine.global_latency_history)) if engine.global_latency_history else 0.0
         mean_total_def_lat = float(np.mean(engine.total_defense_latency_history)) if engine.total_defense_latency_history else 0.0
         byz_trust = float(np.mean(engine.byzantine_trust_history[-3:])) if engine.byzantine_trust_history else 0.0
+        hon_trust = float(np.mean(engine.honest_trust_history[-3:])) if engine.honest_trust_history else 1.0
 
         return {
             "dataset": self.dataset,
@@ -427,6 +591,7 @@ class OrehComparisonRunner:
             "tier2_latency_ms": round(mean_tier2_lat, 2),
             "total_defense_latency_ms": round(mean_total_def_lat, 2),
             "byzantine_trust_score": round(byz_trust, 4),
+            "honest_trust_score": round(hon_trust, 4),
             "total_runtime_s": round(total_time_s, 2),
         }
 
@@ -437,10 +602,12 @@ class OrehComparisonRunner:
         byzantine_rate: float,
         alie_z_max: Optional[float] = None,
         seed: int = 42,
+        ipm_epsilon: float = 0.1,
+        attack_onset_round: int = 15,
     ) -> Dict[str, Any]:
         set_seed(seed)
         exp_name = f"{self.dataset}_star_{method_id}_{attack_type}_q{int(byzantine_rate*100)}_s{seed}"
-        print(f"\n>> Star Baseline Run: Method={method_id.upper()} | Atk={attack_type} | q={byzantine_rate}")
+        print(f"\n>> Star Baseline Run: Method={method_id.upper()} | Atk={attack_type} | q={byzantine_rate} | Seed={seed}")
 
         is_ditto = method_id == "ditto"
         client_cfg = ClientConfig(
@@ -491,6 +658,8 @@ class OrehComparisonRunner:
             aggregator=aggregator,
             device=self.device,
             alie_z_max=alie_z_max,
+            ipm_epsilon=ipm_epsilon,
+            attack_onset_round=attack_onset_round,
         )
 
         t_start = time.perf_counter()

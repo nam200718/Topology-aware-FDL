@@ -1,0 +1,196 @@
+[
+    {
+        "round": 1,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 2,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 3,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 4,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 5,
+        "test_accuracy": 14.366666666666667,
+        "test_loss": 3.5899835611979167,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "ensemble_test_accuracy": 19.933333333333334,
+        "ensemble_test_loss": 3.8261180419921876,
+        "personalized_test_acc": 19.933333333333334
+    },
+    {
+        "round": 6,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 7,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 8,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 9,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 10,
+        "test_accuracy": 27.566666666666666,
+        "test_loss": 2.9319458821614583,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "ensemble_test_accuracy": 29.2,
+        "ensemble_test_loss": 3.1868447672526043,
+        "personalized_test_acc": 29.2
+    },
+    {
+        "round": 11,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 12,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 13,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 14,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 15,
+        "test_accuracy": 34.6,
+        "test_loss": 2.5717734375,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "ensemble_test_accuracy": 35.699999999999996,
+        "ensemble_test_loss": 2.7834163411458333,
+        "personalized_test_acc": 35.699999999999996
+    },
+    {
+        "round": 16,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 17,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 18,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 19,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 20,
+        "test_accuracy": 39.06666666666667,
+        "test_loss": 2.3697067057291665,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "ensemble_test_accuracy": 41.8,
+        "ensemble_test_loss": 2.421205912272135,
+        "personalized_test_acc": 41.8
+    },
+    {
+        "round": 21,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 22,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 23,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 24,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 25,
+        "test_accuracy": 39.266666666666666,
+        "test_loss": 2.3262723795572917,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "ensemble_test_accuracy": 44.166666666666664,
+        "ensemble_test_loss": 2.2505409545898436,
+        "personalized_test_acc": 44.166666666666664,
+        "bottom10_fairness": 35.07706925675676,
+        "bottom_10_acc": 35.07706925675676,
+        "per_client_accuracy": {
+            "0": 31.6406,
+            "1": 41.8699,
+            "2": 40.0,
+            "3": 48.954,
+            "4": 38.5135,
+            "5": 41.7778,
+            "6": 48.6364,
+            "7": 45.0,
+            "8": 51.5957,
+            "9": 51.773,
+            "10": 40.8377,
+            "11": 51.0638,
+            "12": 47.6821,
+            "13": 48.2353,
+            "14": 50.4132
+        }
+    }
+]

@@ -1,0 +1,11 @@
+dataset,method,defense_scope,attack_target_tier,attack_type,byzantine_rate,num_clusters,alpha,seed,final_test_acc,bottom_10_fairness,tier1_latency_ms,tier2_latency_ms,total_defense_latency_ms,byzantine_trust_score,total_runtime_s
+cifar100,FedHEP,none,all,none,0.0,1,0.5,42,45.1,37.58,22.78,1.04,23.82,0.0,231.01
+cifar100,FedHEP,none,all,none,0.0,2,0.5,42,44.3,35.23,23.78,1.03,24.81,0.0,232.5
+cifar100,FedHEP,none,all,none,0.0,3,0.5,42,44.17,35.08,24.76,1.05,25.81,0.0,231.93
+cifar100,FedHEP,none,all,none,0.0,5,0.5,42,43.63,35.58,25.9,1.03,26.93,0.0,232.17
+cifar100,FedHEP,none,all,none,0.0,8,0.5,42,44.37,36.21,26.57,1.03,27.6,0.0,232.81
+cifar100,FedHEP,none,all,none,0.0,1,0.05,42,62.13,44.17,23.09,1.03,24.13,0.0,234.28
+cifar100,FedHEP,none,all,none,0.0,2,0.05,42,63.13,44.6,24.5,1.04,25.54,0.0,231.66
+cifar100,FedHEP,none,all,none,0.0,3,0.05,42,63.27,45.77,25.45,1.04,26.49,0.0,231.88
+cifar100,FedHEP,none,all,none,0.0,5,0.05,42,63.17,46.67,25.66,1.04,26.69,0.0,232.76
+cifar100,FedHEP,none,all,none,0.0,8,0.05,42,63.2,46.29,27.39,1.05,28.44,0.0,233.55

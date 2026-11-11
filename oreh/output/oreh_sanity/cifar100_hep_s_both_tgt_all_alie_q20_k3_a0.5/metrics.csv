@@ -1,0 +1,2 @@
+round,test_accuracy,test_loss,participating_clients,total_clients_targeted,evaluated,ensemble_test_accuracy,ensemble_test_loss,personalized_test_acc,bottom10_fairness,bottom_10_acc,per_client_accuracy
+1,1.0,4.6029140625,15,15,True,1.0256410256410255,6.7227486830491285,1.0256410256410255,0.0,0.0,"{'0': 1.8692, '1': 1.8692, '3': 0.0, '4': 0.0, '5': 0.0, '6': 0.0, '9': 0.0, '10': 0.0, '11': 0.0, '12': 0.0, '13': 0.0, '14': 0.0}"

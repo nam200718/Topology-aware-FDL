@@ -24,7 +24,12 @@ from src.core.aggregator import (
 from src.defense.config import DefenseConfig
 
 from oreh.updater import OrehLocalUpdater
-from oreh.alie_attack import generate_alie_delta, compute_alie_z_max
+from oreh.attacks import (
+    generate_alie_delta,
+    compute_alie_z_max,
+    generate_ipm_delta,
+    generate_adaptive_cosine_delta,
+)
 
 
 class OrehDefendedEngine(UnifiedDefendedEngine):
@@ -35,6 +40,7 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
     3. Flexible Defense Scopes ('cluster', 'global', 'both', 'none').
     4. Granular per-tier latency tracking (ms) for cost-benefit evaluation.
     5. Detailed attacker vs honest trust score recording.
+    6. Multi-vector Byzantine attacks (ALIE, IPM, Adaptive Cosine, Delayed Onset).
     """
 
     def __init__(
@@ -46,6 +52,8 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
         defense_config: Optional[DefenseConfig] = None,
         attack_target_tier: Literal["all", "root_only", "parent_only"] = "all",
         alie_z_max: Optional[float] = None,
+        ipm_epsilon: float = 0.1,
+        attack_onset_round: int = 15,
     ):
         super().__init__(
             config=config,
@@ -56,6 +64,8 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
         )
         self.attack_target_tier = attack_target_tier
         self.alie_z_max = alie_z_max
+        self.ipm_epsilon = ipm_epsilon
+        self.attack_onset_round = attack_onset_round
 
         # Replace default updater with OrehLocalUpdater
         self.updater = OrehLocalUpdater(
@@ -65,6 +75,8 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
             num_classes=self.num_classes,
             attack_target_tier=attack_target_tier,
             alie_z_max=alie_z_max,
+            ipm_epsilon=ipm_epsilon,
+            attack_onset_round=attack_onset_round,
         )
 
         # Performance profiling logs
@@ -155,17 +167,19 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
             if hasattr(updated_state, "active_mask") and updated_state.active_mask is not None:
                 client_active_masks[client_id] = updated_state.active_mask
 
-        # 2B. Second pass: compute updates for BYZANTINE clients (supporting ALIE)
+        # 2B. Second pass: compute updates for BYZANTINE clients (supporting ALIE, IPM, Adaptive Cosine, Delayed Onset)
         alie_root_delta = None
         alie_parent_deltas = {}
+        ipm_root_delta = None
+        ipm_parent_deltas = {}
+        adaptive_root_delta = None
+        adaptive_parent_deltas = {}
 
-        is_alie = any(
-            getattr(self.clients_state[cid], "byzantine_type", "label_flip") == "alie"
-            for cid in byzantine_clients
-        )
+        is_alie = any(getattr(self.clients_state[cid], "byzantine_type", "") == "alie" for cid in byzantine_clients)
+        is_ipm = any(getattr(self.clients_state[cid], "byzantine_type", "") == "ipm" for cid in byzantine_clients)
+        is_adaptive = any(getattr(self.clients_state[cid], "byzantine_type", "") == "adaptive_cosine" for cid in byzantine_clients)
 
         if is_alie and honest_root_deltas:
-            # Generate ALIE delta from honest updates
             alie_root_delta = generate_alie_delta(
                 honest_root_deltas,
                 z_max=self.alie_z_max,
@@ -183,15 +197,43 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
                 else:
                     alie_parent_deltas[hid] = alie_root_delta
 
+        if is_ipm and honest_root_deltas:
+            ipm_root_delta = generate_ipm_delta(honest_root_deltas, epsilon=self.ipm_epsilon)
+            for hid in self.cluster_heads_state.keys():
+                if honest_parent_deltas[hid]:
+                    ipm_parent_deltas[hid] = generate_ipm_delta(honest_parent_deltas[hid], epsilon=self.ipm_epsilon)
+                else:
+                    ipm_parent_deltas[hid] = ipm_root_delta
+
+        if is_adaptive and honest_root_deltas:
+            prev_byz_trust = float(np.mean([self.client_trust_scores.get(c, 1.0) for c in byzantine_clients])) if byzantine_clients else 1.0
+            adaptive_root_delta = generate_adaptive_cosine_delta(honest_root_deltas, prev_trust_score=prev_byz_trust)
+            for hid in self.cluster_heads_state.keys():
+                if honest_parent_deltas[hid]:
+                    adaptive_parent_deltas[hid] = generate_adaptive_cosine_delta(honest_parent_deltas[hid], prev_trust_score=prev_byz_trust)
+                else:
+                    adaptive_parent_deltas[hid] = adaptive_root_delta
+
         for client_id in byzantine_clients:
             state = self.clients_state[client_id].copy()
             state.attack_target_tier = self.attack_target_tier
             head_id = self.topology.get_neighbors(client_id)[0]
             state.parent_reference_weights = parent_references[head_id]
+            state.current_round = round_num
+            state.attack_onset_round = self.attack_onset_round
+            state.prev_trust_score = self.client_trust_scores.get(client_id, 1.0)
 
             if alie_root_delta is not None:
                 state.alie_root_delta = alie_root_delta
                 state.alie_parent_delta = alie_parent_deltas.get(head_id, alie_root_delta)
+
+            if ipm_root_delta is not None:
+                state.ipm_root_delta = ipm_root_delta
+                state.ipm_parent_delta = ipm_parent_deltas.get(head_id, ipm_root_delta)
+
+            if adaptive_root_delta is not None:
+                state.adaptive_root_delta = adaptive_root_delta
+                state.adaptive_parent_delta = adaptive_parent_deltas.get(head_id, adaptive_root_delta)
 
             client_ds = self.client_train_datasets[client_id]
             updated_state = self.updater.update(
@@ -381,6 +423,10 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
             "total_clients_targeted": num_total,
             "evaluated": True,
         }
+        if self.byzantine_trust_history:
+            round_data["byzantine_trust_score"] = float(self.byzantine_trust_history[-1])
+        if self.honest_trust_history:
+            round_data["honest_trust_score"] = float(self.honest_trust_history[-1])
 
         if getattr(self.config.clients, "use_ensemble", False) or getattr(self.config.clients, "hierarchical_ensemble", False):
             ens_acc, ens_loss = self.evaluate_ensemble(round_num)
@@ -413,9 +459,13 @@ class OrehCentralizedEngine(CentralizedEngine):
         aggregator,
         device="cpu",
         alie_z_max: Optional[float] = None,
+        ipm_epsilon: float = 0.1,
+        attack_onset_round: int = 15,
     ):
         super().__init__(config, topology, aggregator, device)
         self.alie_z_max = alie_z_max
+        self.ipm_epsilon = ipm_epsilon
+        self.attack_onset_round = attack_onset_round
         self.updater = OrehLocalUpdater(
             device=device,
             in_channels=self.in_channels,
@@ -423,6 +473,8 @@ class OrehCentralizedEngine(CentralizedEngine):
             num_classes=self.num_classes,
             attack_target_tier="all",
             alie_z_max=alie_z_max,
+            ipm_epsilon=ipm_epsilon,
+            attack_onset_round=attack_onset_round,
         )
 
     def run_round(self, round_num: int):
@@ -462,12 +514,15 @@ class OrehCentralizedEngine(CentralizedEngine):
             delta = (updated_state.weights - self.server_weights).detach()
             honest_deltas.append(delta)
 
-        # 2. ALIE delta generation for centralized attackers
+        # 2. Attack delta generation for centralized attackers
         alie_delta = None
-        is_alie = any(
-            getattr(self.clients_state[cid], "byzantine_type", "") == "alie"
-            for cid in byzantine_clients
-        )
+        ipm_delta = None
+        adaptive_delta = None
+
+        is_alie = any(getattr(self.clients_state[cid], "byzantine_type", "") == "alie" for cid in byzantine_clients)
+        is_ipm = any(getattr(self.clients_state[cid], "byzantine_type", "") == "ipm" for cid in byzantine_clients)
+        is_adaptive = any(getattr(self.clients_state[cid], "byzantine_type", "") == "adaptive_cosine" for cid in byzantine_clients)
+
         if is_alie and honest_deltas:
             alie_delta = generate_alie_delta(
                 honest_deltas,
@@ -476,11 +531,23 @@ class OrehCentralizedEngine(CentralizedEngine):
                 num_attackers=len(byzantine_clients),
             )
 
+        if is_ipm and honest_deltas:
+            ipm_delta = generate_ipm_delta(honest_deltas, epsilon=self.ipm_epsilon)
+
+        if is_adaptive and honest_deltas:
+            adaptive_delta = generate_adaptive_cosine_delta(honest_deltas, prev_trust_score=1.0)
+
         # 3. Update byzantine clients
         for client_id in byzantine_clients:
             state = self.clients_state[client_id].copy()
+            state.current_round = round_num
+            state.attack_onset_round = self.attack_onset_round
             if alie_delta is not None:
                 state.alie_root_delta = alie_delta
+            if ipm_delta is not None:
+                state.ipm_root_delta = ipm_delta
+            if adaptive_delta is not None:
+                state.adaptive_root_delta = adaptive_delta
             client_ds = self.client_train_datasets[client_id]
 
             updated_state = self.updater.update(
