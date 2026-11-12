@@ -105,6 +105,7 @@ class OrehComparisonRunner:
         test_subset: Optional[int] = 3000,
         data_dir: str = "./data",
         output_dir: str = "./outputs/oreh_eval",
+        clustering_mode: str = "none",
     ):
         self.dataset = dataset.lower()
         self.num_rounds = num_rounds
@@ -116,6 +117,7 @@ class OrehComparisonRunner:
         self.test_subset = test_subset
         self.data_dir = data_dir
         self.output_dir = output_dir
+        self.clustering_mode = clustering_mode
         os.makedirs(output_dir, exist_ok=True)
 
     # -------------------------------------------------------------------------
@@ -134,6 +136,7 @@ class OrehComparisonRunner:
         num_clusters_override: Optional[int] = None,
         alpha_override: Optional[float] = None,
         enable_ttt: bool = True,
+        clustering_mode_override: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Executes a single experiment run (FedHEP or baseline method) with the given configuration.
@@ -159,6 +162,7 @@ class OrehComparisonRunner:
             num_clusters_override=num_clusters_override,
             alpha_override=alpha_override,
             enable_ttt=enable_ttt,
+            clustering_mode_override=clustering_mode_override,
         )
 
 
@@ -543,13 +547,16 @@ class OrehComparisonRunner:
         ipm_epsilon: float = 0.1,
         attack_onset_round: int = 15,
         enable_ttt: bool = True,
+        clustering_mode_override: Optional[str] = None,
     ) -> Dict[str, Any]:
         set_seed(seed)
         k_clusters = num_clusters_override or self.num_clusters
         alpha = alpha_override if alpha_override is not None else self.alpha
-        exp_name = f"{self.dataset}_hep_s_{defense_scope}_tgt_{attack_target_tier}_{attack_type}_q{int(byzantine_rate*100)}_k{k_clusters}_a{alpha}"
+        active_clustering_mode = clustering_mode_override or self.clustering_mode
+        cm_suffix = f"_cm_{active_clustering_mode}_s{seed}" if active_clustering_mode != "none" else ""
+        exp_name = f"{self.dataset}_hep_s_{defense_scope}_tgt_{attack_target_tier}_{attack_type}_q{int(byzantine_rate*100)}_k{k_clusters}_a{alpha}{cm_suffix}"
 
-        print(f"\n>> HEP Run: Scope={defense_scope} | Target={attack_target_tier} | Atk={attack_type} | q={byzantine_rate} | K={k_clusters} | a={alpha} | Seed={seed}")
+        print(f"\n>> HEP Run: Scope={defense_scope} | Target={attack_target_tier} | Atk={attack_type} | q={byzantine_rate} | K={k_clusters} | a={alpha} | Cluster={active_clustering_mode} | Seed={seed}")
 
         cfg = SimulationConfig(
             experiment_name=exp_name,
@@ -615,6 +622,7 @@ class OrehComparisonRunner:
             ipm_epsilon=ipm_epsilon,
             attack_onset_round=attack_onset_round,
             enable_ttt=enable_ttt,
+            clustering_mode=active_clustering_mode,
         )
 
         t_start = time.perf_counter()
@@ -647,6 +655,9 @@ class OrehComparisonRunner:
             "num_clusters": k_clusters,
             "alpha": alpha,
             "seed": seed,
+            "clustering_mode": active_clustering_mode,
+            "clustering_events": len(getattr(engine, "clustering_history", [])),
+            "exp_name": exp_name,
             "final_test_acc": round(final_acc, 2),
             "bottom_10_fairness": round(final_b10, 2),
             "tier1_latency_ms": round(mean_tier1_lat, 2),

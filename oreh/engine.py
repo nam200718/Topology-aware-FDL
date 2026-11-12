@@ -24,6 +24,7 @@ from src.core.aggregator import (
 from src.defense.config import DefenseConfig
 
 from oreh.updater import OrehLocalUpdater
+from oreh.clustering_utils import compute_weight_indices
 from oreh.attacks import (
     generate_alie_delta,
     compute_alie_z_max,
@@ -55,7 +56,12 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
         ipm_epsilon: float = 0.1,
         attack_onset_round: int = 15,
         enable_ttt: bool = True,
+        clustering_mode: str = "none",
     ):
+        if clustering_mode not in ("none", "full_state", "weights_only"):
+            raise ValueError(
+                f"Invalid clustering_mode '{clustering_mode}'. Expected 'none', 'full_state', or 'weights_only'."
+            )
         super().__init__(
             config=config,
             topology=topology,
@@ -68,6 +74,7 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
         self.ipm_epsilon = ipm_epsilon
         self.attack_onset_round = attack_onset_round
         self.enable_ttt = enable_ttt
+        self.clustering_mode = clustering_mode
 
         # Replace default updater with OrehLocalUpdater
         self.updater = OrehLocalUpdater(
@@ -81,10 +88,21 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
             attack_onset_round=attack_onset_round,
         )
 
+        # Precompute trainable-parameter index mask for weights-only clustering
+        clustering_model = getattr(self.updater, "multihead_model", None) or getattr(
+            self.updater, "global_model", None
+        )
+        self._clustering_param_indices = (
+            compute_weight_indices(clustering_model).to(self.device)
+            if (clustering_mode == "weights_only" and clustering_model is not None)
+            else None
+        )
+
         # Performance profiling logs
         self.cluster_latency_history: List[float] = []
         self.global_latency_history: List[float] = []
         self.total_defense_latency_history: List[float] = []
+        self.clustering_history: List[Dict[str, Any]] = []
 
         # Attacker tracking logs
         self.byzantine_trust_history: List[float] = []
@@ -111,9 +129,11 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
             elif hasattr(head_m, "parent_head"):
                 head_parent_states[hid] = {k: v.clone() for k, v in head_m.parent_head.state_dict().items()}
 
+        old_head_ids: Dict[int, int] = {}
         for client_id in all_clients:
             self.clients_state[client_id].weights = self.server_weights.clone()
             head_id = self.topology.get_neighbors(client_id)[0]
+            old_head_ids[client_id] = head_id
             self.clients_state[client_id].parent_weights = (
                 self.cluster_heads_state[head_id].weights.clone()
             )
@@ -253,18 +273,14 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
             if hasattr(updated_state, "active_mask") and updated_state.active_mask is not None:
                 client_active_masks[client_id] = updated_state.active_mask
 
-        # Group updates for Tier 1 and Tier 2
-        cluster_updates_parent: Dict[int, List[ClientState]] = {
-            hid: [] for hid in self.cluster_heads_state.keys()
-        }
-        cluster_updates_root: Dict[int, List[ClientState]] = {
-            hid: [] for hid in self.cluster_heads_state.keys()
-        }
-
+        # Filter NaN/Inf / confirmed malicious clients and build clustering delta vectors
+        active_cids: List[int] = []
+        clustering_deltas: Dict[int, torch.Tensor] = {}
         for client_id in all_clients:
-            updated_state = self.clients_state[client_id]
-            head_id = self.topology.get_neighbors(client_id)[0]
+            if getattr(self.clients_state[client_id], "is_confirmed_malicious", False):
+                continue
 
+            updated_state = self.clients_state[client_id]
             delta = (updated_state.weights - root_reference).detach()
             has_nan_inf = (
                 torch.isnan(delta).any()
@@ -281,8 +297,99 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
                 self.clients_state[client_id].is_confirmed_malicious = True
                 continue
 
-            if getattr(self.clients_state[client_id], "is_confirmed_malicious", False):
-                continue
+            active_cids.append(client_id)
+            if self.clustering_mode == "weights_only" and self._clustering_param_indices is not None:
+                clustering_deltas[client_id] = delta[self._clustering_param_indices]
+            elif self.clustering_mode != "none":
+                clustering_deltas[client_id] = delta
+
+        # Adaptive Update-Similarity Clustering Controller (when clustering_mode != "none")
+        if (
+            self.clustering_mode != "none"
+            and self.cluster_method == "update_similarity"
+            and active_cids
+        ):
+            self.client_cluster_affinities.update(
+                self._client_cluster_affinities(active_cids, clustering_deltas)
+            )
+
+            if hasattr(self.topology, "build_update_similarity"):
+                should_recluster = False
+                is_initial_trigger = False
+
+                if not self.has_initial_clustered:
+                    if round_num >= self.warmup_min_rounds:
+                        if self.prev_update_deltas:
+                            stabilities = []
+                            for cid in active_cids:
+                                if cid in self.prev_update_deltas:
+                                    d_prev = self.prev_update_deltas[cid]
+                                    d_curr = clustering_deltas[cid]
+                                    n_p = torch.norm(d_prev)
+                                    n_c = torch.norm(d_curr)
+                                    if n_p > 1e-8 and n_c > 1e-8:
+                                        sim = (torch.dot(d_prev, d_curr) / (n_p * n_c)).item()
+                                        stabilities.append(sim)
+                            avg_stability = float(np.mean(stabilities)) if stabilities else 0.0
+                        else:
+                            avg_stability = 0.0
+
+                        if avg_stability >= self.stability_threshold or round_num >= self.warmup_max_rounds:
+                            should_recluster = True
+                            is_initial_trigger = True
+                else:
+                    misaligned_count = self._count_misaligned_clients(active_cids, clustering_deltas)
+                    misaligned_ratio = misaligned_count / len(active_cids)
+                    if misaligned_ratio > self.misaligned_ratio_trigger:
+                        should_recluster = True
+
+                if should_recluster:
+                    self.topology.build_update_similarity(
+                        num_clients=num_total,
+                        client_update_vectors=clustering_deltas,
+                        seed=self.config.env.seed + round_num,
+                    )
+                    cluster_counts = {
+                        hid: sum(1 for cid in all_clients if self.topology.get_neighbors(cid)[0] == hid)
+                        for hid in self.cluster_heads_state.keys()
+                    }
+                    self.clustering_history.append({
+                        "round": round_num,
+                        "mode": self.clustering_mode,
+                        "trigger": "initial" if is_initial_trigger else "recluster",
+                        "cluster_counts": cluster_counts,
+                    })
+
+                    if is_initial_trigger:
+                        print(
+                            f"[Round {round_num}] Triggered Initial Update-Similarity Clustering "
+                            f"({self.clustering_mode}). Counts: {cluster_counts}"
+                        )
+                        for hid in self.cluster_heads_state.keys():
+                            self.cluster_heads_state[hid].weights = self.server_weights.clone()
+                        for cid in all_clients:
+                            self.clients_state[cid].parent_head_state = None
+                            self.clients_state[cid].local_head_state = None
+                        self.has_initial_clustered = True
+                    else:
+                        print(
+                            f"[Round {round_num}] Triggered Adaptive Re-Clustering "
+                            f"({self.clustering_mode}). Counts: {cluster_counts}"
+                        )
+
+                self.prev_update_deltas.update(clustering_deltas)
+
+        # Group updates for Tier 1 and Tier 2
+        cluster_updates_parent: Dict[int, List[ClientState]] = {
+            hid: [] for hid in self.cluster_heads_state.keys()
+        }
+        cluster_updates_root: Dict[int, List[ClientState]] = {
+            hid: [] for hid in self.cluster_heads_state.keys()
+        }
+
+        for client_id in active_cids:
+            updated_state = self.clients_state[client_id]
+            head_id = self.topology.get_neighbors(client_id)[0]
 
             s_parent = updated_state.copy()
             if updated_state.parent_weights is not None:
@@ -303,7 +410,10 @@ class OrehDefendedEngine(UnifiedDefendedEngine):
                 continue
 
             if defense_scope in ("cluster", "both"):
-                p_deltas = [s.weights - ref for s in clean_states]
+                p_deltas = [
+                    s.weights - parent_references.get(old_head_ids.get(s.client_id, hid), ref)
+                    for s in clean_states
+                ]
                 masks = [client_active_masks.get(s.client_id) for s in clean_states]
                 stacked_masks = (
                     torch.stack(masks).to(ref.device)
