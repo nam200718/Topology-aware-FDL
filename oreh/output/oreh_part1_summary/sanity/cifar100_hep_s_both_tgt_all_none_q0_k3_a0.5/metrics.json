@@ -1,0 +1,33 @@
+[
+    {
+        "round": 1,
+        "test_accuracy": 0.8,
+        "test_loss": 4.60218359375,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "honest_trust_score": 0.9653808298707008,
+        "ensemble_test_accuracy": 2.1999999999999997,
+        "ensemble_test_loss": 6.095814079284668,
+        "personalized_test_acc": 2.1999999999999997,
+        "bottom10_fairness": 0.0,
+        "bottom_10_acc": 0.0,
+        "per_client_accuracy": {
+            "0": 2.8037,
+            "1": 1.8692,
+            "2": 4.3956,
+            "3": 1.9231,
+            "4": 0.0,
+            "5": 0.0,
+            "6": 0.0,
+            "7": 0.0,
+            "8": 0.0,
+            "9": 0.0,
+            "10": 11.1111,
+            "11": 0.0,
+            "12": 0.0,
+            "13": 0.0,
+            "14": 0.0
+        }
+    }
+]

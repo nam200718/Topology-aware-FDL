@@ -1,0 +1,17 @@
+dataset,method,defense_scope,attack_target_tier,attack_type,byzantine_rate,num_clusters,alpha,seed,final_test_acc,bottom_10_fairness,tier1_latency_ms,tier2_latency_ms,total_defense_latency_ms,byzantine_trust_score,honest_trust_score,total_runtime_s,enable_ttt
+cifar100,FedHEP,both,all,sign_flip,0.2,3,0.5,42,38.34,30.47,23.82,22.14,45.96,0.657,0.9816,286.19,True
+cifar100,FedHEP,both,all,sign_flip,0.2,3,0.5,123,45.32,38.34,24.24,22.58,46.82,0.5899,0.9561,286.04,True
+cifar100,FedHEP,both,all,sign_flip,0.2,3,0.5,42,37.63,29.37,19.69,18.12,37.81,1.0,1.0,286.57,False
+cifar100,FedHEP,both,all,sign_flip,0.2,3,0.5,123,45.64,39.23,20.19,18.23,38.42,1.0,1.0,286.64,False
+cifar100,FedHEP,both,all,sign_flip,0.3,3,0.5,42,18.29,3.12,23.52,21.42,44.94,0.8069,0.9925,286.35,True
+cifar100,FedHEP,both,all,sign_flip,0.3,3,0.5,123,37.32,28.33,23.49,21.42,44.91,0.6292,0.9631,285.48,True
+cifar100,FedHEP,both,all,sign_flip,0.3,3,0.5,42,19.36,9.77,19.08,17.42,36.51,1.0,1.0,284.85,False
+cifar100,FedHEP,both,all,sign_flip,0.3,3,0.5,123,37.03,27.33,19.75,17.6,37.35,1.0,1.0,285.82,False
+cifar100,FedHEP,both,all,alie,0.2,3,0.5,42,42.97,33.49,23.61,21.39,45.0,1.0,0.9035,286.37,True
+cifar100,FedHEP,both,all,alie,0.2,3,0.5,123,47.42,40.93,23.99,21.76,45.75,1.0,0.9209,286.94,True
+cifar100,FedHEP,both,all,alie,0.2,3,0.5,42,43.97,35.91,19.79,17.77,37.56,1.0,1.0,286.65,False
+cifar100,FedHEP,both,all,alie,0.2,3,0.5,123,46.61,39.75,19.6,17.92,37.52,1.0,1.0,286.02,False
+cifar100,FedHEP,both,all,alie,0.3,3,0.5,42,21.04,14.06,23.75,21.62,45.37,1.0,0.5757,285.69,True
+cifar100,FedHEP,both,all,alie,0.3,3,0.5,123,43.65,36.27,23.8,21.6,45.4,1.0,0.8719,286.86,True
+cifar100,FedHEP,both,all,alie,0.3,3,0.5,42,21.94,13.28,19.64,18.14,37.79,1.0,1.0,285.82,False
+cifar100,FedHEP,both,all,alie,0.3,3,0.5,123,44.64,37.44,19.5,17.42,36.92,1.0,1.0,284.95,False

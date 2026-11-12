@@ -1,0 +1,91 @@
+dataset,method,defense_scope,attack_target_tier,attack_type,byzantine_rate,num_clusters,alpha,seed,final_test_acc,bottom_10_fairness,tier1_latency_ms,tier2_latency_ms,total_defense_latency_ms,byzantine_trust_score,honest_trust_score,total_runtime_s
+cifar100,Defended FedHEP,both,all,none,0.0,3,0.5,42,46.3,35.47,23.73,21.63,45.36,0.0,0.9325,287.63
+cifar100,Defended FedHEP,both,all,none,0.0,3,0.5,123,47.47,38.22,23.84,21.76,45.6,0.0,0.9178,286.57
+cifar100,Defended FedHEP,both,all,sign_flip,0.1,3,0.5,42,43.79,33.98,23.54,21.64,45.18,0.6031,0.9236,286.31
+cifar100,Defended FedHEP,both,all,sign_flip,0.1,3,0.5,123,46.87,37.93,23.87,22.57,46.44,0.0,0.918,286.03
+cifar100,Defended FedHEP,both,all,sign_flip,0.2,3,0.5,42,38.13,29.64,23.76,21.84,45.61,0.6388,0.9818,286.1
+cifar100,Defended FedHEP,both,all,sign_flip,0.2,3,0.5,123,46.19,38.5,23.73,21.56,45.3,0.5921,0.9514,286.0
+cifar100,Defended FedHEP,both,all,sign_flip,0.3,3,0.5,42,22.5,14.06,23.45,21.51,44.95,0.8027,0.9951,285.04
+cifar100,Defended FedHEP,both,all,sign_flip,0.3,3,0.5,123,36.66,25.76,23.72,21.77,45.49,0.6798,0.9635,285.88
+cifar100,Defended FedHEP,both,all,sign_flip,0.4,3,0.5,42,2.11,0.0,13.75,13.13,26.88,0.9521,0.5151,280.26
+cifar100,Defended FedHEP,both,all,sign_flip,0.4,3,0.5,123,17.02,8.05,23.41,21.6,45.02,0.9003,0.9884,285.66
+cifar100,Defended FedHEP,both,all,sign_flip,0.5,3,0.5,42,1.3,0.0,12.57,12.0,24.57,0.9891,0.3761,282.19
+cifar100,Defended FedHEP,both,all,sign_flip,0.5,3,0.5,123,12.43,3.36,23.44,21.51,44.95,0.7975,0.9791,284.85
+cifar100,Defended FedHEP,both,all,sign_flip,0.6,3,0.5,42,1.55,0.0,13.16,12.34,25.5,0.9832,0.2236,281.61
+cifar100,Defended FedHEP,both,all,sign_flip,0.6,3,0.5,123,1.43,0.0,12.09,11.24,23.33,0.9653,0.7069,281.44
+cifar100,Defended FedHEP,both,all,sign_flip,0.7,3,0.5,42,1.55,0.0,13.38,12.74,26.12,0.9824,0.2236,281.68
+cifar100,Defended FedHEP,both,all,sign_flip,0.7,3,0.5,123,1.64,0.41,13.14,12.3,25.43,0.9788,0.3039,283.62
+cifar100,Defended FedHEP,both,all,alie,0.1,3,0.5,42,45.65,35.58,24.19,21.96,46.15,0.9983,0.9159,287.97
+cifar100,Defended FedHEP,both,all,alie,0.1,3,0.5,123,47.17,40.02,24.02,22.08,46.1,0.0,0.9154,287.33
+cifar100,Defended FedHEP,both,all,alie,0.2,3,0.5,42,44.18,34.92,23.88,21.73,45.61,1.0,0.8949,287.46
+cifar100,Defended FedHEP,both,all,alie,0.2,3,0.5,123,47.17,39.87,23.6,21.8,45.4,1.0,0.9186,286.31
+cifar100,Defended FedHEP,both,all,alie,0.3,3,0.5,42,20.09,12.57,23.93,22.02,45.95,1.0,0.5781,286.19
+cifar100,Defended FedHEP,both,all,alie,0.3,3,0.5,123,44.35,36.1,23.79,21.89,45.67,1.0,0.8732,286.92
+cifar100,Defended FedHEP,both,all,alie,0.4,3,0.5,42,3.12,0.0,19.2,17.97,37.18,0.9996,0.7837,282.46
+cifar100,Defended FedHEP,both,all,alie,0.4,3,0.5,123,22.42,18.67,23.58,21.54,45.11,1.0,0.5657,284.57
+cifar100,Defended FedHEP,both,all,alie,0.5,3,0.5,42,5.76,2.44,15.8,15.12,30.92,0.9987,0.8189,282.23
+cifar100,Defended FedHEP,both,all,alie,0.5,3,0.5,123,21.72,17.33,23.69,21.75,45.43,1.0,0.5663,284.88
+cifar100,Defended FedHEP,both,all,alie,0.6,3,0.5,42,6.46,5.28,23.61,21.65,45.26,0.9991,0.459,282.91
+cifar100,Defended FedHEP,both,all,alie,0.6,3,0.5,123,2.85,1.45,23.97,22.01,45.98,0.9992,0.5056,283.52
+cifar100,Defended FedHEP,both,all,alie,0.7,3,0.5,42,1.55,0.0,12.68,12.11,24.79,0.9989,0.5079,282.85
+cifar100,Defended FedHEP,both,all,alie,0.7,3,0.5,123,2.83,1.09,22.7,20.7,43.41,0.9989,0.3103,281.96
+cifar100,FEDAVG,star_centralized,root_only,none,0.0,1,0.5,42,37.53,31.51,0.0,0.0,0.0,1.0,190.7
+cifar100,FEDAVG,star_centralized,root_only,none,0.0,1,0.5,123,37.93,34.26,0.0,0.0,0.0,1.0,190.62
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.1,1,0.5,42,31.47,26.26,0.0,0.0,0.0,1.0,190.73
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.1,1,0.5,123,38.07,33.21,0.0,0.0,0.0,1.0,190.65
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.2,1,0.5,42,19.97,9.26,0.0,0.0,0.0,1.0,190.68
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.2,1,0.5,123,34.07,27.91,0.0,0.0,0.0,1.0,190.36
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.3,1,0.5,42,1.03,0.0,0.0,0.0,0.0,1.0,189.45
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.3,1,0.5,123,22.23,14.45,0.0,0.0,0.0,1.0,190.39
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.4,1,0.5,42,1.03,0.0,0.0,0.0,0.0,1.0,187.8
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.4,1,0.5,123,1.17,0.0,0.0,0.0,0.0,1.0,189.72
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.5,1,0.5,42,1.03,0.0,0.0,0.0,0.0,1.0,185.35
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.5,1,0.5,123,1.17,0.0,0.0,0.0,0.0,1.0,190.09
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.6,1,0.5,42,1.03,0.0,0.0,0.0,0.0,1.0,184.88
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.6,1,0.5,123,1.17,0.0,0.0,0.0,0.0,1.0,186.61
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.7,1,0.5,42,1.03,0.0,0.0,0.0,0.0,1.0,184.78
+cifar100,FEDAVG,star_centralized,root_only,sign_flip,0.7,1,0.5,123,1.17,0.0,0.0,0.0,0.0,1.0,185.51
+cifar100,FEDAVG,star_centralized,root_only,alie,0.1,1,0.5,42,37.57,33.46,0.0,0.0,0.0,1.0,190.83
+cifar100,FEDAVG,star_centralized,root_only,alie,0.1,1,0.5,123,37.07,31.94,0.0,0.0,0.0,1.0,190.46
+cifar100,FEDAVG,star_centralized,root_only,alie,0.2,1,0.5,42,34.23,29.71,0.0,0.0,0.0,1.0,190.69
+cifar100,FEDAVG,star_centralized,root_only,alie,0.2,1,0.5,123,36.1,32.9,0.0,0.0,0.0,1.0,190.82
+cifar100,FEDAVG,star_centralized,root_only,alie,0.3,1,0.5,42,17.13,9.38,0.0,0.0,0.0,1.0,190.12
+cifar100,FEDAVG,star_centralized,root_only,alie,0.3,1,0.5,123,34.73,28.44,0.0,0.0,0.0,1.0,190.57
+cifar100,FEDAVG,star_centralized,root_only,alie,0.4,1,0.5,42,1.13,0.0,0.0,0.0,0.0,1.0,187.54
+cifar100,FEDAVG,star_centralized,root_only,alie,0.4,1,0.5,123,21.5,15.37,0.0,0.0,0.0,1.0,190.28
+cifar100,FEDAVG,star_centralized,root_only,alie,0.5,1,0.5,42,1.33,0.0,0.0,0.0,0.0,1.0,186.19
+cifar100,FEDAVG,star_centralized,root_only,alie,0.5,1,0.5,123,21.17,13.47,0.0,0.0,0.0,1.0,190.45
+cifar100,FEDAVG,star_centralized,root_only,alie,0.6,1,0.5,42,0.8,0.0,0.0,0.0,0.0,1.0,186.45
+cifar100,FEDAVG,star_centralized,root_only,alie,0.6,1,0.5,123,1.33,0.0,0.0,0.0,0.0,1.0,188.47
+cifar100,FEDAVG,star_centralized,root_only,alie,0.7,1,0.5,42,0.8,0.0,0.0,0.0,0.0,1.0,186.48
+cifar100,FEDAVG,star_centralized,root_only,alie,0.7,1,0.5,123,1.17,0.0,0.0,0.0,0.0,1.0,185.18
+cifar100,DITTO,star_centralized,root_only,none,0.0,1,0.5,42,43.3,35.94,0.0,0.0,0.0,1.0,394.54
+cifar100,DITTO,star_centralized,root_only,none,0.0,1,0.5,123,44.53,39.53,0.0,0.0,0.0,1.0,394.62
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.1,1,0.5,42,38.8,34.14,0.0,0.0,0.0,1.0,394.18
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.1,1,0.5,123,44.13,37.53,0.0,0.0,0.0,1.0,394.85
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.2,1,0.5,42,32.71,26.63,0.0,0.0,0.0,1.0,394.83
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.2,1,0.5,123,43.3,38.19,0.0,0.0,0.0,1.0,394.72
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.3,1,0.5,42,6.29,1.56,0.0,0.0,0.0,1.0,392.12
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.3,1,0.5,123,32.93,26.42,0.0,0.0,0.0,1.0,394.76
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.4,1,0.5,42,1.1,0.0,0.0,0.0,0.0,1.0,389.22
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.4,1,0.5,123,21.07,10.98,0.0,0.0,0.0,1.0,393.66
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.5,1,0.5,42,4.46,3.31,0.0,0.0,0.0,1.0,385.22
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.5,1,0.5,123,20.53,12.6,0.0,0.0,0.0,1.0,393.56
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.6,1,0.5,42,0.26,0.0,0.0,0.0,0.0,1.0,384.87
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.6,1,0.5,123,1.58,0.0,0.0,0.0,0.0,1.0,389.08
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.7,1,0.5,42,0.26,0.0,0.0,0.0,0.0,1.0,384.83
+cifar100,DITTO,star_centralized,root_only,sign_flip,0.7,1,0.5,123,1.49,0.41,0.0,0.0,0.0,1.0,386.45
+cifar100,DITTO,star_centralized,root_only,alie,0.1,1,0.5,42,41.79,36.55,0.0,0.0,0.0,1.0,394.75
+cifar100,DITTO,star_centralized,root_only,alie,0.1,1,0.5,123,44.27,37.38,0.0,0.0,0.0,1.0,394.81
+cifar100,DITTO,star_centralized,root_only,alie,0.2,1,0.5,42,39.01,33.72,0.0,0.0,0.0,1.0,394.85
+cifar100,DITTO,star_centralized,root_only,alie,0.2,1,0.5,123,42.81,36.45,0.0,0.0,0.0,1.0,395.54
+cifar100,DITTO,star_centralized,root_only,alie,0.3,1,0.5,42,29.18,22.27,0.0,0.0,0.0,1.0,394.71
+cifar100,DITTO,star_centralized,root_only,alie,0.3,1,0.5,123,42.08,34.55,0.0,0.0,0.0,1.0,394.79
+cifar100,DITTO,star_centralized,root_only,alie,0.4,1,0.5,42,17.61,7.03,0.0,0.0,0.0,1.0,390.55
+cifar100,DITTO,star_centralized,root_only,alie,0.4,1,0.5,123,30.52,26.02,0.0,0.0,0.0,1.0,394.18
+cifar100,DITTO,star_centralized,root_only,alie,0.5,1,0.5,42,21.0,18.7,0.0,0.0,0.0,1.0,384.8
+cifar100,DITTO,star_centralized,root_only,alie,0.5,1,0.5,123,30.79,26.02,0.0,0.0,0.0,1.0,394.11
+cifar100,DITTO,star_centralized,root_only,alie,0.6,1,0.5,42,19.9,17.89,0.0,0.0,0.0,1.0,384.39
+cifar100,DITTO,star_centralized,root_only,alie,0.6,1,0.5,123,23.04,14.63,0.0,0.0,0.0,1.0,392.08
+cifar100,DITTO,star_centralized,root_only,alie,0.7,1,0.5,42,20.16,17.48,0.0,0.0,0.0,1.0,388.76
+cifar100,DITTO,star_centralized,root_only,alie,0.7,1,0.5,123,15.05,8.13,0.0,0.0,0.0,1.0,386.55

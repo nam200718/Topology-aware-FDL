@@ -1,0 +1,2 @@
+round,test_accuracy,test_loss,participating_clients,total_clients_targeted,evaluated,byzantine_trust_score,honest_trust_score,ensemble_test_accuracy,ensemble_test_loss,personalized_test_acc,bottom10_fairness,bottom_10_acc,per_client_accuracy
+1,0.8,4.59909130859375,15,15,True,1.0,0.9721376649010925,1.0256410256410255,6.778588798718575,1.0256410256410255,0.0,0.0,"{'0': 1.8692, '1': 1.8692, '3': 0.0, '4': 0.0, '5': 0.0, '6': 0.0, '9': 0.0, '10': 0.0, '11': 0.0, '12': 0.0, '13': 0.0, '14': 0.0}"
