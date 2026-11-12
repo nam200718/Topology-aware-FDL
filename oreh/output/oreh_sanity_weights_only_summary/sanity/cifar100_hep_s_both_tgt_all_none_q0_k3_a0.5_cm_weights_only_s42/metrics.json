@@ -1,0 +1,57 @@
+[
+    {
+        "round": 1,
+        "test_accuracy": 1.0,
+        "test_loss": 4.60226171875,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "honest_trust_score": 0.9653746062275023,
+        "ensemble_test_accuracy": 2.0,
+        "ensemble_test_loss": 6.234571567535401,
+        "personalized_test_acc": 2.0
+    },
+    {
+        "round": 2,
+        "test_accuracy": 1.8,
+        "test_loss": 4.598751953125,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "honest_trust_score": 0.9512115055013588,
+        "ensemble_test_accuracy": 1.2,
+        "ensemble_test_loss": 4.701381065368652,
+        "personalized_test_acc": 1.2
+    },
+    {
+        "round": 3,
+        "test_accuracy": 1.6,
+        "test_loss": 4.5884462890625,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "honest_trust_score": 0.9431494434640033,
+        "ensemble_test_accuracy": 1.6,
+        "ensemble_test_loss": 4.552925537109375,
+        "personalized_test_acc": 1.6,
+        "bottom10_fairness": 0.0,
+        "bottom_10_acc": 0.0,
+        "per_client_accuracy": {
+            "0": 1.8692,
+            "1": 0.9346,
+            "2": 2.1978,
+            "3": 1.9231,
+            "4": 2.6316,
+            "5": 0.0,
+            "6": 0.0,
+            "7": 0.0,
+            "8": 0.0,
+            "9": 0.0,
+            "10": 0.0,
+            "11": 0.0,
+            "12": 0.0,
+            "13": 11.1111,
+            "14": 0.0
+        }
+    }
+]

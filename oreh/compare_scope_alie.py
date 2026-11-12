@@ -40,6 +40,9 @@ def parse_args():
             "postmid_attacks",
             "postmid_majority",
             "postmid_k",
+            "postmid_baselines",
+            "postmid_k_attack",
+            "postmid_seed7",
             "postmid_all",
         ],
         help="Which experiment to execute",
@@ -49,6 +52,13 @@ def parse_args():
     parser.add_argument("--num_clients", type=int, default=15, help="Number of edge clients (default: 15)")
     parser.add_argument("--num_clusters", type=int, default=3, help="Number of peer clusters K (default: 3)")
     parser.add_argument("--alpha", type=float, default=0.5, help="Dirichlet concentration parameter for label skew (default: 0.5)")
+    parser.add_argument(
+        "--clustering_mode",
+        type=str,
+        default="none",
+        choices=["none", "full_state", "weights_only"],
+        help="Clustering mode for FedHEP (default: 'none', matching Study B & C)",
+    )
     parser.add_argument("--device", type=str, default=None, help="Device to use ('cuda', 'cpu', or auto-detect)")
     parser.add_argument("--train_subset", type=int, default=10000, help="Subset size for training data (default: 10000)")
     parser.add_argument("--test_subset", type=int, default=3000, help="Subset size for test data (default: 3000)")
@@ -92,6 +102,7 @@ def main():
         test_subset=test_subset,
         data_dir=args.data_dir,
         output_dir=args.output_dir,
+        clustering_mode=args.clustering_mode,
     )
 
     if args.idea == "sanity":
@@ -215,6 +226,62 @@ def main():
             cols_a = ["num_clusters", "alpha", "seed", "final_test_acc", "bottom_10_fairness", "total_runtime_s"]
             print("\n--- POST-MIDTERM STUDY A (MULTI-SEED K SWEEP) SUMMARY TABLE ---")
             print(df_a[[c for c in cols_a if c in df_a.columns]].to_string(index=False))
+
+    if args.idea == "postmid_baselines":
+        print("\n" + "#" * 75)
+        print("# EXECUTING POST-MIDTERM P1: ROBUST BASELINES (MULTIKRUM, MEDIAN, TRIMMED_MEAN)")
+        print("#" * 75)
+        df_c_base = runner.run_postmid_attacks(
+            methods=["multikrum", "median"],
+            attacks=["alie", "ipm", "sign_flip", "adaptive_cosine", "delayed_onset"],
+            byzantine_rates=[0.2, 0.3],
+            seeds=seeds_list,
+            output_filename=f"{args.dataset}_postmid_attacks_baselines.csv",
+        )
+        if not df_c_base.empty:
+            print("\n--- P1 STUDY C BASELINES SUMMARY ---")
+            print(df_c_base[["method", "attack_type", "byzantine_rate", "seed", "final_test_acc", "bottom_10_fairness"]].to_string(index=False))
+
+        df_b_base = runner.run_postmid_majority_q(
+            byzantine_rates=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+            attacks=["sign_flip", "alie"],
+            methods=["multikrum", "trimmed_mean"],
+            seeds=[42, 123],
+            output_filename=f"{args.dataset}_postmid_majority_q_baselines.csv",
+        )
+        if not df_b_base.empty:
+            print("\n--- P1 STUDY B BASELINES SUMMARY ---")
+            print(df_b_base[["method", "attack_type", "byzantine_rate", "seed", "final_test_acc", "bottom_10_fairness"]].to_string(index=False))
+
+    if args.idea == "postmid_k_attack":
+        print("\n" + "#" * 75)
+        print("# EXECUTING POST-MIDTERM P2: K-SENSITIVITY UNDER ALIE ATTACK (10N / 15N / 20N)")
+        print("#" * 75)
+        df_ka = runner.run_postmid_k_attack_sensitivity(
+            client_k_grid={10: [2, 3], 15: [2, 3, 4], 20: [4, 5]},
+            attack_type="alie",
+            byzantine_rate=0.2,
+            seeds=[42, 123],
+            alpha=args.alpha,
+        )
+        if not df_ka.empty:
+            print("\n--- P2 K-SENSITIVITY UNDER ATTACK SUMMARY ---")
+            print(df_ka[["num_clients", "num_clusters", "k_over_n_pct", "seed", "final_test_acc", "bottom_10_fairness"]].to_string(index=False))
+
+    if args.idea == "postmid_seed7":
+        print("\n" + "#" * 75)
+        print("# EXECUTING POST-MIDTERM P3: STUDY B SEED=7 PHASE TRANSITION (q=0.3, 0.4)")
+        print("#" * 75)
+        df_s7 = runner.run_postmid_majority_q(
+            byzantine_rates=[0.3, 0.4],
+            attacks=["sign_flip", "alie"],
+            methods=["fedhep", "fedavg", "ditto"],
+            seeds=[7],
+            output_filename=f"{args.dataset}_postmid_majority_q_seed7.csv",
+        )
+        if not df_s7.empty:
+            print("\n--- P3 STUDY B SEED=7 SUMMARY ---")
+            print(df_s7[["method", "attack_type", "byzantine_rate", "seed", "final_test_acc", "bottom_10_fairness"]].to_string(index=False))
 
     print("\n" + "=" * 75)
     print(">> BENCHMARK COMPLETED SUCCESSFULLY! All results saved to:", args.output_dir)

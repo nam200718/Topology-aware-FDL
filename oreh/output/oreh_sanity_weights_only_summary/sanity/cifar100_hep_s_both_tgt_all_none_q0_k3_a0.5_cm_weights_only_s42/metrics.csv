@@ -1,0 +1,4 @@
+round,test_accuracy,test_loss,participating_clients,total_clients_targeted,evaluated,honest_trust_score,ensemble_test_accuracy,ensemble_test_loss,personalized_test_acc,bottom10_fairness,bottom_10_acc,per_client_accuracy
+1,1.0,4.60226171875,15,15,True,0.9653746062275023,2.0,6.234571567535401,2.0,,,
+2,1.8,4.598751953125,15,15,True,0.9512115055013588,1.2,4.701381065368652,1.2,,,
+3,1.6,4.5884462890625,15,15,True,0.9431494434640033,1.6,4.552925537109375,1.6,0.0,0.0,"{'0': 1.8692, '1': 0.9346, '2': 2.1978, '3': 1.9231, '4': 2.6316, '5': 0.0, '6': 0.0, '7': 0.0, '8': 0.0, '9': 0.0, '10': 0.0, '11': 0.0, '12': 0.0, '13': 11.1111, '14': 0.0}"

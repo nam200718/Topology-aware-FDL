@@ -12,7 +12,7 @@ from oreh.attacks import (
 from oreh.updater import OrehLocalUpdater
 from oreh.clustering_utils import model_to_vector, compute_weight_indices
 from oreh.engine import OrehDefendedEngine, OrehCentralizedEngine
-from oreh.comparison_runner import OrehComparisonRunner
+from oreh.comparison_runner import OrehComparisonRunner, CoordinateMedianAggregator
 
 __all__ = [
     "compute_alie_z_max",
@@ -25,4 +25,5 @@ __all__ = [
     "OrehDefendedEngine",
     "OrehCentralizedEngine",
     "OrehComparisonRunner",
+    "CoordinateMedianAggregator",
 ]

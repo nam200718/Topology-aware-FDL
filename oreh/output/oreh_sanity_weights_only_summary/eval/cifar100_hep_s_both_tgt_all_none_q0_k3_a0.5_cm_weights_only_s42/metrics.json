@@ -1,0 +1,231 @@
+[
+    {
+        "round": 1,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 2,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 3,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 4,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 5,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 6,
+        "test_accuracy": 17.6,
+        "test_loss": 3.398835693359375,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "honest_trust_score": 0.9604208447923548,
+        "ensemble_test_accuracy": 22.0,
+        "ensemble_test_loss": 3.497701334635417,
+        "personalized_test_acc": 22.0
+    },
+    {
+        "round": 7,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 8,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 9,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 10,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 11,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 12,
+        "test_accuracy": 29.4,
+        "test_loss": 2.7740848795572917,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "honest_trust_score": 0.9473410778143541,
+        "ensemble_test_accuracy": 31.3,
+        "ensemble_test_loss": 2.947770243326823,
+        "personalized_test_acc": 31.3
+    },
+    {
+        "round": 13,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 14,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 15,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 16,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 17,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 18,
+        "test_accuracy": 36.2,
+        "test_loss": 2.4813380533854166,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "honest_trust_score": 0.9376019478010945,
+        "ensemble_test_accuracy": 37.833333333333336,
+        "ensemble_test_loss": 2.6191873474121095,
+        "personalized_test_acc": 37.833333333333336
+    },
+    {
+        "round": 19,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 20,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 21,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 22,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 23,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 24,
+        "test_accuracy": 40.56666666666667,
+        "test_loss": 2.3133349609375,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "honest_trust_score": 0.9309149462203337,
+        "ensemble_test_accuracy": 43.3,
+        "ensemble_test_loss": 2.3428050384521484,
+        "personalized_test_acc": 43.3
+    },
+    {
+        "round": 25,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 26,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 27,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 28,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 29,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": false
+    },
+    {
+        "round": 30,
+        "test_accuracy": 41.8,
+        "test_loss": 2.287515787760417,
+        "participating_clients": 15,
+        "total_clients_targeted": 15,
+        "evaluated": true,
+        "honest_trust_score": 0.912348325209699,
+        "ensemble_test_accuracy": 46.7,
+        "ensemble_test_loss": 2.195787582397461,
+        "personalized_test_acc": 46.7,
+        "bottom10_fairness": 36.2094056372549,
+        "bottom_10_acc": 36.2094056372549,
+        "per_client_accuracy": {
+            "0": 33.2031,
+            "1": 46.748,
+            "2": 39.2157,
+            "3": 50.6276,
+            "4": 39.527,
+            "5": 47.1111,
+            "6": 49.5455,
+            "7": 45.625,
+            "8": 57.4468,
+            "9": 56.7376,
+            "10": 43.9791,
+            "11": 56.0284,
+            "12": 51.6556,
+            "13": 49.4118,
+            "14": 51.2397
+        }
+    }
+]

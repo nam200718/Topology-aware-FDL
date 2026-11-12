@@ -1,0 +1,3 @@
+dataset,method,defense_scope,attack_target_tier,attack_type,byzantine_rate,num_clusters,alpha,seed,clustering_mode,clustering_events,exp_name,final_test_acc,bottom_10_fairness,tier1_latency_ms,tier2_latency_ms,total_defense_latency_ms,byzantine_trust_score,honest_trust_score,total_runtime_s
+cifar100,Defended FedHEP (weights_only),both,all,none,0.0,3,0.5,42,weights_only,1,cifar100_hep_s_both_tgt_all_none_q0_k3_a0.5_cm_weights_only_s42,46.7,36.21,24.78,21.38,46.16,0.0,0.9166,298.7
+cifar100,Defended FedHEP (full_state),both,all,none,0.0,3,0.5,42,full_state,1,cifar100_hep_s_both_tgt_all_none_q0_k3_a0.5_cm_full_state_s42,47.5,36.02,24.63,21.15,45.78,0.0,0.9391,293.76
